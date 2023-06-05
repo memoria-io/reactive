@@ -1,0 +1,4 @@
+-------------------------------------------------------------------------------
+Test set: io.memoria.reactive.etcd.EtcdKVStoreTest
+-------------------------------------------------------------------------------
+Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 4.958 s - in io.memoria.reactive.etcd.EtcdKVStoreTest

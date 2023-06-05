@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="core" />
+        <module name="nats" />
+        <module name="eventsourcing" />
+        <module name="web" />
+        <module name="etcd" />
+        <module name="kafka" />
+      </profile>
+    </annotationProcessing>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="core" options="--enable-preview -Xlint:cast -Xlint:classfile -Xlint:deprecation -Xlint:divzero -Xlint:fallthrough -Xlint:finally -Xlint:options -Xlint:overrides -Xlint:path -Xlint:rawtypes -Xlint:static -Xlint:try -Xlint:unchecked -Xlint:varargs -Xlint:-processing" />
+      <module name="etcd" options="--enable-preview -Xlint:cast -Xlint:classfile -Xlint:deprecation -Xlint:divzero -Xlint:fallthrough -Xlint:finally -Xlint:options -Xlint:overrides -Xlint:path -Xlint:rawtypes -Xlint:static -Xlint:try -Xlint:unchecked -Xlint:varargs -Xlint:-processing" />
+      <module name="eventsourcing" options="--enable-preview -Xlint:cast -Xlint:classfile -Xlint:deprecation -Xlint:divzero -Xlint:fallthrough -Xlint:finally -Xlint:options -Xlint:overrides -Xlint:path -Xlint:rawtypes -Xlint:static -Xlint:try -Xlint:unchecked -Xlint:varargs -Xlint:-processing" />
+      <module name="kafka" options="--enable-preview -Xlint:cast -Xlint:classfile -Xlint:deprecation -Xlint:divzero -Xlint:fallthrough -Xlint:finally -Xlint:options -Xlint:overrides -Xlint:path -Xlint:rawtypes -Xlint:static -Xlint:try -Xlint:unchecked -Xlint:varargs -Xlint:-processing" />
+      <module name="nats" options="--enable-preview -Xlint:cast -Xlint:classfile -Xlint:deprecation -Xlint:divzero -Xlint:fallthrough -Xlint:finally -Xlint:options -Xlint:overrides -Xlint:path -Xlint:rawtypes -Xlint:static -Xlint:try -Xlint:unchecked -Xlint:varargs -Xlint:-processing" />
+      <module name="reactive" options="--enable-preview -Xlint:cast -Xlint:classfile -Xlint:deprecation -Xlint:divzero -Xlint:fallthrough -Xlint:finally -Xlint:options -Xlint:overrides -Xlint:path -Xlint:rawtypes -Xlint:static -Xlint:try -Xlint:unchecked -Xlint:varargs -Xlint:-processing" />
+      <module name="web" options="--enable-preview -Xlint:cast -Xlint:classfile -Xlint:deprecation -Xlint:divzero -Xlint:fallthrough -Xlint:finally -Xlint:options -Xlint:overrides -Xlint:path -Xlint:rawtypes -Xlint:static -Xlint:try -Xlint:unchecked -Xlint:varargs -Xlint:-processing" />
+    </option>
+  </component>
+</project>

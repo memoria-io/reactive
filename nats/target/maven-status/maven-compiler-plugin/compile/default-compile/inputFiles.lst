@@ -1,0 +1,5 @@
+/home/heisenberg/git/public/reactive/nats/src/main/java/io/memoria/reactive/nats/eventsourcing/TopicConfig.java
+/home/heisenberg/git/public/reactive/nats/src/main/java/io/memoria/reactive/nats/eventsourcing/DefaultNatsESMsgStream.java
+/home/heisenberg/git/public/reactive/nats/src/main/java/io/memoria/reactive/nats/eventsourcing/NatsUtils.java
+/home/heisenberg/git/public/reactive/nats/src/main/java/io/memoria/reactive/nats/eventsourcing/NatsConfig.java
+/home/heisenberg/git/public/reactive/nats/src/main/java/io/memoria/reactive/nats/eventsourcing/NatsESMsgStream.java

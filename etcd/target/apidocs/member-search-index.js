@@ -1,0 +1,1 @@
+memberSearchIndex = [{"p":"io.memoria.reactive.etcd","c":"EtcdKVStore","l":"EtcdKVStore(Client)","u":"%3Cinit%3E(io.etcd.jetcd.Client)"},{"p":"io.memoria.reactive.etcd","c":"EtcdKVStore","l":"get(String)","u":"get(java.lang.String)"},{"p":"io.memoria.reactive.etcd","c":"EtcdKVStore","l":"set(String, String)","u":"set(java.lang.String,java.lang.String)"}];updateSearchResults();

@@ -1,0 +1,4 @@
+io/memoria/reactive/core/stream/MemESMsgStreamTest.class
+io/memoria/reactive/core/repo/MemKVStoreTest.class
+io/memoria/reactive/core/vavr/ReactorVavrUtilsTest.class
+io/memoria/reactive/core/file/FileOpsTest.class

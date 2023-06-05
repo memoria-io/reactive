@@ -1,0 +1,13 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+io.memoria.reactive.eventsourcing,io.memoria.reactive.eventsourcing.stream,EventStreamImpl,0,75,0,0,0,11,0,9,0,9
+io.memoria.reactive.eventsourcing,io.memoria.reactive.eventsourcing.stream,CommandStreamImpl,0,75,0,0,0,11,0,9,0,9
+io.memoria.reactive.eventsourcing,io.memoria.reactive.eventsourcing.stream,EventStream,13,7,0,0,1,1,2,1,2,1
+io.memoria.reactive.eventsourcing,io.memoria.reactive.eventsourcing.stream,CommandStream,0,7,0,0,0,1,0,1,0,1
+io.memoria.reactive.eventsourcing,io.memoria.reactive.eventsourcing.pipeline,CommandPipeline,29,339,2,10,2,59,5,26,3,22
+io.memoria.reactive.eventsourcing,io.memoria.reactive.eventsourcing.pipeline,PipelineRoute,48,35,7,7,7,5,8,1,1,1
+io.memoria.reactive.eventsourcing,io.memoria.reactive.eventsourcing.rule,Evolver,42,109,0,2,6,20,4,11,4,10
+io.memoria.reactive.eventsourcing,io.memoria.reactive.eventsourcing.exception,ESException.MismatchingStateId,24,0,0,0,4,0,2,0,2,0
+io.memoria.reactive.eventsourcing,io.memoria.reactive.eventsourcing.exception,ESException.InvalidEvent,42,0,0,0,6,0,3,0,3,0
+io.memoria.reactive.eventsourcing,io.memoria.reactive.eventsourcing.exception,ESException.InvalidCommand,42,0,0,0,7,0,3,0,3,0
+io.memoria.reactive.eventsourcing,io.memoria.reactive.eventsourcing,Domain,34,21,0,0,3,1,3,1,3,1
+io.memoria.reactive.eventsourcing,io.memoria.reactive.eventsourcing,Shardable,3,25,2,2,0,4,2,3,0,3

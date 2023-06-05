@@ -1,0 +1,68 @@
+@options
+@packages
+-classpath
+'/home/heisenberg/git/public/reactive/core/target/core-20.12.0.jar:/home/heisenberg/.m2/repository/io/memoria/atom/core/20.11.0/core-20.11.0.jar:/home/heisenberg/.m2/repository/io/vavr/vavr/0.10.4/vavr-0.10.4.jar:/home/heisenberg/.m2/repository/io/vavr/vavr-match/0.10.4/vavr-match-0.10.4.jar:/home/heisenberg/.m2/repository/com/github/f4b6a3/uuid-creator/5.2.0/uuid-creator-5.2.0.jar:/home/heisenberg/.m2/repository/io/projectreactor/reactor-core/3.5.4/reactor-core-3.5.4.jar:/home/heisenberg/.m2/repository/org/reactivestreams/reactive-streams/1.0.4/reactive-streams-1.0.4.jar:/home/heisenberg/.m2/repository/org/apache/logging/log4j/log4j-api/2.20.0/log4j-api-2.20.0.jar:/home/heisenberg/.m2/repository/org/apache/logging/log4j/log4j-core/2.20.0/log4j-core-2.20.0.jar:/home/heisenberg/.m2/repository/org/apache/logging/log4j/log4j-slf4j2-impl/2.20.0/log4j-slf4j2-impl-2.20.0.jar:/home/heisenberg/.m2/repository/org/slf4j/slf4j-api/2.0.6/slf4j-api-2.0.6.jar'
+-encoding
+'UTF-8'
+-protected
+--release
+20
+-sourcepath
+'/home/heisenberg/git/public/reactive/eventsourcing/src/main/java:/home/heisenberg/git/public/reactive/eventsourcing/target/generated-sources/annotations'
+--enable-preview
+-author
+-bottom
+'Copyright &#169; 2023 <a href="https://memoria.io">memoria.io</a>. All rights reserved.'
+-charset
+'UTF-8'
+-d
+'/home/heisenberg/git/public/reactive/eventsourcing/target/apidocs'
+-docencoding
+'UTF-8'
+-Xdoclint:all,-missing
+-doctitle
+'io.memoria.reactive.eventsourcing 20.12.0 API'
+-linkoffline
+'https://memoria.io/core/apidocs' '/home/heisenberg/git/public/reactive/core/target/apidocs'
+-use
+-version
+-windowtitle
+'io.memoria.reactive.eventsourcing 20.12.0 API'
+io.memoria.reactive.eventsourcing
+io.memoria.reactive.eventsourcing.pipeline
+io.memoria.reactive.eventsourcing.stream
+io.memoria.reactive.eventsourcing.exception
+io.memoria.reactive.eventsourcing.rule
+/home/heisenberg/git/public/reactive/core/target/core-20.12.0.jar = 1685996434512
+/home/heisenberg/.m2/repository/io/memoria/atom/core/20.11.0/core-20.11.0.jar = 1685990215174
+/home/heisenberg/.m2/repository/io/vavr/vavr/0.10.4/vavr-0.10.4.jar = 1672867134592
+/home/heisenberg/.m2/repository/io/vavr/vavr-match/0.10.4/vavr-match-0.10.4.jar = 1672867132316
+/home/heisenberg/.m2/repository/com/github/f4b6a3/uuid-creator/5.2.0/uuid-creator-5.2.0.jar = 1681650672102
+/home/heisenberg/.m2/repository/io/projectreactor/reactor-core/3.5.4/reactor-core-3.5.4.jar = 1680393776992
+/home/heisenberg/.m2/repository/org/reactivestreams/reactive-streams/1.0.4/reactive-streams-1.0.4.jar = 1672867133036
+/home/heisenberg/.m2/repository/org/apache/logging/log4j/log4j-api/2.20.0/log4j-api-2.20.0.jar = 1678443249496
+/home/heisenberg/.m2/repository/org/apache/logging/log4j/log4j-core/2.20.0/log4j-core-2.20.0.jar = 1678443250072
+/home/heisenberg/.m2/repository/org/apache/logging/log4j/log4j-slf4j2-impl/2.20.0/log4j-slf4j2-impl-2.20.0.jar = 1678443249264
+/home/heisenberg/.m2/repository/org/slf4j/slf4j-api/2.0.6/slf4j-api-2.0.6.jar = 1678443249304
+/home/heisenberg/git/public/reactive/eventsourcing/src/main/java = 1685989301583
+/home/heisenberg/git/public/reactive/eventsourcing/target/generated-sources/annotations = 1685996435872
+/home/heisenberg/git/public/reactive/eventsourcing/target/apidocs/package-search-index.js = 1685996441516
+/home/heisenberg/git/public/reactive/eventsourcing/target/apidocs/search-page.js = 1685996441540
+/home/heisenberg/git/public/reactive/eventsourcing/target/apidocs/type-search-index.js = 1685996441516
+/home/heisenberg/git/public/reactive/eventsourcing/target/apidocs/overview-tree.html = 1685996441500
+/home/heisenberg/git/public/reactive/eventsourcing/target/apidocs/stylesheet.css = 1685996441536
+/home/heisenberg/git/public/reactive/eventsourcing/target/apidocs/script.js = 1685996441536
+/home/heisenberg/git/public/reactive/eventsourcing/target/apidocs/help-doc.html = 1685996441536
+/home/heisenberg/git/public/reactive/eventsourcing/target/apidocs/module-search-index.js = 1685996441516
+/home/heisenberg/git/public/reactive/eventsourcing/target/apidocs/index-all.html = 1685996441532
+/home/heisenberg/git/public/reactive/eventsourcing/target/apidocs/index.html = 1685996441504
+/home/heisenberg/git/public/reactive/eventsourcing/target/apidocs/member-search-index.js = 1685996441516
+/home/heisenberg/git/public/reactive/eventsourcing/target/apidocs/allclasses-index.html = 1685996441516
+/home/heisenberg/git/public/reactive/eventsourcing/target/apidocs/allpackages-index.html = 1685996441516
+/home/heisenberg/git/public/reactive/eventsourcing/target/apidocs/tag-search-index.js = 1685996441516
+/home/heisenberg/git/public/reactive/eventsourcing/target/apidocs/search.html = 1685996441532
+/home/heisenberg/git/public/reactive/eventsourcing/target/apidocs/copy.svg = 1685996441536
+/home/heisenberg/git/public/reactive/eventsourcing/target/apidocs/search.js = 1685996441540
+/home/heisenberg/git/public/reactive/eventsourcing/target/apidocs/serialized-form.html = 1685996441440
+/home/heisenberg/git/public/reactive/eventsourcing/target/apidocs/element-list = 1685996441408
+/home/heisenberg/git/public/reactive/eventsourcing/target/apidocs/overview-summary.html = 1685996441532

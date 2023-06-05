@@ -1,0 +1,173 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://maven.apache.org/POM/4.0.0"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0  http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>io.memoria</groupId>
+        <artifactId>jbom</artifactId>
+        <version>20.1.0</version>
+    </parent>
+
+    <!--suppress MavenRedundantGroupId -->
+    <groupId>io.memoria</groupId>
+    <artifactId>reactive</artifactId>
+    <version>20.12.0</version>
+    <packaging>pom</packaging>
+
+    <name>${project.groupId}.${project.artifactId}</name>
+    <description>Java utilities</description>
+    <url>https://memoria.io</url>
+    <organization>
+        <name>memoria.io</name>
+        <url>https://memoria.io</url>
+    </organization>
+
+    <modules>
+        <module>core</module>
+        <module>eventsourcing</module>
+        <module>etcd</module>
+        <module>kafka</module>
+        <module>nats</module>
+        <module>web</module>
+    </modules>
+
+    <properties>
+        <atom.version>20.11.0</atom.version>
+        <kafka.version>3.4.0</kafka.version>
+        <jsonwebtoken.version>0.11.5</jsonwebtoken.version>
+        <reactor.version>2022.0.5</reactor.version>
+        <sonar.coverage.exclusions>
+            **/*Exception.java
+        </sonar.coverage.exclusions>
+    </properties>
+
+    <distributionManagement>
+        <site>
+            <id>${project.artifactId}-site</id>
+            <url>ftp://memoria.io/</url>
+        </site>
+        <repository>
+            <id>github</id>
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/memoria-io/reactive</url>
+        </repository>
+    </distributionManagement>
+    <repositories>
+        <repository>
+            <id>github</id>
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/memoria-io/*</url>
+            <releases>
+                <enabled>true</enabled>
+            </releases>
+            <snapshots>
+                <enabled>true</enabled>
+            </snapshots>
+        </repository>
+    </repositories>
+
+
+    <dependencyManagement>
+        <dependencies>
+            <!--======================================================================================== -->
+            <!-- Atom Dependencies -->
+            <!--======================================================================================== -->
+            <dependency>
+                <groupId>io.memoria.atom</groupId>
+                <artifactId>core</artifactId>
+                <version>${atom.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.memoria.atom</groupId>
+                <artifactId>sec</artifactId>
+                <version>${atom.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.memoria.atom</groupId>
+                <artifactId>text</artifactId>
+                <version>${atom.version}</version>
+            </dependency>
+
+            <!--======================================================================================== -->
+            <!-- Reactive Dependencies -->
+            <!--======================================================================================== -->
+            <dependency>
+                <groupId>io.projectreactor</groupId>
+                <artifactId>reactor-bom</artifactId>
+                <version>${reactor.version}</version>
+                <scope>import</scope>
+                <type>pom</type>
+            </dependency>
+
+            <!--======================================================================================== -->
+            <!-- kafka Dependencies -->
+            <!--======================================================================================== -->
+            <dependency>
+                <groupId>org.apache.kafka</groupId>
+                <artifactId>kafka-clients</artifactId>
+                <version>${kafka.version}</version>
+            </dependency>
+            <!-- ===============================================================   -->
+            <!-- Nats Dependencies                                                 -->
+            <!-- ===============================================================   -->
+            <dependency>
+                <groupId>io.nats</groupId>
+                <artifactId>jnats</artifactId>
+                <version>2.16.9</version>
+            </dependency>
+            <!-- ===============================================================   -->
+            <!-- etcd Dependencies                                                 -->
+            <!-- ===============================================================   -->
+            <dependency>
+                <groupId>io.etcd</groupId>
+                <artifactId>jetcd-core</artifactId>
+                <version>0.7.5</version>
+            </dependency>
+
+        </dependencies>
+    </dependencyManagement>
+    <dependencies>
+        <!--======================================================================================== -->
+        <!-- Atom Dependencies -->
+        <!--======================================================================================== -->
+        <dependency>
+            <groupId>io.memoria.atom</groupId>
+            <artifactId>core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.projectreactor</groupId>
+            <artifactId>reactor-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.projectreactor</groupId>
+            <artifactId>reactor-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!--        &lt;!&ndash;======================================================================================== &ndash;&gt;-->
+        <!--        &lt;!&ndash; Atom Dependencies &ndash;&gt;-->
+        <!--        &lt;!&ndash;======================================================================================== &ndash;&gt;-->
+        <!--        <dependency>-->
+        <!--            <groupId>io.vavr</groupId>-->
+        <!--            <artifactId>vavr</artifactId>-->
+        <!--        </dependency>-->
+        <!--        <dependency>-->
+        <!--            <groupId>com.github.f4b6a3</groupId>-->
+        <!--            <artifactId>uuid-creator</artifactId>-->
+        <!--        </dependency>-->
+        <!--======================================================================================== -->
+        <!-- Testing Dependencies -->
+        <!--======================================================================================== -->
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+    </dependencies>
+</project>

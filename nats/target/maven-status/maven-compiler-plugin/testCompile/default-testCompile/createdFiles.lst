@@ -1,0 +1,4 @@
+io/memoria/reactive/nats/eventsourcing/NatsUtilsTest.class
+io/memoria/reactive/nats/eventsourcing/TopicConfigTest.class
+io/memoria/reactive/nats/eventsourcing/TestUtils.class
+io/memoria/reactive/nats/eventsourcing/DefaultNatsESMsgStreamTest.class

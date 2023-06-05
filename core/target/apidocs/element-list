@@ -1,0 +1,4 @@
+io.memoria.reactive.core.file
+io.memoria.reactive.core.repo
+io.memoria.reactive.core.stream
+io.memoria.reactive.core.vavr

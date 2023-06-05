@@ -1,0 +1,3 @@
+io/memoria/reactive/kafka/eventsourcing/KafkaESMsgStream.class
+io/memoria/reactive/kafka/eventsourcing/KafkaUtils.class
+io/memoria/reactive/kafka/eventsourcing/DefaultKafkaESMsgStream.class

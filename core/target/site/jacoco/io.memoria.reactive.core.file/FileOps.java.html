@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>FileOps.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">io.memoria.reactive.core</a> &gt; <a href="index.source.html" class="el_package">io.memoria.reactive.core.file</a> &gt; <span class="el_source">FileOps.java</span></div><h1>FileOps.java</h1><pre class="source lang-java linenums">package io.memoria.reactive.core.file;
+
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import java.nio.file.Files;
+import java.nio.file.NoSuchFileException;
+import java.nio.file.Path;
+import java.util.stream.Stream;
+
+import static java.nio.file.StandardOpenOption.CREATE_NEW;
+
+public class FileOps {
+
+  private FileOps() {}
+
+  public static Mono&lt;Path&gt; createDir(Path path) {
+<span class="fc" id="L18">    return Mono.fromCallable(() -&gt; path.toFile().mkdirs()).thenReturn(path);</span>
+  }
+
+  public static Flux&lt;Path&gt; deleteDir(Path path) {
+<span class="fc" id="L22">    return deleteDirFiles(path).concatWith(listDir(path).concatMap(FileOps::deleteDir))</span>
+<span class="fc" id="L23">                               .concatWith(FileOps.deleteFile(path));</span>
+  }
+
+  public static Flux&lt;Path&gt; deleteDirFiles(Path path) {
+<span class="fc" id="L27">    return list(path).flatMap(FileOps::deleteFile);</span>
+  }
+
+  public static Mono&lt;Path&gt; deleteFile(Path path) {
+<span class="fc" id="L31">    return Mono.fromCallable(() -&gt; Files.deleteIfExists(path)).thenReturn(path);</span>
+  }
+
+  public static Mono&lt;Path&gt; lastModified(Path path) {
+<span class="fc" id="L35">    return list(path).reduce(FileOps::lastModified);</span>
+  }
+
+  public static Flux&lt;Path&gt; list(Path path) {
+<span class="fc bfc" id="L39" title="All 2 branches covered.">    return listAll(path).filter(f -&gt; !Files.isDirectory(f)).sort();</span>
+  }
+
+  public static Flux&lt;Path&gt; listDir(Path path) {
+<span class="fc" id="L43">    return listAll(path).filter(Files::isDirectory).sort();</span>
+  }
+
+  public static Mono&lt;String&gt; read(Path path) {
+<span class="fc" id="L47">    return Mono.fromCallable(() -&gt; Files.readString(path));</span>
+  }
+
+  public static Flux&lt;String&gt; readLines(Path path) {
+<span class="fc" id="L51">    return Mono.fromCallable(() -&gt; Files.lines(path)).flatMapMany(Flux::fromStream);</span>
+  }
+
+  public static Mono&lt;Path&gt; rewrite(Path path, String content) {
+<span class="fc" id="L55">    return Mono.fromCallable(() -&gt; {</span>
+<span class="fc" id="L56">      Files.createDirectories(path.getParent());</span>
+<span class="fc" id="L57">      return Files.writeString(path, content);</span>
+<span class="fc" id="L58">    }).thenReturn(path);</span>
+  }
+
+  public static Mono&lt;Path&gt; write(Path path, String content) {
+<span class="fc" id="L62">    return Mono.fromCallable(() -&gt; {</span>
+<span class="fc" id="L63">      Files.createDirectories(path.getParent());</span>
+<span class="fc" id="L64">      return Files.writeString(path, content, CREATE_NEW);</span>
+<span class="fc" id="L65">    }).thenReturn(path);</span>
+  }
+
+  private static Path lastModified(Path p1, Path p2) {
+<span class="pc bpc" id="L69" title="1 of 2 branches missed.">    return (p1.toFile().lastModified() &gt; p2.toFile().lastModified()) ? p1 : p2;</span>
+  }
+
+  private static Flux&lt;Path&gt; listAll(Path path) {
+<span class="fc" id="L73">    return Mono.fromCallable(() -&gt; Files.list(path))</span>
+<span class="fc" id="L74">               .onErrorResume(NoSuchFileException.class, a -&gt; Mono.just(Stream.empty()))</span>
+<span class="fc" id="L75">               .flatMapMany(Flux::fromStream);</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.9.202303310957</span></div></body></html>

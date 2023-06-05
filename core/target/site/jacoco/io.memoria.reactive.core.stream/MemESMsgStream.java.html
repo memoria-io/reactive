@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>MemESMsgStream.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">io.memoria.reactive.core</a> &gt; <a href="index.source.html" class="el_package">io.memoria.reactive.core.stream</a> &gt; <span class="el_source">MemESMsgStream.java</span></div><h1>MemESMsgStream.java</h1><pre class="source lang-java linenums">package io.memoria.reactive.core.stream;
+
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.publisher.Sinks;
+import reactor.core.publisher.Sinks.Many;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+public final class MemESMsgStream implements ESMsgStream {
+  private final int historySize;
+<span class="fc" id="L13">  private final Map&lt;String, Map&lt;Integer, Many&lt;ESMsg&gt;&gt;&gt; topics = new ConcurrentHashMap&lt;&gt;();</span>
+
+  public MemESMsgStream() {
+<span class="fc" id="L16">    this(Integer.MAX_VALUE);</span>
+<span class="fc" id="L17">  }</span>
+
+<span class="fc" id="L19">  public MemESMsgStream(int historySize) {</span>
+<span class="fc" id="L20">    this.historySize = historySize;</span>
+<span class="fc" id="L21">  }</span>
+
+  @Override
+  public Mono&lt;ESMsg&gt; pub(ESMsg msg) {
+<span class="fc" id="L25">    return Mono.fromCallable(() -&gt; addPartitionSink(msg.topic(), msg.partition()))</span>
+<span class="fc" id="L26">               .flatMap(k -&gt; Mono.fromCallable(() -&gt; this.publishFn(msg)));</span>
+  }
+
+  @Override
+  public Flux&lt;ESMsg&gt; sub(String topic, int partition) {
+<span class="fc" id="L31">    return Mono.fromCallable(() -&gt; addPartitionSink(topic, partition))</span>
+<span class="fc" id="L32">               .flatMapMany(i -&gt; this.topics.get(topic).get(partition).asFlux());</span>
+  }
+
+  private int addPartitionSink(String topic, int partition) {
+<span class="fc" id="L36">    this.topics.computeIfAbsent(topic, x -&gt; new ConcurrentHashMap&lt;&gt;());</span>
+<span class="fc" id="L37">    this.topics.computeIfPresent(topic, (k, v) -&gt; {</span>
+<span class="fc" id="L38">      var sink = Sinks.many().replay().&lt;ESMsg&gt;limit(historySize);</span>
+<span class="fc" id="L39">      v.computeIfAbsent(partition, x -&gt; sink);</span>
+<span class="fc" id="L40">      return v;</span>
+    });
+<span class="fc" id="L42">    return partition;</span>
+  }
+
+  private ESMsg publishFn(ESMsg msg) {
+<span class="fc" id="L46">    String topic = msg.topic();</span>
+<span class="fc" id="L47">    int partition = msg.partition();</span>
+<span class="fc" id="L48">    this.topics.get(topic).get(partition).tryEmitNext(msg);</span>
+<span class="fc" id="L49">    return msg;</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.9.202303310957</span></div></body></html>

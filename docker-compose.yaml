@@ -1,0 +1,22 @@
+version: "3.3"
+services:
+  etcd:
+    image: bitnami/etcd:3.5.8
+    environment:
+      - ALLOW_NONE_AUTHENTICATION=yes
+      - ETCD_ADVERTISE_CLIENT_URLS=http://etcd:2379
+    ports:
+      - 2379:2379
+      - 2380:2380
+  kafka:
+    image: memoriaio/kafka-docker:19.0.1
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+  nats:
+    image: nats:2.7.4
+    ports:
+      - "4222:4222"
+      - "6222:6222"
+      - "8222:8222"
+    command: --jetstream -m 8222 --store_dir /tmp/nats

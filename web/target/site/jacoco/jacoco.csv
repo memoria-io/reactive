@@ -1,0 +1,9 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+io.memoria.reactive.web,io.memoria.reactive.web,DefaultResponse,0,9,0,0,0,1,0,1,0,1
+io.memoria.reactive.web,io.memoria.reactive.web,Response,0,6,0,0,0,1,0,1,0,1
+io.memoria.reactive.web,io.memoria.reactive.web,HttpUtils,14,51,0,4,1,10,2,4,2,2
+io.memoria.reactive.web,io.memoria.reactive.web,NettyAuthUtils,0,24,0,0,0,3,0,3,0,3
+io.memoria.reactive.web,io.memoria.reactive.web,HealthController,0,71,0,0,0,9,0,8,0,8
+io.memoria.reactive.web,io.memoria.reactive.web,NettyClientUtils,0,53,0,0,0,11,0,6,0,6
+io.memoria.reactive.web,io.memoria.reactive.web,NettyServerUtils,12,22,0,0,1,5,1,3,1,3
+io.memoria.reactive.web,io.memoria.reactive.web,VarzController,12,0,0,0,2,0,2,0,2,0

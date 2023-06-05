@@ -1,0 +1,4 @@
+/home/heisenberg/git/public/reactive/core/src/test/java/io/memoria/reactive/core/repo/MemKVStoreTest.java
+/home/heisenberg/git/public/reactive/core/src/test/java/io/memoria/reactive/core/vavr/ReactorVavrUtilsTest.java
+/home/heisenberg/git/public/reactive/core/src/test/java/io/memoria/reactive/core/stream/MemESMsgStreamTest.java
+/home/heisenberg/git/public/reactive/core/src/test/java/io/memoria/reactive/core/file/FileOpsTest.java

@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>ESException.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">io.memoria.reactive.eventsourcing</a> &gt; <a href="index.source.html" class="el_package">io.memoria.reactive.eventsourcing.exception</a> &gt; <span class="el_source">ESException.java</span></div><h1>ESException.java</h1><pre class="source lang-java linenums">package io.memoria.reactive.eventsourcing.exception;
+
+import io.memoria.atom.core.id.Id;
+import io.memoria.reactive.eventsourcing.Command;
+import io.memoria.reactive.eventsourcing.Event;
+import io.memoria.reactive.eventsourcing.State;
+
+public interface ESException {
+  class InvalidCommand extends IllegalArgumentException implements ESException {
+    private InvalidCommand(String msg) {
+<span class="nc" id="L11">      super(msg);</span>
+<span class="nc" id="L12">    }</span>
+
+    public static InvalidCommand of(Command command) {
+<span class="nc" id="L15">      var msg = &quot;Invalid initializer command (%s)&quot;.formatted(command.getClass().getSimpleName());</span>
+<span class="nc" id="L16">      return new InvalidCommand(msg);</span>
+    }
+
+    public static InvalidCommand of(State state, Command command) {
+<span class="nc" id="L20">      var msg = &quot;Invalid command (%s) for the state (%s)&quot;.formatted(command.getClass().getSimpleName(),</span>
+<span class="nc" id="L21">                                                                    state.getClass().getSimpleName());</span>
+<span class="nc" id="L22">      return new InvalidCommand(msg);</span>
+    }
+  }
+
+  class InvalidEvent extends IllegalArgumentException implements ESException {
+
+    private InvalidEvent(String msg) {
+<span class="nc" id="L29">      super(msg);</span>
+<span class="nc" id="L30">    }</span>
+
+    public static InvalidEvent of(Event event) {
+<span class="nc" id="L33">      var msg = &quot;Invalid creator event:%s for creating state, this should never happen&quot;;</span>
+<span class="nc" id="L34">      return new InvalidEvent(msg.formatted(event.getClass().getSimpleName()));</span>
+    }
+
+    public static InvalidEvent of(State state, Event event) {
+<span class="nc" id="L38">      var msg = &quot;Invalid evolution of: %s on current state: %s, this should never happen&quot;;</span>
+<span class="nc" id="L39">      return new InvalidEvent(msg.formatted(state.getClass().getSimpleName(), event.getClass().getSimpleName()));</span>
+    }
+  }
+
+  class MismatchingStateId extends Exception implements ESException {
+    private MismatchingStateId(String msg) {
+<span class="nc" id="L45">      super(msg);</span>
+<span class="nc" id="L46">    }</span>
+
+    public static MismatchingStateId of(Id stateId, Id cmdStateId) {
+<span class="nc" id="L49">      var msg = &quot;The Command's stateId:%s doesn't match stream stateId:%s&quot;;</span>
+<span class="nc" id="L50">      return new MismatchingStateId(msg.formatted(cmdStateId.value(), stateId.value()));</span>
+    }
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.9.202303310957</span></div></body></html>

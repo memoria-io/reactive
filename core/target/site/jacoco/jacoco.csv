@@ -1,0 +1,8 @@
+GROUP,PACKAGE,CLASS,INSTRUCTION_MISSED,INSTRUCTION_COVERED,BRANCH_MISSED,BRANCH_COVERED,LINE_MISSED,LINE_COVERED,COMPLEXITY_MISSED,COMPLEXITY_COVERED,METHOD_MISSED,METHOD_COVERED
+io.memoria.reactive.core,io.memoria.reactive.core.file,FileOps,2,151,1,3,0,22,1,24,0,23
+io.memoria.reactive.core,io.memoria.reactive.core.repo,MemKVStore,8,48,0,0,3,8,2,6,2,6
+io.memoria.reactive.core,io.memoria.reactive.core.repo,KVStore,5,4,0,0,1,1,1,1,1,1
+io.memoria.reactive.core,io.memoria.reactive.core.stream,ESMsg,0,15,0,0,0,1,0,1,0,1
+io.memoria.reactive.core,io.memoria.reactive.core.stream,ESMsgStream,9,0,0,0,2,0,2,0,2,0
+io.memoria.reactive.core,io.memoria.reactive.core.stream,MemESMsgStream,0,126,0,0,0,20,0,14,0,14
+io.memoria.reactive.core,io.memoria.reactive.core.vavr,ReactorVavrUtils,20,123,3,11,1,12,5,21,3,16

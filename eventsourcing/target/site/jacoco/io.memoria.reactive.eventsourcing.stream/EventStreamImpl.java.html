@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>EventStreamImpl.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">io.memoria.reactive.eventsourcing</a> &gt; <a href="index.source.html" class="el_package">io.memoria.reactive.eventsourcing.stream</a> &gt; <span class="el_source">EventStreamImpl.java</span></div><h1>EventStreamImpl.java</h1><pre class="source lang-java linenums">package io.memoria.reactive.eventsourcing.stream;
+
+import io.memoria.atom.core.text.TextTransformer;
+import io.memoria.reactive.core.stream.ESMsg;
+import io.memoria.reactive.core.stream.ESMsgStream;
+import io.memoria.reactive.core.vavr.ReactorVavrUtils;
+import io.memoria.reactive.eventsourcing.Event;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+class EventStreamImpl&lt;E extends Event&gt; implements EventStream&lt;E&gt; {
+  private final ESMsgStream esMsgStream;
+  private final TextTransformer transformer;
+  private final Class&lt;E&gt; cClass;
+
+<span class="fc" id="L16">  EventStreamImpl(ESMsgStream esMsgStream, TextTransformer transformer, Class&lt;E&gt; cClass) {</span>
+<span class="fc" id="L17">    this.esMsgStream = esMsgStream;</span>
+<span class="fc" id="L18">    this.transformer = transformer;</span>
+<span class="fc" id="L19">    this.cClass = cClass;</span>
+<span class="fc" id="L20">  }</span>
+
+  public Mono&lt;E&gt; pub(String topic, int partition, E e) {
+<span class="fc" id="L23">    return ReactorVavrUtils.tryToMono(() -&gt; transformer.serialize(e))</span>
+<span class="fc" id="L24">                           .flatMap(cStr -&gt; pubMsg(topic, partition, e, cStr))</span>
+<span class="fc" id="L25">                           .map(id -&gt; e);</span>
+  }
+
+  public Flux&lt;E&gt; sub(String topic, int partition) {
+<span class="fc" id="L29">    return esMsgStream.sub(topic, partition)</span>
+<span class="fc" id="L30">                      .flatMap(msg -&gt; ReactorVavrUtils.tryToMono(() -&gt; transformer.deserialize(msg.value(), cClass)));</span>
+
+  }
+
+  private Mono&lt;ESMsg&gt; pubMsg(String topic, int partition, E e, String cStr) {
+<span class="fc" id="L35">    return esMsgStream.pub(new ESMsg(topic, partition, e.commandId().value(), cStr));</span>
+  }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.9.202303310957</span></div></body></html>

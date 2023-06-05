@@ -1,0 +1,3 @@
+/home/heisenberg/git/public/reactive/kafka/src/test/java/io/memoria/reactive/kafka/eventsourcing/KafkaUtilsTest.java
+/home/heisenberg/git/public/reactive/kafka/src/test/java/io/memoria/reactive/kafka/eventsourcing/DefaultKafkaESMsgStreamTest.java
+/home/heisenberg/git/public/reactive/kafka/src/test/java/io/memoria/reactive/kafka/eventsourcing/TestUtils.java

@@ -1,0 +1,3 @@
+io/memoria/reactive/kafka/eventsourcing/TestUtils.class
+io/memoria/reactive/kafka/eventsourcing/DefaultKafkaESMsgStreamTest.class
+io/memoria/reactive/kafka/eventsourcing/KafkaUtilsTest.class

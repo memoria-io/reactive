@@ -1,0 +1,6 @@
+io/memoria/reactive/nats/eventsourcing/NatsConfig.class
+io/memoria/reactive/nats/eventsourcing/NatsUtils$1.class
+io/memoria/reactive/nats/eventsourcing/NatsUtils.class
+io/memoria/reactive/nats/eventsourcing/NatsESMsgStream.class
+io/memoria/reactive/nats/eventsourcing/DefaultNatsESMsgStream.class
+io/memoria/reactive/nats/eventsourcing/TopicConfig.class
