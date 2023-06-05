@@ -33,7 +33,7 @@
     </modules>
 
     <properties>
-        <atom.version>20.11.0</atom.version>
+        <atom.version>20.12.0</atom.version>
         <kafka.version>3.4.0</kafka.version>
         <jsonwebtoken.version>0.11.5</jsonwebtoken.version>
         <reactor.version>2022.0.5</reactor.version>
@@ -145,17 +145,6 @@
             <artifactId>reactor-test</artifactId>
             <scope>test</scope>
         </dependency>
-        <!--        &lt;!&ndash;======================================================================================== &ndash;&gt;-->
-        <!--        &lt;!&ndash; Atom Dependencies &ndash;&gt;-->
-        <!--        &lt;!&ndash;======================================================================================== &ndash;&gt;-->
-        <!--        <dependency>-->
-        <!--            <groupId>io.vavr</groupId>-->
-        <!--            <artifactId>vavr</artifactId>-->
-        <!--        </dependency>-->
-        <!--        <dependency>-->
-        <!--            <groupId>com.github.f4b6a3</groupId>-->
-        <!--            <artifactId>uuid-creator</artifactId>-->
-        <!--        </dependency>-->
         <!--======================================================================================== -->
         <!-- Testing Dependencies -->
         <!--======================================================================================== -->
