@@ -45,9 +45,9 @@ Core module has basic set of reactive utilities and standard interfaces for reac
 
 * Utilities and convenience methods for reactive web and `reactor-netty`
 
-### Adapter-* modules
+### `kafka`, `nats` modules
 
-Adapter initially were built to implement eventsourcing infra ports.
+Adapter modules initially built to implement eventsourcing infra ports.
 
 ## Usage
 
