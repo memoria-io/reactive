@@ -33,10 +33,7 @@ applications.
 
 ### Core module
 
-Core module has basic set of reactive utilities and standard interfaces for reactive streams and event repos:
-
-* ConfigFileOps, and ResourceFileOps (similar to Typesafe HOCOON library)
-* TextTransformer base interfaces
+Core module has basic set of reactive utilities and standard interfaces for reactive streams and event repos
 
 ### Eventsourcing module
 
