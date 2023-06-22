@@ -23,7 +23,7 @@ public interface Evolver&lt;S extends State, E extends Event&gt; extends Functio
 <span class="nc" id="L23">    java.util.Map&lt;Id, S&gt; initial = new ConcurrentHashMap&lt;&gt;();</span>
 <span class="nc" id="L24">    var result = events.reduce(initial, (map, event) -&gt; {</span>
 <span class="nc" id="L25">      map.computeIfPresent(event.stateId(), (k, st) -&gt; apply(st, event));</span>
-<span class="nc" id="L26">      map.computeIfAbsent(event.stateId(), (k) -&gt; apply(event));</span>
+<span class="nc" id="L26">      map.computeIfAbsent(event.stateId(), k -&gt; apply(event));</span>
 <span class="nc" id="L27">      return map;</span>
     });
 <span class="nc" id="L29">    return result.map(HashMap::ofAll);</span>

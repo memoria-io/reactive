@@ -1,7 +1,7 @@
 @options
 @packages
 -classpath
-'/home/heisenberg/git/public/reactive/eventsourcing/target/eventsourcing-20.12.0.jar:/home/heisenberg/git/public/reactive/core/target/core-20.12.0.jar:/home/heisenberg/.m2/repository/io/projectreactor/kafka/reactor-kafka/1.3.17/reactor-kafka-1.3.17.jar:/home/heisenberg/.m2/repository/org/apache/kafka/kafka-clients/3.4.0/kafka-clients-3.4.0.jar:/home/heisenberg/.m2/repository/io/memoria/atom/core/20.11.0/core-20.11.0.jar:/home/heisenberg/.m2/repository/io/vavr/vavr/0.10.4/vavr-0.10.4.jar:/home/heisenberg/.m2/repository/io/vavr/vavr-match/0.10.4/vavr-match-0.10.4.jar:/home/heisenberg/.m2/repository/com/github/f4b6a3/uuid-creator/5.2.0/uuid-creator-5.2.0.jar:/home/heisenberg/.m2/repository/io/projectreactor/reactor-core/3.5.4/reactor-core-3.5.4.jar:/home/heisenberg/.m2/repository/org/reactivestreams/reactive-streams/1.0.4/reactive-streams-1.0.4.jar:/home/heisenberg/.m2/repository/org/apache/logging/log4j/log4j-api/2.20.0/log4j-api-2.20.0.jar:/home/heisenberg/.m2/repository/org/apache/logging/log4j/log4j-core/2.20.0/log4j-core-2.20.0.jar:/home/heisenberg/.m2/repository/org/apache/logging/log4j/log4j-slf4j2-impl/2.20.0/log4j-slf4j2-impl-2.20.0.jar:/home/heisenberg/.m2/repository/org/slf4j/slf4j-api/2.0.6/slf4j-api-2.0.6.jar'
+'/home/heisenberg/git/public/reactive/eventsourcing/target/eventsourcing-20.12.0.jar:/home/heisenberg/git/public/reactive/core/target/core-20.12.0.jar:/home/heisenberg/.m2/repository/io/projectreactor/kafka/reactor-kafka/1.3.17/reactor-kafka-1.3.17.jar:/home/heisenberg/.m2/repository/org/apache/kafka/kafka-clients/3.4.0/kafka-clients-3.4.0.jar:/home/heisenberg/.m2/repository/io/memoria/atom/core/20.12.0/core-20.12.0.jar:/home/heisenberg/.m2/repository/io/vavr/vavr/0.10.4/vavr-0.10.4.jar:/home/heisenberg/.m2/repository/io/vavr/vavr-match/0.10.4/vavr-match-0.10.4.jar:/home/heisenberg/.m2/repository/com/github/f4b6a3/uuid-creator/5.2.0/uuid-creator-5.2.0.jar:/home/heisenberg/.m2/repository/io/projectreactor/reactor-core/3.5.5/reactor-core-3.5.5.jar:/home/heisenberg/.m2/repository/org/reactivestreams/reactive-streams/1.0.4/reactive-streams-1.0.4.jar:/home/heisenberg/.m2/repository/org/apache/logging/log4j/log4j-api/2.20.0/log4j-api-2.20.0.jar:/home/heisenberg/.m2/repository/org/apache/logging/log4j/log4j-core/2.20.0/log4j-core-2.20.0.jar:/home/heisenberg/.m2/repository/org/apache/logging/log4j/log4j-slf4j2-impl/2.20.0/log4j-slf4j2-impl-2.20.0.jar:/home/heisenberg/.m2/repository/org/slf4j/slf4j-api/2.0.6/slf4j-api-2.0.6.jar'
 -encoding
 'UTF-8'
 -protected
@@ -29,37 +29,37 @@
 -windowtitle
 'io.memoria.reactive.kafka 20.12.0 API'
 io.memoria.reactive.kafka.eventsourcing
-/home/heisenberg/git/public/reactive/eventsourcing/target/eventsourcing-20.12.0.jar = 1685996440276
-/home/heisenberg/git/public/reactive/core/target/core-20.12.0.jar = 1685996434512
+/home/heisenberg/git/public/reactive/eventsourcing/target/eventsourcing-20.12.0.jar = 1687478275811
+/home/heisenberg/git/public/reactive/core/target/core-20.12.0.jar = 1687478270127
 /home/heisenberg/.m2/repository/io/projectreactor/kafka/reactor-kafka/1.3.17/reactor-kafka-1.3.17.jar = 1680393775572
 /home/heisenberg/.m2/repository/org/apache/kafka/kafka-clients/3.4.0/kafka-clients-3.4.0.jar = 1678445372397
-/home/heisenberg/.m2/repository/io/memoria/atom/core/20.11.0/core-20.11.0.jar = 1685990215174
+/home/heisenberg/.m2/repository/io/memoria/atom/core/20.12.0/core-20.12.0.jar = 1685999727924
 /home/heisenberg/.m2/repository/io/vavr/vavr/0.10.4/vavr-0.10.4.jar = 1672867134592
 /home/heisenberg/.m2/repository/io/vavr/vavr-match/0.10.4/vavr-match-0.10.4.jar = 1672867132316
 /home/heisenberg/.m2/repository/com/github/f4b6a3/uuid-creator/5.2.0/uuid-creator-5.2.0.jar = 1681650672102
-/home/heisenberg/.m2/repository/io/projectreactor/reactor-core/3.5.4/reactor-core-3.5.4.jar = 1680393776992
+/home/heisenberg/.m2/repository/io/projectreactor/reactor-core/3.5.5/reactor-core-3.5.5.jar = 1682129398869
 /home/heisenberg/.m2/repository/org/reactivestreams/reactive-streams/1.0.4/reactive-streams-1.0.4.jar = 1672867133036
 /home/heisenberg/.m2/repository/org/apache/logging/log4j/log4j-api/2.20.0/log4j-api-2.20.0.jar = 1678443249496
 /home/heisenberg/.m2/repository/org/apache/logging/log4j/log4j-core/2.20.0/log4j-core-2.20.0.jar = 1678443250072
 /home/heisenberg/.m2/repository/org/apache/logging/log4j/log4j-slf4j2-impl/2.20.0/log4j-slf4j2-impl-2.20.0.jar = 1678443249264
 /home/heisenberg/.m2/repository/org/slf4j/slf4j-api/2.0.6/slf4j-api-2.0.6.jar = 1678443249304
 /home/heisenberg/git/public/reactive/kafka/src/main/java = 1685989302015
-/home/heisenberg/git/public/reactive/kafka/target/generated-sources/annotations = 1685996450444
-/home/heisenberg/git/public/reactive/kafka/target/apidocs/package-search-index.js = 1685996458384
-/home/heisenberg/git/public/reactive/kafka/target/apidocs/search-page.js = 1685996458396
-/home/heisenberg/git/public/reactive/kafka/target/apidocs/type-search-index.js = 1685996458384
-/home/heisenberg/git/public/reactive/kafka/target/apidocs/overview-tree.html = 1685996458372
-/home/heisenberg/git/public/reactive/kafka/target/apidocs/stylesheet.css = 1685996458396
-/home/heisenberg/git/public/reactive/kafka/target/apidocs/script.js = 1685996458396
-/home/heisenberg/git/public/reactive/kafka/target/apidocs/help-doc.html = 1685996458392
-/home/heisenberg/git/public/reactive/kafka/target/apidocs/module-search-index.js = 1685996458380
-/home/heisenberg/git/public/reactive/kafka/target/apidocs/index-all.html = 1685996458388
-/home/heisenberg/git/public/reactive/kafka/target/apidocs/index.html = 1685996458388
-/home/heisenberg/git/public/reactive/kafka/target/apidocs/member-search-index.js = 1685996458384
-/home/heisenberg/git/public/reactive/kafka/target/apidocs/allclasses-index.html = 1685996458380
-/home/heisenberg/git/public/reactive/kafka/target/apidocs/allpackages-index.html = 1685996458380
-/home/heisenberg/git/public/reactive/kafka/target/apidocs/tag-search-index.js = 1685996458384
-/home/heisenberg/git/public/reactive/kafka/target/apidocs/search.html = 1685996458388
-/home/heisenberg/git/public/reactive/kafka/target/apidocs/copy.svg = 1685996458396
-/home/heisenberg/git/public/reactive/kafka/target/apidocs/search.js = 1685996458396
-/home/heisenberg/git/public/reactive/kafka/target/apidocs/element-list = 1685996458348
+/home/heisenberg/git/public/reactive/kafka/target/generated-sources/annotations = 1687478286087
+/home/heisenberg/git/public/reactive/kafka/target/apidocs/package-search-index.js = 1687478294223
+/home/heisenberg/git/public/reactive/kafka/target/apidocs/search-page.js = 1687478294239
+/home/heisenberg/git/public/reactive/kafka/target/apidocs/type-search-index.js = 1687478294223
+/home/heisenberg/git/public/reactive/kafka/target/apidocs/overview-tree.html = 1687478294211
+/home/heisenberg/git/public/reactive/kafka/target/apidocs/stylesheet.css = 1687478294235
+/home/heisenberg/git/public/reactive/kafka/target/apidocs/script.js = 1687478294239
+/home/heisenberg/git/public/reactive/kafka/target/apidocs/help-doc.html = 1687478294235
+/home/heisenberg/git/public/reactive/kafka/target/apidocs/module-search-index.js = 1687478294223
+/home/heisenberg/git/public/reactive/kafka/target/apidocs/index-all.html = 1687478294231
+/home/heisenberg/git/public/reactive/kafka/target/apidocs/index.html = 1687478294231
+/home/heisenberg/git/public/reactive/kafka/target/apidocs/member-search-index.js = 1687478294223
+/home/heisenberg/git/public/reactive/kafka/target/apidocs/allclasses-index.html = 1687478294223
+/home/heisenberg/git/public/reactive/kafka/target/apidocs/allpackages-index.html = 1687478294223
+/home/heisenberg/git/public/reactive/kafka/target/apidocs/tag-search-index.js = 1687478294223
+/home/heisenberg/git/public/reactive/kafka/target/apidocs/search.html = 1687478294231
+/home/heisenberg/git/public/reactive/kafka/target/apidocs/copy.svg = 1687478294239
+/home/heisenberg/git/public/reactive/kafka/target/apidocs/search.js = 1687478294239
+/home/heisenberg/git/public/reactive/kafka/target/apidocs/element-list = 1687478294183
