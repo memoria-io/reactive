@@ -124,7 +124,6 @@
                 <artifactId>jetcd-core</artifactId>
                 <version>0.7.5</version>
             </dependency>
-
         </dependencies>
     </dependencyManagement>
     <dependencies>
@@ -135,10 +134,16 @@
             <groupId>io.memoria.atom</groupId>
             <artifactId>core</artifactId>
         </dependency>
-
+        <!--======================================================================================== -->
+        <!-- Project Reactor Dependencies -->
+        <!--======================================================================================== -->
         <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.projectreactor</groupId>
+            <artifactId>reactor-core-micrometer</artifactId>
         </dependency>
         <dependency>
             <groupId>io.projectreactor</groupId>
