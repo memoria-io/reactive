@@ -34,7 +34,7 @@
 
     <properties>
         <atom.version>20.12.0</atom.version>
-        <reactor.version>2022.0.6</reactor.version>
+        <reactor.version>2022.0.8</reactor.version>
         <kafka.version>3.4.0</kafka.version>
         <jsonwebtoken.version>0.11.5</jsonwebtoken.version>
         <sonar.coverage.exclusions>
