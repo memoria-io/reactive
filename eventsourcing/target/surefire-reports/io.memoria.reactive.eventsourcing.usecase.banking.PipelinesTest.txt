@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: io.memoria.reactive.eventsourcing.usecase.banking.PipelinesTest
--------------------------------------------------------------------------------
-Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.283 s - in io.memoria.reactive.eventsourcing.usecase.banking.PipelinesTest

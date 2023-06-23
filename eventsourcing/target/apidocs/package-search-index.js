@@ -1,1 +1,0 @@
-packageSearchIndex = [{"l":"All Packages","u":"allpackages-index.html"},{"l":"io.memoria.reactive.eventsourcing"},{"l":"io.memoria.reactive.eventsourcing.exception"},{"l":"io.memoria.reactive.eventsourcing.pipeline"},{"l":"io.memoria.reactive.eventsourcing.rule"},{"l":"io.memoria.reactive.eventsourcing.stream"}];updateSearchResults();

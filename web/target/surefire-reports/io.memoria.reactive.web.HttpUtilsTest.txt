@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: io.memoria.reactive.web.HttpUtilsTest
--------------------------------------------------------------------------------
-Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.024 s - in io.memoria.reactive.web.HttpUtilsTest

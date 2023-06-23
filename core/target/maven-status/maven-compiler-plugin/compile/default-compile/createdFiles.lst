@@ -1,7 +1,0 @@
-io/memoria/reactive/core/repo/MemKVStore.class
-io/memoria/reactive/core/stream/MemESMsgStream.class
-io/memoria/reactive/core/repo/KVStore.class
-io/memoria/reactive/core/file/FileOps.class
-io/memoria/reactive/core/vavr/ReactorVavrUtils.class
-io/memoria/reactive/core/stream/ESMsgStream.class
-io/memoria/reactive/core/stream/ESMsg.class
