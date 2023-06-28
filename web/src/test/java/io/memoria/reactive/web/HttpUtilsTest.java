@@ -1,5 +1,6 @@
 package io.memoria.reactive.web;
 
+import io.memoria.reactive.web.utils.HttpUtils;
 import io.vavr.Tuple;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;

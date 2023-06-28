@@ -1,5 +1,7 @@
 package io.memoria.reactive.web;
 
+import io.memoria.reactive.web.observability.HealthController;
+import io.memoria.reactive.web.utils.NettyClientUtils;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;

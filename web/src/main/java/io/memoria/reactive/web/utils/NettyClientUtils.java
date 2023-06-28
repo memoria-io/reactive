@@ -1,5 +1,6 @@
-package io.memoria.reactive.web;
+package io.memoria.reactive.web.utils;
 
+import io.memoria.reactive.web.Response;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.netty.ByteBufFlux;

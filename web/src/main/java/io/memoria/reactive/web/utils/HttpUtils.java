@@ -1,4 +1,4 @@
-package io.memoria.reactive.web;
+package io.memoria.reactive.web.utils;
 
 import io.vavr.Tuple;
 import io.vavr.Tuple2;

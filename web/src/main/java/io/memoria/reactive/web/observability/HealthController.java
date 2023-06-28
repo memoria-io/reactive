@@ -1,4 +1,4 @@
-package io.memoria.reactive.web;
+package io.memoria.reactive.web.observability;
 
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.vavr.Function2;

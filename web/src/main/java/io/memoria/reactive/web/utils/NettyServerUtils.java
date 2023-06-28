@@ -1,4 +1,4 @@
-package io.memoria.reactive.web;
+package io.memoria.reactive.web.utils;
 
 import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpResponseStatus;

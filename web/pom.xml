@@ -6,11 +6,11 @@
     <parent>
         <groupId>io.memoria</groupId>
         <artifactId>reactive</artifactId>
-        <version>20.16.1</version>
+        <version>20.17.0</version>
     </parent>
     <groupId>io.memoria.reactive</groupId>
     <artifactId>web</artifactId>
-    <version>20.16.1</version>
+    <version>20.17.0</version>
     <packaging>jar</packaging>
     <name>${project.groupId}.${project.artifactId}</name>
     <description>Web Module</description>
@@ -25,6 +25,10 @@
         <dependency>
             <groupId>io.projectreactor</groupId>
             <artifactId>reactor-core-micrometer</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
     </dependencies>
 </project>

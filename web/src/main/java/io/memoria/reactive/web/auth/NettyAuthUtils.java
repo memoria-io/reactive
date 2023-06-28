@@ -1,5 +1,6 @@
-package io.memoria.reactive.web;
+package io.memoria.reactive.web.auth;
 
+import io.memoria.reactive.web.utils.HttpUtils;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.HttpHeaders;
 import io.vavr.Tuple2;
