@@ -26,7 +26,7 @@ public class PrometheusConfiguration {
     this.tagList = tagList;
     tagList.add(Tag.of("APPLICATION_NAME", appName));
     tagList.add(Tag.of("APPLICATION_VERSION", version));
-    this.registry = createRegistry();
+    this.registry = createRegistry(tagList);
   }
 
   public PrometheusMeterRegistry getRegistry() {
@@ -37,7 +37,7 @@ public class PrometheusConfiguration {
     return tagList;
   }
 
-  private PrometheusMeterRegistry createRegistry() {
+  private static PrometheusMeterRegistry createRegistry(List<Tag> tagList) {
     PrometheusMeterRegistry registry = new PrometheusMeterRegistry(PrometheusConfig.DEFAULT);
     registry.config().commonTags(tagList);
     includeLog4j2Metrics(registry);
