@@ -1,6 +1,8 @@
 package io.memoria.reactive.eventsourcing.pipeline;
 
 import io.memoria.atom.core.id.Id;
+import io.memoria.reactive.core.reactor.ReactorUtils;
+import io.memoria.reactive.eventsourcing.Event;
 import io.vavr.control.Option;
 import reactor.core.publisher.Mono;
 
@@ -9,7 +11,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
-class MemPipelineStateRepo implements PipelineStateRepo {
+class MemPipelineStateRepo<E extends Event> implements PipelineStateRepo<E> {
   private final PipelineRoute route;
   private final Map<String, Set<Id>> db;
   private final Map<String, Id> lastEventId;
@@ -34,24 +36,18 @@ class MemPipelineStateRepo implements PipelineStateRepo {
   }
 
   @Override
-  public Mono<Boolean> addEventId(Id id) {
-    return Mono.fromCallable(() -> add(eventKey, id));
+  public Mono<E> addHandledEvent(E e) {
+    return Mono.fromCallable(() -> {
+      add(eventKey, e.eventId());
+      lastEventId.put(eventKey, e.eventId());
+      add(commandKey, e.commandId());
+      return e;
+    });
   }
 
-  private boolean add(String key, Id id) {
-    db.computeIfPresent(key, (k, v) -> {
-      v.add(id);
-      return v;
-    });
-
-    db.computeIfAbsent(key, k -> {
-      var set = new HashSet<Id>();
-      set.add(id);
-      return set;
-    });
-
-    lastEventId.put(key, id);
-    return true;
+  @Override
+  public Mono<Id> getLastEventId() {
+    return ReactorUtils.optionToMono(Option.of(this.lastEventId.get(eventKey)));
   }
 
   @Override
@@ -60,18 +56,20 @@ class MemPipelineStateRepo implements PipelineStateRepo {
   }
 
   @Override
-  public Mono<Boolean> addCommandId(Id id) {
-    return Mono.fromCallable(() -> add(commandKey, id));
-  }
-
-  @Override
   public Mono<Boolean> containsCommandId(Id id) {
     return Mono.fromCallable(() -> db.containsKey(commandKey) && db.get(commandKey).contains(id));
   }
 
-  @Override
-  public Mono<Option<Id>> lastEventId() {
-    return Mono.fromCallable(() -> Option.of(this.lastEventId.get(eventKey)));
+  private void add(String key, Id id) {
+    db.computeIfPresent(key, (k, v) -> {
+      v.add(id);
+      return v;
+    });
+    db.computeIfAbsent(key, k -> {
+      var set = new HashSet<Id>();
+      set.add(id);
+      return set;
+    });
   }
 
   private static String toKey(String topic, int partition) {

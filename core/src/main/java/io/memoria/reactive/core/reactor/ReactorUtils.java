@@ -1,4 +1,4 @@
-package io.memoria.reactive.core.vavr;
+package io.memoria.reactive.core.reactor;
 
 import io.vavr.API;
 import io.vavr.Patterns;
@@ -16,8 +16,8 @@ import java.util.function.Supplier;
 import static java.lang.Boolean.TRUE;
 import static java.util.function.Function.identity;
 
-public final class ReactorVavrUtils {
-  private ReactorVavrUtils() {}
+public final class ReactorUtils {
+  private ReactorUtils() {}
 
   //---------------------------------------------------------------------------------------------------------
   // To Mono
@@ -33,6 +33,17 @@ public final class ReactorVavrUtils {
 
   public static <T> Function<Boolean, Mono<T>> callableToMono(Callable<T> t, Throwable throwable) {
     return b -> TRUE.equals(b) ? Mono.fromCallable(t) : Mono.error(throwable);
+  }
+
+  //---------------------------------------------------------------------------------------------------------
+  // Boolean To Mono
+  //---------------------------------------------------------------------------------------------------------
+  public static <T> Mono<T> booleanToMono(boolean bool, Supplier<Mono<T>> positive, Supplier<Mono<T>> negative) {
+    return Mono.fromCallable(() -> bool).flatMap(check -> (check) ? positive.get() : negative.get());
+  }
+
+  public static <T> Mono<T> booleanToMono(boolean bool, Supplier<Mono<T>> positive) {
+    return Mono.fromCallable(() -> bool).flatMap(check -> (check) ? positive.get() : Mono.empty());
   }
 
   //---------------------------------------------------------------------------------------------------------

@@ -2,8 +2,8 @@ package io.memoria.reactive.eventsourcing.pipeline;
 
 import io.memoria.atom.core.id.Id;
 import io.memoria.atom.core.text.TextTransformer;
+import io.memoria.reactive.core.reactor.ReactorUtils;
 import io.memoria.reactive.core.stream.ESMsgStream;
-import io.memoria.reactive.core.vavr.ReactorVavrUtils;
 import io.memoria.reactive.eventsourcing.Command;
 import io.memoria.reactive.eventsourcing.Domain;
 import io.memoria.reactive.eventsourcing.Event;
@@ -15,7 +15,8 @@ import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Function;
+
+import static io.memoria.reactive.core.reactor.ReactorUtils.booleanToMono;
 
 public class CommandPipeline<S extends State, C extends Command, E extends Event> {
   // Core
@@ -25,13 +26,13 @@ public class CommandPipeline<S extends State, C extends Command, E extends Event
   private final CommandStream<C> commandStream;
   private final EventStream<E> eventStream;
   // In memory
-  private final PipelineStateRepo pipelineState;
+  private final PipelineStateRepo<E> pipelineState;
   private final Map<Id, S> aggregates;
 
   public CommandPipeline(Domain<S, C, E> domain,
                          PipelineRoute route,
                          ESMsgStream esMsgStream,
-                         PipelineStateRepo pipelineState,
+                         PipelineStateRepo<E> pipelineState,
                          TextTransformer transformer) {
     // Core
     this.domain = domain;
@@ -51,23 +52,12 @@ public class CommandPipeline<S extends State, C extends Command, E extends Event
   }
 
   public Flux<E> handle(Flux<C> cmds) {
-    var handleCommands = cmds.flatMap(this::redirectIfNotBelong) // Redirection allows location transparency and auto sharding
-                             .concatMap(this::handle) // handle the command
-                             .flatMap(this::evolve) // evolve in memory
-                             .flatMap(this::pubEvent) // publish event
-                             .flatMap(this::saga); // publish a command based on such event
+    var handleCommands = cmds.concatMap(this::redirectIfNotBelong) // Redirection allows location transparency and auto sharding
+                             .concatMap(this::handleCommand) // handle the command
+                             .concatMap(this::evolve) // evolve the state
+                             .concatMap(this::pubEvent) // publish the event
+                             .concatMap(this::saga); // publish saga command
     return init().concatWith(handleCommands);
-  }
-
-  /**
-   * Load previous events and build the state
-   */
-  private Flux<E> init() {
-    return this.pipelineState.lastEventId()
-                             .flatMapMany(id -> eventStream.subUntil(route.eventTopic(),
-                                                                     route.eventSubPubPartition(),
-                                                                     id))
-                             .flatMap(this::evolve);
   }
 
   public Flux<E> subToEvents() {
@@ -87,58 +77,59 @@ public class CommandPipeline<S extends State, C extends Command, E extends Event
     return this.eventStream.pub(route.eventTopic(), route.eventSubPubPartition(), e);
   }
 
+  /**
+   * Load previous events and build the state
+   */
+  Flux<E> init() {
+    return this.pipelineState.getLastEventId().flatMapMany(this::subUntil).concatMap(this::evolve);
+  }
+
+  Flux<E> subUntil(Id id) {
+    return eventStream.subUntil(route.eventTopic(), route.eventSubPubPartition(), id);
+  }
+
   Mono<C> redirectIfNotBelong(C cmd) {
-    return Mono.fromCallable(() -> {
-      if (cmd.isInPartition(route.cmdSubPartition(), route.cmdTotalPubPartitions())) {
-        return Mono.<C>empty();
-      } else {
-        return this.pubCommand(cmd);
-      }
-    }).flatMap(Function.identity());
+    if (cmd.isInPartition(route.cmdSubPartition(), route.cmdTotalPubPartitions())) {
+      return Mono.just(cmd);
+    } else {
+      return this.pubCommand(cmd).flatMap(c -> Mono.empty());
+    }
   }
 
-  Mono<E> handle(C cmd) {
-    return this.pipelineState.containsCommandId(cmd.commandId()).flatMap(exists -> {
-      if (exists) {
-        return Mono.empty();
-      } else {
-        if (aggregates.containsKey(cmd.stateId())) {
-          return ReactorVavrUtils.tryToMono(() -> domain.decider().apply(aggregates.get(cmd.stateId()), cmd));
-        } else {
-          return ReactorVavrUtils.tryToMono(() -> domain.decider().apply(cmd));
-        }
-      }
-    });
+  Mono<E> handleCommand(C cmd) {
+    return this.pipelineState.containsCommandId(cmd.commandId())
+                             .flatMap(exists -> booleanToMono(!exists, () -> decide(cmd)));
   }
 
-  Mono<E> saga(E e) {
-    return Mono.fromCallable(() -> {
-      var sagaCmd = domain.saga().apply(e);
-      if (sagaCmd.isDefined() && !this.pipelineState.contains(sagaCmd.get().commandId())) {
-        C cmd = sagaCmd.get();
-        return this.pubCommand(cmd).map(c -> e);
-      } else {
-        return Mono.just(e);
-      }
-    }).flatMap(Function.identity());
+  private Mono<E> decide(C cmd) {
+    if (aggregates.containsKey(cmd.stateId())) {
+      return ReactorUtils.tryToMono(() -> domain.decider().apply(aggregates.get(cmd.stateId()), cmd));
+    } else {
+      return ReactorUtils.tryToMono(() -> domain.decider().apply(cmd));
+    }
   }
 
   Mono<E> evolve(E e) {
-    return pipelineState.containsEventId(e.eventId()).flatMap(exists -> {
-      if (exists) {
-        return Mono.empty();
-      } else {
-        S newState;
-        if (aggregates.containsKey(e.stateId())) {
-          newState = domain.evolver().apply(aggregates.get(e.stateId()), e);
-        } else {
-          newState = domain.evolver().apply(e);
-        }
-        aggregates.put(e.stateId(), newState);
-        this.pipelineState.addCommandId(e.commandId());
-        this.pipelineState.addEventId(e.eventId());
-        return Mono.just(e);
-      }
-    });
+    return pipelineState.containsEventId(e.eventId()).flatMap(exists -> booleanToMono(!exists, () -> handleEvent(e)));
+  }
+
+  Mono<E> saga(E e) {
+    return domain.saga().apply(e).map(this::handleSaga).map(mono -> mono.map(c -> e)).getOrElse(Mono.just(e));
+  }
+
+  Mono<C> handleSaga(C cmd) {
+    return this.pipelineState.containsCommandId(cmd.commandId())
+                             .flatMap(exists -> booleanToMono(!exists, () -> this.pubCommand(cmd)));
+  }
+
+  Mono<E> handleEvent(E e) {
+    S newState;
+    if (aggregates.containsKey(e.stateId())) {
+      newState = domain.evolver().apply(aggregates.get(e.stateId()), e);
+    } else {
+      newState = domain.evolver().apply(e);
+    }
+    aggregates.put(e.stateId(), newState);
+    return this.pipelineState.addHandledEvent(e);
   }
 }
