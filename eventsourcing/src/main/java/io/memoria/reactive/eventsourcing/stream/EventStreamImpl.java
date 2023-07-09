@@ -3,7 +3,7 @@ package io.memoria.reactive.eventsourcing.stream;
 import io.memoria.atom.core.text.TextTransformer;
 import io.memoria.reactive.core.stream.ESMsg;
 import io.memoria.reactive.core.stream.ESMsgStream;
-import io.memoria.reactive.core.vavr.ReactorVavrUtils;
+import io.memoria.reactive.core.reactor.ReactorUtils;
 import io.memoria.reactive.eventsourcing.Event;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -20,14 +20,14 @@ class EventStreamImpl<E extends Event> implements EventStream<E> {
   }
 
   public Mono<E> pub(String topic, int partition, E e) {
-    return ReactorVavrUtils.tryToMono(() -> transformer.serialize(e))
-                           .flatMap(cStr -> pubMsg(topic, partition, e, cStr))
-                           .map(id -> e);
+    return ReactorUtils.tryToMono(() -> transformer.serialize(e))
+                       .flatMap(cStr -> pubMsg(topic, partition, e, cStr))
+                       .map(id -> e);
   }
 
   public Flux<E> sub(String topic, int partition) {
     return esMsgStream.sub(topic, partition)
-                      .flatMap(msg -> ReactorVavrUtils.tryToMono(() -> transformer.deserialize(msg.value(), cClass)));
+                      .flatMap(msg -> ReactorUtils.tryToMono(() -> transformer.deserialize(msg.value(), cClass)));
 
   }
 

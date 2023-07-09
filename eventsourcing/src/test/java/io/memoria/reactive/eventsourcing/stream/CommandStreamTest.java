@@ -15,7 +15,7 @@ import reactor.test.StepVerifier;
 import java.time.Duration;
 import java.util.concurrent.atomic.AtomicInteger;
 
-class CommandStreamImplTest {
+class CommandStreamTest {
   private static final Duration timeout = Duration.ofSeconds(5);
   private static final int ELEMENTS_SIZE = 1000;
   private static final Id S0 = Id.of(0);

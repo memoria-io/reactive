@@ -2,7 +2,10 @@ package io.memoria.reactive.eventsourcing.rule;
 
 import io.memoria.atom.core.id.Id;
 import io.memoria.reactive.eventsourcing.usecase.banking.AccountEvolver;
-import io.memoria.reactive.eventsourcing.usecase.banking.event.*;
+import io.memoria.reactive.eventsourcing.usecase.banking.event.AccountCreated;
+import io.memoria.reactive.eventsourcing.usecase.banking.event.AccountEvent;
+import io.memoria.reactive.eventsourcing.usecase.banking.event.Credited;
+import io.memoria.reactive.eventsourcing.usecase.banking.event.NameChanged;
 import io.memoria.reactive.eventsourcing.usecase.banking.state.OpenAccount;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
