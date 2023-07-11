@@ -8,6 +8,9 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public interface EventStream<E extends Event> {
+
+  Mono<Id> lastEventId(String topic, int partition);
+
   Mono<E> pub(String topic, int partition, E e);
 
   /**

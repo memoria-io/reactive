@@ -1,5 +1,6 @@
 package io.memoria.reactive.kafka.eventsourcing;
 
+import io.memoria.reactive.core.reactor.ReactorUtils;
 import io.memoria.reactive.core.stream.ESMsg;
 import io.vavr.collection.Map;
 import org.apache.kafka.common.TopicPartition;
@@ -12,19 +13,36 @@ import reactor.kafka.sender.KafkaSender;
 import reactor.kafka.sender.SenderRecord;
 import reactor.kafka.sender.SenderResult;
 
+import java.time.Duration;
+
 import static java.util.Collections.singleton;
 
 class DefaultKafkaESMsgStream implements KafkaESMsgStream {
   public final Map<String, Object> producerConfig;
   public final Map<String, Object> consumerConfig;
   private final KafkaSender<String, String> sender;
+  private final Duration timeout;
 
   DefaultKafkaESMsgStream(Map<String, Object> producerConfig,
                           Map<String, Object> consumerConfig,
                           KafkaSender<String, String> sender) {
+    this(producerConfig, consumerConfig, sender, Duration.ofMillis(500));
+  }
+
+  DefaultKafkaESMsgStream(Map<String, Object> producerConfig,
+                          Map<String, Object> consumerConfig,
+                          KafkaSender<String, String> sender,
+                          Duration timeout) {
     this.sender = sender;
     this.producerConfig = producerConfig;
     this.consumerConfig = consumerConfig;
+    this.timeout = timeout;
+  }
+
+  @Override
+  public Mono<String> lastKey(String topic, int partition) {
+    return Mono.fromCallable(() -> KafkaUtils.lastKey(topic, partition, timeout, consumerConfig))
+               .flatMap(ReactorUtils::optionToMono);
   }
 
   @Override

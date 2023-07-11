@@ -31,6 +31,7 @@ class DefaultKafkaESMsgStreamTest {
     var pub = Flux.fromIterable(msgs).concatMap(repo::pub);
     // Then
     StepVerifier.create(pub).expectNextCount(MSG_COUNT).verifyComplete();
+    StepVerifier.create(repo.lastKey(topic, partition)).expectNext(msgs.last().key()).verifyComplete();
   }
 
   @Test

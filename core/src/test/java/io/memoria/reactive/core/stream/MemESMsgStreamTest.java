@@ -24,8 +24,12 @@ class MemESMsgStreamTest {
   void publishAndSubscribe() {
     // Given
     var msgs = createMessages(S0).concatWith(createMessages(S1));
+    var s0LastMessage = createMessage(S0, ELEMENTS_SIZE - 1);
+    var s1LastMessage = createMessage(S0, ELEMENTS_SIZE - 1);
+
     // When
     StepVerifier.create(msgs.flatMap(stream::pub)).expectNextCount(ELEMENTS_SIZE * 2).verifyComplete();
+
     // Then
     var latch0 = new AtomicInteger();
     stream.sub(topic, 0).take(ELEMENTS_SIZE).index().doOnNext(tup -> {
@@ -43,10 +47,18 @@ class MemESMsgStreamTest {
       latch1.incrementAndGet();
     }).subscribe();
     Awaitility.await().atMost(timeout).until(() -> latch1.get() == ELEMENTS_SIZE);
+
+    // And
+    StepVerifier.create(stream.lastKey(topic,0)).expectNext(s0LastMessage.key()).verifyComplete();
+    StepVerifier.create(stream.lastKey(topic,1)).expectNext(s1LastMessage.key()).verifyComplete();
   }
 
   private Flux<ESMsg> createMessages(Id stateId) {
-    return Flux.range(0, ELEMENTS_SIZE).map(i -> new ESMsg(topic, getPartition(stateId), String.valueOf(i), "hello"));
+    return Flux.range(0, ELEMENTS_SIZE).map(i -> createMessage(stateId, i));
+  }
+
+  private static ESMsg createMessage(Id stateId, Integer i) {
+    return new ESMsg(topic, getPartition(stateId), String.valueOf(i), "hello");
   }
 
   private static int getPartition(Id stateId) {
