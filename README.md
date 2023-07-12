@@ -86,7 +86,7 @@ Then import nomrally in your pom dependencies
 
 The versioning is similar to semantic but with a shift where the first segment being the jdk version.
 
-Format Example: `JDK_Version.major.mino`
+Format Example: `JDK_Version.major.minor`
 
 ## TODOs
 
@@ -100,12 +100,14 @@ Format Example: `JDK_Version.major.mino`
           new compacted topic
 * [x] Streaming
     * [x] Stream api for usage in event sourcing
-* [ ] Performance and benchmarks project "atom-performance"
+* [ ] Performance and benchmarks project "reactive-performance"
 * [ ] JVM Profiling
 * [ ] More structured releases based on PRs
 
 ## Release notes
 
+* `20.21.0`
+    * Using last key in ESMsgStream instead of pipelineStateRepo
 * `20.0.0`
     * Moved reactive out of `memoria-io/atom` repo
     * Nats pull based reactive approach instead of server push
