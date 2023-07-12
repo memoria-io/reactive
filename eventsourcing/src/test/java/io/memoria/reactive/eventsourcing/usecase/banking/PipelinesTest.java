@@ -6,7 +6,6 @@ import io.memoria.reactive.core.stream.ESMsgStream;
 import io.memoria.reactive.eventsourcing.Domain;
 import io.memoria.reactive.eventsourcing.pipeline.CommandPipeline;
 import io.memoria.reactive.eventsourcing.pipeline.PipelineRoute;
-import io.memoria.reactive.eventsourcing.pipeline.PipelineStateRepo;
 import io.memoria.reactive.eventsourcing.usecase.banking.command.AccountCommand;
 import io.memoria.reactive.eventsourcing.usecase.banking.event.AccountEvent;
 import io.memoria.reactive.eventsourcing.usecase.banking.state.Account;
@@ -27,7 +26,6 @@ class PipelinesTest {
   private static final TextTransformer transformer = new SerializableTransformer();
   private static final PipelineRoute PIPELINE_ROUTE = new PipelineRoute("commands", 0, 1, "events", 0);
   private final ESMsgStream esStream = ESMsgStream.inMemory();
-  private final PipelineStateRepo<AccountEvent> pipelineState = PipelineStateRepo.inMemory(PIPELINE_ROUTE);
   private final CommandPipeline<Account, AccountCommand, AccountEvent> pipeline = createPipeline();
   private static final int nAccounts = 10;
   private static final int initialBalance = 500;
@@ -109,7 +107,7 @@ class PipelinesTest {
   }
 
   private CommandPipeline<Account, AccountCommand, AccountEvent> createPipeline() {
-    return new CommandPipeline<>(stateDomain(), PIPELINE_ROUTE, esStream, pipelineState, transformer);
+    return new CommandPipeline<>(stateDomain(), PIPELINE_ROUTE, esStream, transformer);
   }
 
   private static Domain<Account, AccountCommand, AccountEvent> stateDomain() {

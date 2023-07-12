@@ -32,6 +32,13 @@ public class CommandPipeline<S extends State, C extends Command, E extends Event
   public CommandPipeline(Domain<S, C, E> domain,
                          PipelineRoute route,
                          ESMsgStream esMsgStream,
+                         TextTransformer transformer) {
+    this(domain, route, esMsgStream, PipelineStateRepo.inMemory(route), transformer);
+  }
+
+  public CommandPipeline(Domain<S, C, E> domain,
+                         PipelineRoute route,
+                         ESMsgStream esMsgStream,
                          PipelineStateRepo<E> pipelineState,
                          TextTransformer transformer) {
     // Core
