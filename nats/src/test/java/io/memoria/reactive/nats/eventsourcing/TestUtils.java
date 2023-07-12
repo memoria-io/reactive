@@ -19,7 +19,7 @@ public class TestUtils {
                .toJavaArray(TopicConfig[]::new);
   }
 
-  static ESMsg createEsMsg(String topic, int partition, int i) {
-    return new ESMsg(topic, partition, String.valueOf(i), "hello" + i);
+  static ESMsg createEsMsg(String topic, int partition, String key) {
+    return new ESMsg(topic, partition, key, "hello_" + key);
   }
 }
