@@ -1,9 +1,7 @@
 package io.memoria.reactive.eventsourcing.pipeline;
 
 import io.memoria.atom.core.id.Id;
-import io.memoria.reactive.core.reactor.ReactorUtils;
 import io.memoria.reactive.eventsourcing.Event;
-import io.vavr.control.Option;
 import reactor.core.publisher.Mono;
 
 import java.util.HashSet;
@@ -14,18 +12,16 @@ import java.util.concurrent.ConcurrentHashMap;
 class MemPipelineStateRepo<E extends Event> implements PipelineStateRepo<E> {
   private final PipelineRoute route;
   private final Map<String, Set<Id>> db;
-  private final Map<String, Id> lastEventId;
   private final String eventKey;
   private final String commandKey;
 
   public MemPipelineStateRepo(PipelineRoute route) {
-    this(route, new ConcurrentHashMap<>(), new ConcurrentHashMap<>());
+    this(route, new ConcurrentHashMap<>());
   }
 
-  public MemPipelineStateRepo(PipelineRoute route, Map<String, Set<Id>> db, Map<String, Id> lastEventId) {
+  public MemPipelineStateRepo(PipelineRoute route, Map<String, Set<Id>> db) {
     this.route = route;
     this.db = db;
-    this.lastEventId = lastEventId;
     this.eventKey = toKey(route.eventTopic(), route.eventSubPubPartition());
     this.commandKey = toKey(route.cmdTopic(), route.cmdSubPartition());
   }
@@ -39,15 +35,9 @@ class MemPipelineStateRepo<E extends Event> implements PipelineStateRepo<E> {
   public Mono<E> addHandledEvent(E e) {
     return Mono.fromCallable(() -> {
       add(eventKey, e.eventId());
-      lastEventId.put(eventKey, e.eventId());
       add(commandKey, e.commandId());
       return e;
     });
-  }
-
-  @Override
-  public Mono<Id> getLastEventId() {
-    return ReactorUtils.optionToMono(Option.of(this.lastEventId.get(eventKey)));
   }
 
   @Override

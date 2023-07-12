@@ -23,18 +23,19 @@ class DefaultNatsESMsgStreamTest {
   void publish() {
     // Given
     var partition = 0;
-    var msgs = List.range(0, MSG_COUNT).map(i -> TestUtils.createEsMsg(topic, partition, i));
+    var msgs = List.range(0, MSG_COUNT).map(i -> TestUtils.createEsMsg(topic, partition, String.valueOf(i)));
     // When
     var pub = Flux.fromIterable(msgs).concatMap(repo::pub);
     // Then
     StepVerifier.create(pub).expectNextCount(MSG_COUNT).verifyComplete();
+    StepVerifier.create(repo.lastKey(topic, partition)).expectNext(String.valueOf(MSG_COUNT - 1)).verifyComplete();
   }
 
   @Test
   void subscribe() {
     // Given
     var partition = 0;
-    var msgs = List.range(0, MSG_COUNT).map(i -> TestUtils.createEsMsg(topic, partition, i));
+    var msgs = List.range(0, MSG_COUNT).map(i -> TestUtils.createEsMsg(topic, partition, String.valueOf(i)));
     var pub = Flux.fromIterable(msgs).concatMap(repo::pub);
 
     // When

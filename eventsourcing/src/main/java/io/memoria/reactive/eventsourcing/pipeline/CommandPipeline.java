@@ -81,7 +81,9 @@ public class CommandPipeline<S extends State, C extends Command, E extends Event
    * Load previous events and build the state
    */
   Flux<E> init() {
-    return this.pipelineState.getLastEventId().flatMapMany(this::subUntil).concatMap(this::evolve);
+    return this.eventStream.lastEventId(route.eventTopic(), route.eventSubPubPartition())
+                           .flatMapMany(this::subUntil)
+                           .concatMap(this::evolve);
   }
 
   Flux<E> subUntil(Id id) {

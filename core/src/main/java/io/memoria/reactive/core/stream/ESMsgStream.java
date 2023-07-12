@@ -4,6 +4,9 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public interface ESMsgStream {
+
+  Mono<String> lastKey(String topic, int partition);
+
   Mono<ESMsg> pub(ESMsg esMsg);
 
   Flux<ESMsg> sub(String topic, int partition);

@@ -1,9 +1,10 @@
 package io.memoria.reactive.eventsourcing.stream;
 
+import io.memoria.atom.core.id.Id;
 import io.memoria.atom.core.text.TextTransformer;
+import io.memoria.reactive.core.reactor.ReactorUtils;
 import io.memoria.reactive.core.stream.ESMsg;
 import io.memoria.reactive.core.stream.ESMsgStream;
-import io.memoria.reactive.core.reactor.ReactorUtils;
 import io.memoria.reactive.eventsourcing.Event;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -17,6 +18,11 @@ class EventStreamImpl<E extends Event> implements EventStream<E> {
     this.esMsgStream = esMsgStream;
     this.transformer = transformer;
     this.cClass = cClass;
+  }
+
+  @Override
+  public Mono<Id> lastEventId(String topic, int partition) {
+    return this.esMsgStream.lastKey(topic, partition).map(Id::of);
   }
 
   public Mono<E> pub(String topic, int partition, E e) {

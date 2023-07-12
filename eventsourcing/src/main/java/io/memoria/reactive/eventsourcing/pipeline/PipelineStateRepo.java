@@ -12,8 +12,6 @@ public interface PipelineStateRepo<E extends Event> {
 
   Mono<E> addHandledEvent(E e);
 
-  Mono<Id> getLastEventId();
-
   Mono<Boolean> containsEventId(Id id);
 
   Mono<Boolean> containsCommandId(Id id);
@@ -22,9 +20,7 @@ public interface PipelineStateRepo<E extends Event> {
     return new MemPipelineStateRepo<>(route);
   }
 
-  static <E extends Event> PipelineStateRepo<E> inMemory(PipelineRoute route,
-                                                         Map<String, Set<Id>> db,
-                                                         Map<String, Id> lastEvent) {
-    return new MemPipelineStateRepo<>(route, db, lastEvent);
+  static <E extends Event> PipelineStateRepo<E> inMemory(PipelineRoute route, Map<String, Set<Id>> db) {
+    return new MemPipelineStateRepo<>(route, db);
   }
 }

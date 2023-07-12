@@ -11,6 +11,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class MemESMsgStream implements ESMsgStream {
   private final int historySize;
   private final Map<String, Map<Integer, Many<ESMsg>>> topics = new ConcurrentHashMap<>();
+  private final Map<String, Map<Integer, ESMsg>> lastMsg = new ConcurrentHashMap<>();
 
   public MemESMsgStream() {
     this(Integer.MAX_VALUE);
@@ -18,6 +19,13 @@ public final class MemESMsgStream implements ESMsgStream {
 
   public MemESMsgStream(int historySize) {
     this.historySize = historySize;
+  }
+
+  @Override
+  public Mono<String> lastKey(String topic, int partition) {
+    return Mono.defer(() -> Mono.justOrEmpty(lastMsg.get(topic)))
+               .flatMap(tp -> Mono.justOrEmpty(tp.get(partition)))
+               .map(ESMsg::key);
   }
 
   @Override
@@ -34,11 +42,12 @@ public final class MemESMsgStream implements ESMsgStream {
 
   private int addPartitionSink(String topic, int partition) {
     this.topics.computeIfAbsent(topic, x -> new ConcurrentHashMap<>());
-    this.topics.computeIfPresent(topic, (k, v) -> {
+    this.topics.computeIfPresent(topic, (__, partitions) -> {
       var sink = Sinks.many().replay().<ESMsg>limit(historySize);
-      v.computeIfAbsent(partition, x -> sink);
-      return v;
+      partitions.computeIfAbsent(partition, x -> sink);
+      return partitions;
     });
+    this.lastMsg.computeIfAbsent(topic, x -> new ConcurrentHashMap<>());
     return partition;
   }
 
@@ -46,6 +55,7 @@ public final class MemESMsgStream implements ESMsgStream {
     String topic = msg.topic();
     int partition = msg.partition();
     this.topics.get(topic).get(partition).tryEmitNext(msg);
+    this.lastMsg.get(topic).put(partition, msg);
     return msg;
   }
 }

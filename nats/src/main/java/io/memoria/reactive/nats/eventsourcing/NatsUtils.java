@@ -60,6 +60,21 @@ class NatsUtils {
     return js.subscribe(topicConfig.subjectName(), subscribeOptions);
   }
 
+  static JetStreamSubscription jetStreamSubLast(Connection nc, TopicConfig topicConfig)
+          throws IOException, JetStreamApiException {
+    var js = nc.jetStream();
+    var config = ConsumerConfiguration.builder()
+                                      .ackPolicy(AckPolicy.Explicit)
+                                      .deliverPolicy(DeliverPolicy.Last)
+                                      .replayPolicy(ReplayPolicy.Instant)
+                                      .build();
+    var subscribeOptions = PullSubscribeOptions.builder()
+                                               .stream(topicConfig.streamName())
+                                               .configuration(config)
+                                               .build();
+    return js.subscribe(topicConfig.subjectName(), subscribeOptions);
+  }
+
   static Message toMessage(ESMsg msg) {
     var subjectName = TopicConfig.toSubjectName(msg);
     var headers = new Headers();

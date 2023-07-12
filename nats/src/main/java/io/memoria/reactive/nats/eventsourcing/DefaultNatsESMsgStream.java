@@ -28,6 +28,16 @@ class DefaultNatsESMsgStream implements NatsESMsgStream {
   }
 
   @Override
+  public Mono<String> lastKey(String topic, int partition) {
+    var topicConfig = this.natsConfig.find(topic, partition).get();
+    return Mono.fromCallable(() -> NatsUtils.jetStreamSubLast(nc, topicConfig))
+               .flatMapMany(sub -> this.fetchBatch(sub, topicConfig))
+               .next()
+               .map(NatsUtils::toMsg)
+               .map(ESMsg::key);
+  }
+
+  @Override
   public Mono<ESMsg> pub(ESMsg msg) {
     return Mono.fromCallable(() -> NatsUtils.publishMsg(nc, msg)).flatMap(Mono::fromFuture).thenReturn(msg);
   }
