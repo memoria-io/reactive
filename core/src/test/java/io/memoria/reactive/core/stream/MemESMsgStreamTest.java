@@ -49,8 +49,8 @@ class MemESMsgStreamTest {
     Awaitility.await().atMost(timeout).until(() -> latch1.get() == ELEMENTS_SIZE);
 
     // And
-    StepVerifier.create(stream.lastKey(topic,0)).expectNext(s0LastMessage.key()).verifyComplete();
-    StepVerifier.create(stream.lastKey(topic,1)).expectNext(s1LastMessage.key()).verifyComplete();
+    StepVerifier.create(stream.lastKey(topic, 0)).expectNext(s0LastMessage.key()).verifyComplete();
+    StepVerifier.create(stream.lastKey(topic, 1)).expectNext(s1LastMessage.key()).verifyComplete();
   }
 
   private Flux<ESMsg> createMessages(Id stateId) {

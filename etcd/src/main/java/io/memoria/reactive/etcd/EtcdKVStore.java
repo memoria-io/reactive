@@ -1,6 +1,9 @@
 package io.memoria.reactive.etcd;
 
-import io.etcd.jetcd.*;
+import io.etcd.jetcd.ByteSequence;
+import io.etcd.jetcd.Client;
+import io.etcd.jetcd.KV;
+import io.etcd.jetcd.KeyValue;
 import io.memoria.reactive.core.repo.KVStore;
 import io.vavr.control.Option;
 import reactor.core.publisher.Mono;

@@ -1,7 +1,12 @@
 package io.memoria.reactive.eventsourcing.usecase.banking;
 
 import io.memoria.atom.core.id.Id;
-import io.memoria.reactive.eventsourcing.usecase.banking.command.*;
+import io.memoria.reactive.eventsourcing.usecase.banking.command.AccountCommand;
+import io.memoria.reactive.eventsourcing.usecase.banking.command.ChangeName;
+import io.memoria.reactive.eventsourcing.usecase.banking.command.CloseAccount;
+import io.memoria.reactive.eventsourcing.usecase.banking.command.CreateAccount;
+import io.memoria.reactive.eventsourcing.usecase.banking.command.Credit;
+import io.memoria.reactive.eventsourcing.usecase.banking.command.Debit;
 import io.vavr.collection.List;
 
 import java.util.Random;

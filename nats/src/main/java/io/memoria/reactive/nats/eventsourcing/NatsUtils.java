@@ -1,8 +1,21 @@
 package io.memoria.reactive.nats.eventsourcing;
 
 import io.memoria.reactive.core.stream.ESMsg;
-import io.nats.client.*;
-import io.nats.client.api.*;
+import io.nats.client.Connection;
+import io.nats.client.ErrorListener;
+import io.nats.client.JetStreamApiException;
+import io.nats.client.JetStreamSubscription;
+import io.nats.client.Message;
+import io.nats.client.Options;
+import io.nats.client.PublishOptions;
+import io.nats.client.PullSubscribeOptions;
+import io.nats.client.api.AckPolicy;
+import io.nats.client.api.ConsumerConfiguration;
+import io.nats.client.api.DeliverPolicy;
+import io.nats.client.api.PublishAck;
+import io.nats.client.api.ReplayPolicy;
+import io.nats.client.api.StreamConfiguration;
+import io.nats.client.api.StreamInfo;
 import io.nats.client.impl.Headers;
 import io.nats.client.impl.NatsMessage;
 import io.vavr.control.Try;
