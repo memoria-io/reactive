@@ -106,20 +106,24 @@ public class CommandPipeline<S extends State, C extends Command, E extends Event
   }
 
   Mono<E> handleCommand(C cmd) {
-    return this.pipelineState.containsCommandId(cmd.commandId())
-                             .flatMap(exists -> booleanToMono(!exists, () -> decide(cmd)));
+    return this.pipelineState.containsCommandId(cmd.commandId()).flatMap(exists -> booleanToMono(!exists, decide(cmd)));
   }
 
   private Mono<E> decide(C cmd) {
-    if (aggregates.containsKey(cmd.stateId())) {
-      return ReactorUtils.tryToMono(() -> domain.decider().apply(aggregates.get(cmd.stateId()), cmd));
-    } else {
-      return ReactorUtils.tryToMono(() -> domain.decider().apply(cmd));
-    }
+    return Mono.fromCallable(() -> aggregates.containsKey(cmd.stateId()))
+               .flatMap(stateExists -> booleanToMono(stateExists, decideWithState(cmd), decideWithoutState(cmd)));
+  }
+
+  private Mono<E> decideWithoutState(C cmd) {
+    return ReactorUtils.tryToMono(() -> domain.decider().apply(cmd));
+  }
+
+  private Mono<E> decideWithState(C cmd) {
+    return ReactorUtils.tryToMono(() -> domain.decider().apply(aggregates.get(cmd.stateId()), cmd));
   }
 
   Mono<E> evolve(E e) {
-    return pipelineState.containsEventId(e.eventId()).flatMap(exists -> booleanToMono(!exists, () -> handleEvent(e)));
+    return pipelineState.containsEventId(e.eventId()).flatMap(exists -> booleanToMono(!exists, handleEvent(e)));
   }
 
   Mono<E> saga(E e) {
@@ -128,17 +132,19 @@ public class CommandPipeline<S extends State, C extends Command, E extends Event
 
   Mono<C> handleSaga(C cmd) {
     return this.pipelineState.containsCommandId(cmd.commandId())
-                             .flatMap(exists -> booleanToMono(!exists, () -> this.pubCommand(cmd)));
+                             .flatMap(exists -> booleanToMono(!exists, this.pubCommand(cmd)));
   }
 
   Mono<E> handleEvent(E e) {
-    S newState;
-    if (aggregates.containsKey(e.stateId())) {
-      newState = domain.evolver().apply(aggregates.get(e.stateId()), e);
-    } else {
-      newState = domain.evolver().apply(e);
-    }
-    aggregates.put(e.stateId(), newState);
-    return this.pipelineState.addHandledEvent(e);
+    return Mono.fromCallable(() -> {
+      S newState;
+      if (aggregates.containsKey(e.stateId())) {
+        newState = domain.evolver().apply(aggregates.get(e.stateId()), e);
+      } else {
+        newState = domain.evolver().apply(e);
+      }
+      aggregates.put(e.stateId(), newState);
+      return newState;
+    }).flatMap(newState -> this.pipelineState.addHandledEvent(e));
   }
 }

@@ -37,14 +37,14 @@ class ReactorUtilsTest {
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   void booleanToMonoPosNeg(boolean value) {
-    var m = ReactorUtils.booleanToMono(value, () -> Mono.just(true), () -> Mono.just(false));
+    var m = ReactorUtils.booleanToMono(value, Mono.just(true), Mono.just(false));
     StepVerifier.create(m).expectNext(value).verifyComplete();
   }
 
   @ParameterizedTest
   @ValueSource(booleans = {true, false})
   void booleanToMonoPositive(boolean value) {
-    var m = ReactorUtils.booleanToMono(value, () -> Mono.just(true));
+    var m = ReactorUtils.booleanToMono(value, Mono.just(true));
     if (value) {
       StepVerifier.create(m).expectNext(true).verifyComplete();
     } else {
