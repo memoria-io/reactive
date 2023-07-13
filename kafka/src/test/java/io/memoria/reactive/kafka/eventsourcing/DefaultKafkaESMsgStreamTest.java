@@ -24,6 +24,11 @@ class DefaultKafkaESMsgStreamTest {
   }
 
   @Test
+  void lastKey() {
+    StepVerifier.create(repo.lastKey(topic, partition)).expectComplete().verify();
+  }
+
+  @Test
   void publish() {
     // Given
     var msgs = List.range(0, MSG_COUNT).map(i -> TestUtils.createEsMsg(topic, partition, i));
