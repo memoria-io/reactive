@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 
-class TopicConfigTest {
+class EventRouteConfigTest {
   @Test
   void validation() {
     Assertions.assertThatIllegalArgumentException()

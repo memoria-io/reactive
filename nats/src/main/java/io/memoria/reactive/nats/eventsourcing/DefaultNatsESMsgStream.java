@@ -28,7 +28,7 @@ class DefaultNatsESMsgStream implements NatsESMsgStream {
   }
 
   @Override
-  public Mono<String> lastKey(String topic, int partition) {
+  public Mono<String> last(String topic, int partition) {
     var topicConfig = this.natsConfig.find(topic, partition).get();
     return Mono.fromCallable(() -> NatsUtils.jetStreamSubLast(nc, topicConfig))
                .flatMapMany(sub -> this.fetchBatch(sub, topicConfig))

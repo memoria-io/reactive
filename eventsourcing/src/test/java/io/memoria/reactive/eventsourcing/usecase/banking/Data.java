@@ -10,9 +10,13 @@ import io.memoria.reactive.eventsourcing.usecase.banking.command.Debit;
 import io.vavr.collection.List;
 
 import java.util.Random;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Supplier;
 
 class Data {
   public static final String NAME_PREFIX = "name_version:";
+  private static final AtomicLong counter = new AtomicLong();
+  private static final Supplier<Id> idSupplier = () -> Id.of(counter.getAndIncrement());
 
   static Id createAccountId(int i) {
     return Id.of("acc_id_" + i);
@@ -39,12 +43,11 @@ class Data {
   }
 
   public static List<AccountCommand> changeName(int nAccounts, int version) {
-    return List.range(0, nAccounts).map(i -> new ChangeName(createAccountId(i), Id.of(), createName(version)));
+    return List.range(0, nAccounts).map(i -> ChangeName.of(createAccountId(i), createName(version)));
   }
 
   public static List<AccountCommand> credit(int nAccounts, int balance) {
-    return List.range(0, nAccounts)
-               .map(i -> new Credit(Id.of(), createAccountId(i), Id.of("SomeFakeDebitId"), balance));
+    return List.range(0, nAccounts).map(i -> Credit.of(createAccountId(i), Id.of("SomeFakeDebitId"), balance));
   }
 
   /**
@@ -53,7 +56,7 @@ class Data {
   public static List<AccountCommand> debit(int nAccounts, int balance) {
     int maxDebitIds = nAccounts / 2;
     return List.range(0, maxDebitIds)
-               .map(i -> new Debit(Id.of(), createAccountId(i), createAccountId(nAccounts - i - 1), balance));
+               .map(i -> Debit.of(createAccountId(i), createAccountId(nAccounts - i - 1), balance));
   }
 
   private static AccountCommand createOutboundBalance(Id from, Id to, int amount) {

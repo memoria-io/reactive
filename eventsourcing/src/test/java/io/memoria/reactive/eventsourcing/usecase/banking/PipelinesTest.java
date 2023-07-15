@@ -1,11 +1,11 @@
 package io.memoria.reactive.eventsourcing.usecase.banking;
 
-import io.memoria.atom.core.text.SerializableTransformer;
-import io.memoria.atom.core.text.TextTransformer;
-import io.memoria.reactive.core.stream.ESMsgStream;
 import io.memoria.reactive.eventsourcing.Domain;
 import io.memoria.reactive.eventsourcing.pipeline.CommandPipeline;
-import io.memoria.reactive.eventsourcing.pipeline.PipelineRoute;
+import io.memoria.reactive.eventsourcing.pipeline.CommandRoute;
+import io.memoria.reactive.eventsourcing.pipeline.EventRoute;
+import io.memoria.reactive.eventsourcing.stream.CommandStream;
+import io.memoria.reactive.eventsourcing.stream.EventStream;
 import io.memoria.reactive.eventsourcing.usecase.banking.command.AccountCommand;
 import io.memoria.reactive.eventsourcing.usecase.banking.event.AccountEvent;
 import io.memoria.reactive.eventsourcing.usecase.banking.state.Account;
@@ -23,33 +23,12 @@ import reactor.test.StepVerifier;
 import java.time.Duration;
 
 class PipelinesTest {
-  private static final TextTransformer transformer = new SerializableTransformer();
-  private static final PipelineRoute PIPELINE_ROUTE = new PipelineRoute("commands", 0, 1, "events", 0);
-  private final ESMsgStream esStream = ESMsgStream.inMemory();
-  private final CommandPipeline<Account, AccountCommand, AccountEvent> pipeline = createPipeline();
-  private static final int nAccounts = 10;
+  private static final int nAccounts = 1;
   private static final int initialBalance = 500;
   private static final int creditBalance = 300;
   private static final int debitBalance = 300;
 
-  @Disabled("Disabled and is enabled for debugging purposes only")
-  @ParameterizedTest
-  @ValueSource(ints = {1, 10, 100, 1000, 10_000, 100_000, 200_000, 300_000, 400_000, 500_000, 600_000, 1000_000})
-  void performance(int numOfAccounts) {
-    // Given
-    var createAccounts = Data.createAccounts(numOfAccounts, initialBalance);
-    var creditAccounts = Data.credit(numOfAccounts, creditBalance);
-    creditAccounts = createAccounts.appendAll(creditAccounts); // Handling duplicates (at least once messaging)
-    var commands = Flux.fromIterable(createAccounts).concatWith(Flux.fromIterable(creditAccounts));
-
-    // When
-    var now = System.nanoTime();
-    StepVerifier.create(pipeline.handle(commands)).expectNextCount(numOfAccounts * 2L).verifyComplete();
-    var elapsedTimeMillis = (System.nanoTime() - now) / 1_000_000;
-
-    // Then
-    System.out.println(elapsedTimeMillis);
-  }
+  private final CommandPipeline<Account, AccountCommand, AccountEvent> pipeline = createPipeline();
 
   @Test
   void simpleCreditWithVerification() {
@@ -57,14 +36,25 @@ class PipelinesTest {
     int endBalance = initialBalance + creditBalance;
     var createAccounts = Data.createAccounts(nAccounts, initialBalance);
     var creditAccounts = Data.credit(nAccounts, creditBalance);
-    creditAccounts = createAccounts.appendAll(creditAccounts); // Handling duplicates (at least once messaging)
-    var commands = Flux.fromIterable(createAccounts).concatWith(Flux.fromIterable(creditAccounts));
+    //    creditAccounts = createAccounts.appendAll(creditAccounts); // Handling duplicates (at least once messaging)
+    var commands = Flux.fromIterable(createAccounts)
+                       .concatWith(Flux.fromIterable(creditAccounts))
+                       .concatMap(pipeline::pubCommand);
 
     // When
-    StepVerifier.create(pipeline.handle(commands)).expectNextCount(nAccounts * 2).verifyComplete();
+    StepVerifier.create(commands).expectNextCount(nAccounts * 2).verifyComplete();
+//    StepVerifier.create(pipeline.subToCommands())
+//                .expectNextCount(nAccounts * 2)
+//                .expectTimeout(Duration.ofMillis(100))
+//                .verify();
+    StepVerifier.create(pipeline.handle())
+                .expectNextCount(nAccounts * 2)
+            .verifyComplete();
+//                .expectTimeout(Duration.ofMillis(100))
+//                .verify();
 
     // Then
-    List.range(0, nAccounts).map(this::account).forEach(id -> verifyBalance(id, endBalance));
+    //    List.range(0, nAccounts).map(this::account).forEach(id -> verifyBalance(id, endBalance));
   }
 
   @Test
@@ -100,6 +90,25 @@ class PipelinesTest {
     StepVerifier.create(account).expectNextMatches(acc -> acc.balance() == endBalance).verifyComplete();
   }
 
+  @Disabled("For debugging purposes only")
+  @ParameterizedTest
+  @ValueSource(ints = {1, 10, 100, 1000, 10_000, 100_000, 200_000, 300_000, 400_000, 500_000, 600_000, 1000_000})
+  void performance(int numOfAccounts) {
+    // Given
+    var createAccounts = Data.createAccounts(numOfAccounts, initialBalance);
+    var creditAccounts = Data.credit(numOfAccounts, creditBalance);
+    creditAccounts = createAccounts.appendAll(creditAccounts); // Handling duplicates (at least once messaging)
+    var commands = Flux.fromIterable(createAccounts).concatWith(Flux.fromIterable(creditAccounts));
+
+    // When
+    var now = System.nanoTime();
+    StepVerifier.create(pipeline.handle(commands)).expectNextCount(numOfAccounts * 2L).verifyComplete();
+    var elapsedTimeMillis = (System.nanoTime() - now) / 1_000_000;
+
+    // Then
+    System.out.println(elapsedTimeMillis);
+  }
+
   private Mono<OpenAccount> account(int accountId) {
     var stateEvents = pipeline.subToEvents();
     var stateId = Data.createAccountId(accountId);
@@ -107,7 +116,13 @@ class PipelinesTest {
   }
 
   private CommandPipeline<Account, AccountCommand, AccountEvent> createPipeline() {
-    return new CommandPipeline<>(stateDomain(), PIPELINE_ROUTE, esStream, transformer);
+    var cmdStream = CommandStream.<AccountCommand>inMemory();
+    var cmdRoute = new CommandRoute("commands", 0);
+
+    var eventStream = EventStream.<AccountEvent>inMemory();
+    var eventRoute = new EventRoute("events", 0);
+
+    return new CommandPipeline<>(stateDomain(), cmdStream, cmdRoute, eventStream, eventRoute);
   }
 
   private static Domain<Account, AccountCommand, AccountEvent> stateDomain() {

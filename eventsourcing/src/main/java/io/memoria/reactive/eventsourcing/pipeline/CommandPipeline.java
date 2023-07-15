@@ -1,9 +1,7 @@
 package io.memoria.reactive.eventsourcing.pipeline;
 
 import io.memoria.atom.core.id.Id;
-import io.memoria.atom.core.text.TextTransformer;
 import io.memoria.reactive.core.reactor.ReactorUtils;
-import io.memoria.reactive.core.stream.ESMsgStream;
 import io.memoria.reactive.eventsourcing.Command;
 import io.memoria.reactive.eventsourcing.Domain;
 import io.memoria.reactive.eventsourcing.Event;
@@ -14,48 +12,52 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 import static io.memoria.reactive.core.reactor.ReactorUtils.booleanToMono;
+import static io.memoria.reactive.core.reactor.ReactorUtils.optionToMono;
 
 public class CommandPipeline<S extends State, C extends Command, E extends Event> {
   // Core
   public final Domain<S, C, E> domain;
-  public final PipelineRoute route;
+
   // Infra
   private final CommandStream<C> commandStream;
-  private final EventStream<E> eventStream;
+  private final CommandRoute commandRoute;
+
+  public final EventStream<E> eventStream;
+  public final EventRoute eventRoute;
+
   // In memory
-  private final PipelineStateRepo<E> pipelineState;
   private final Map<Id, S> aggregates;
+  private final Set<Id> processedCommands;
+  private final Set<Id> processedEvents;
 
   public CommandPipeline(Domain<S, C, E> domain,
-                         PipelineRoute route,
-                         ESMsgStream esMsgStream,
-                         TextTransformer transformer) {
-    this(domain, route, esMsgStream, PipelineStateRepo.inMemory(route), transformer);
-  }
-
-  public CommandPipeline(Domain<S, C, E> domain,
-                         PipelineRoute route,
-                         ESMsgStream esMsgStream,
-                         PipelineStateRepo<E> pipelineState,
-                         TextTransformer transformer) {
+                         CommandStream<C> commandStream,
+                         CommandRoute commandRoute,
+                         EventStream<E> eventStream,
+                         EventRoute eventRoute) {
     // Core
     this.domain = domain;
-    this.route = route;
 
     // Infra
-    this.commandStream = CommandStream.create(esMsgStream, transformer, domain.cClass());
-    this.eventStream = EventStream.create(esMsgStream, transformer, domain.eClass());
+    this.commandStream = commandStream;
+    this.commandRoute = commandRoute;
+
+    this.eventStream = eventStream;
+    this.eventRoute = eventRoute;
 
     // In memory
-    this.pipelineState = pipelineState;
     this.aggregates = new HashMap<>();
+    this.processedCommands = new HashSet<>();
+    this.processedEvents = new HashSet<>();
   }
 
   public Flux<E> handle() {
-    return handle(commandStream.sub(route.cmdTopic(), route.cmdSubPartition()));
+    return handle(commandStream.sub(commandRoute.name(), commandRoute.partition()).doOnNext(System.out::println));
   }
 
   public Flux<E> handle(Flux<C> cmds) {
@@ -67,38 +69,38 @@ public class CommandPipeline<S extends State, C extends Command, E extends Event
     return init().concatWith(handleCommands);
   }
 
-  public Flux<E> subToEvents() {
-    return this.eventStream.sub(route.eventTopic(), route.eventSubPubPartition());
+  public Mono<C> pubCommand(C cmd) {
+    return Mono.fromCallable(() -> cmd.partition(commandRoute.totalPartitions()))
+               .flatMap(partition -> commandStream.pub(commandRoute.name(), partition, cmd));
   }
 
   public Flux<C> subToCommands() {
-    return this.commandStream.sub(route.cmdTopic(), route.cmdSubPartition());
-  }
-
-  public Mono<C> pubCommand(C cmd) {
-    return Mono.fromCallable(() -> cmd.partition(route.cmdTotalPubPartitions()))
-               .flatMap(partition -> this.commandStream.pub(route.cmdTopic(), partition, cmd));
+    return commandStream.sub(commandRoute.name(), commandRoute.partition());
   }
 
   public Mono<E> pubEvent(E e) {
-    return this.eventStream.pub(route.eventTopic(), route.eventSubPubPartition(), e);
+    return eventStream.pub(eventRoute.name(), eventRoute.partition(), e);
+  }
+
+  public Flux<E> subToEvents() {
+    return eventStream.sub(eventRoute.name(), eventRoute.partition());
+  }
+
+  public Flux<E> subUntil(Id id) {
+    return eventStream.subUntil(eventRoute.name(), eventRoute.partition(), id);
   }
 
   /**
    * Load previous events and build the state
    */
   Flux<E> init() {
-    return this.eventStream.lastEventId(route.eventTopic(), route.eventSubPubPartition())
+    return this.eventStream.last(eventRoute.name(), eventRoute.partition())
                            .flatMapMany(this::subUntil)
                            .concatMap(this::evolve);
   }
 
-  Flux<E> subUntil(Id id) {
-    return eventStream.subUntil(route.eventTopic(), route.eventSubPubPartition(), id);
-  }
-
   Mono<C> redirectIfNotBelong(C cmd) {
-    if (cmd.isInPartition(route.cmdSubPartition(), route.cmdTotalPubPartitions())) {
+    if (cmd.isInPartition(commandRoute.partition(), commandRoute.totalPartitions())) {
       return Mono.just(cmd);
     } else {
       return this.pubCommand(cmd).flatMap(c -> Mono.empty());
@@ -106,7 +108,8 @@ public class CommandPipeline<S extends State, C extends Command, E extends Event
   }
 
   Mono<E> handleCommand(C cmd) {
-    return this.pipelineState.containsCommandId(cmd.commandId()).flatMap(exists -> booleanToMono(!exists, decide(cmd)));
+    return Mono.fromCallable(() -> processedCommands.contains(cmd.commandId()))
+               .flatMap(exists -> booleanToMono(!exists, decide(cmd)));
   }
 
   private Mono<E> decide(C cmd) {
@@ -123,16 +126,12 @@ public class CommandPipeline<S extends State, C extends Command, E extends Event
   }
 
   Mono<E> evolve(E e) {
-    return pipelineState.containsEventId(e.eventId()).flatMap(exists -> booleanToMono(!exists, handleEvent(e)));
+    return Mono.fromCallable(() -> processedEvents.contains(e.eventId()))
+               .flatMap(exists -> booleanToMono(!exists, handleEvent(e)));
   }
 
   Mono<E> saga(E e) {
-    return domain.saga().apply(e).map(this::handleSaga).map(mono -> mono.map(c -> e)).getOrElse(Mono.just(e));
-  }
-
-  Mono<C> handleSaga(C cmd) {
-    return this.pipelineState.containsCommandId(cmd.commandId())
-                             .flatMap(exists -> booleanToMono(!exists, this.pubCommand(cmd)));
+    return optionToMono(domain.saga().apply(e)).flatMap(this::pubCommand).map(c -> e);
   }
 
   Mono<E> handleEvent(E e) {
@@ -144,7 +143,9 @@ public class CommandPipeline<S extends State, C extends Command, E extends Event
         newState = domain.evolver().apply(e);
       }
       aggregates.put(e.stateId(), newState);
-      return newState;
-    }).flatMap(newState -> this.pipelineState.addHandledEvent(e));
+      processedCommands.add(e.commandId());
+      processedEvents.add(e.eventId());
+      return e;
+    }).flatMap(this::pubEvent);
   }
 }
