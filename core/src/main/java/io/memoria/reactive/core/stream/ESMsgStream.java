@@ -5,7 +5,10 @@ import reactor.core.publisher.Mono;
 
 public interface ESMsgStream {
 
-  Mono<String> lastKey(String topic, int partition);
+  /**
+   * @return known key
+   */
+  Mono<String> last(String topic, int partition);
 
   Mono<ESMsg> pub(ESMsg esMsg);
 

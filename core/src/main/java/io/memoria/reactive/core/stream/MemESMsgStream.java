@@ -22,7 +22,7 @@ public final class MemESMsgStream implements ESMsgStream {
   }
 
   @Override
-  public Mono<String> lastKey(String topic, int partition) {
+  public Mono<String> last(String topic, int partition) {
     return Mono.defer(() -> Mono.justOrEmpty(lastMsg.get(topic)))
                .flatMap(tp -> Mono.justOrEmpty(tp.get(partition)))
                .map(ESMsg::key);
