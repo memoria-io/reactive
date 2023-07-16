@@ -65,7 +65,7 @@ public class CommandPipeline<S extends State, C extends Command, E extends Event
                              .concatMap(this::handleCommand) // handle the command
                              .concatMap(this::evolve) // evolve the state
                              .concatMap(this::pubEvent) // publish the event
-                             .concatMap(this::saga); // publish saga command
+                             .concatMap(this::saga); // publish saga command;
     return init().concatWith(handleCommands);
   }
 
@@ -79,7 +79,7 @@ public class CommandPipeline<S extends State, C extends Command, E extends Event
   }
 
   public Mono<E> pubEvent(E e) {
-    return eventStream.pub(eventRoute.name(), eventRoute.partition(), e).doOnNext(System.out::println);
+    return eventStream.pub(eventRoute.name(), eventRoute.partition(), e);
   }
 
   public Flux<E> subToEvents() {
@@ -131,7 +131,7 @@ public class CommandPipeline<S extends State, C extends Command, E extends Event
   }
 
   Mono<E> saga(E e) {
-    return optionToMono(domain.saga().apply(e)).flatMap(this::pubCommand).map(c -> e);
+    return optionToMono(domain.saga().apply(e)).flatMap(this::pubCommand).map(c -> e).defaultIfEmpty(e);
   }
 
   Mono<E> handleEvent(E e) {

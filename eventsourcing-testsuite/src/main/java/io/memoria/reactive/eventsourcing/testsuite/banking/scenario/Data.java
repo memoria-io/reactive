@@ -15,75 +15,97 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 public class Data {
-  private static final AtomicLong atomic = new AtomicLong();
-  public static final String NAME_PREFIX = "name_version:";
-  public static final Supplier<Id> idSupplier = () -> Id.of(atomic.getAndIncrement());
-  public static final Supplier<Long> timeSupplier = () -> 0L;
+  public final String namePrefix;
+  public final AtomicLong counter;
+  public final Supplier<Id> idSupplier;
+  public final Supplier<Long> timeSupplier;
 
-  public static Id createId(int i) {
-    return Id.of("acc_id_" + i);
+  public static Data ofSerial(String namePrefix) {
+    return new Data(namePrefix);
   }
 
-  public static List<Id> createIds(int from, int to) {
-    return List.range(from, to).map(Data::createId);
+  public static Data ofUUID(String namePrefix) {
+    return of(namePrefix, new AtomicLong(), Id::of, () -> 0L);
   }
 
-  public static List<Id> createShuffledIds(int nAccounts) {
-    return List.range(0, nAccounts).shuffle().map(Data::createId);
+  public static Data of(String namePrefix, AtomicLong counter, Supplier<Id> idSupplier, Supplier<Long> timeSupplier) {
+    return new Data(namePrefix, counter, idSupplier, timeSupplier);
   }
 
-  public static String createName(int nameVersion) {
-    return NAME_PREFIX + nameVersion;
+  public Id createId(int i) {
+    return Id.of(namePrefix + i);
   }
 
-  public static CreateAccount newCreateAccountCmd(Id id, long balance) {
+  public List<Id> createIds(int from, int to) {
+    return List.range(from, to).map(this::createId);
+  }
+
+  public List<Id> createShuffledIds(int nAccounts) {
+    return List.range(0, nAccounts).shuffle().map(this::createId);
+  }
+
+  public String createName(int nameVersion) {
+    return namePrefix + nameVersion;
+  }
+
+  public CreateAccount createAccountCmd(Id id, long balance) {
     return new CreateAccount(idSupplier.get(), id, timeSupplier.get(), createName(0), balance);
   }
 
-  public static List<AccountCommand> newCreateAccountCmd(List<Id> ids, long balance) {
-    return ids.map(id -> newCreateAccountCmd(id, balance));
+  public List<AccountCommand> createAccountCmd(List<Id> ids, long balance) {
+    return ids.map(id -> createAccountCmd(id, balance));
   }
 
-  public static List<AccountCommand> newChangeNameCmd(List<Id> ids, int version) {
+  public List<AccountCommand> changeNameCmd(List<Id> ids, int version) {
     return ids.map(id -> new ChangeName(idSupplier.get(), id, timeSupplier.get(), createName(version)));
   }
 
-  public static Credit newCreditCmd(Id debited, int balance, Id id) {
+  public Credit creditCmd(Id debited, int balance, Id id) {
     return new Credit(idSupplier.get(), id, timeSupplier.get(), debited, balance);
   }
 
-  public static List<AccountCommand> newCreditCmd(List<Id> credited, Id debited, int balance) {
-    return credited.map(id -> newCreditCmd(debited, balance, id)).map(i -> (AccountCommand) i).toList();
+  public List<AccountCommand> creditCmd(List<Id> credited, Id debited, int balance) {
+    return credited.map(id -> creditCmd(debited, balance, id)).map(i -> (AccountCommand) i).toList();
   }
 
-  public static List<AccountCommand> newCreditCmd(Map<Id, Id> creditedDebited, int balance) {
-    return creditedDebited.map(entry -> newCreditCmd(entry._2, balance, entry._1))
-                          .map(i -> (AccountCommand) i)
-                          .toList();
+  public List<AccountCommand> creditCmd(Map<Id, Id> creditedDebited, int balance) {
+    return creditedDebited.map(entry -> creditCmd(entry._2, balance, entry._1)).map(i -> (AccountCommand) i).toList();
   }
 
-  public static Debit newDebitCmd(Id debited, Id credited, int amount) {
+  public Debit debitCmd(Id debited, Id credited, int amount) {
     return new Debit(idSupplier.get(), debited, timeSupplier.get(), credited, amount);
   }
 
-  public static List<AccountCommand> newDebitCmd(Map<Id, Id> debitedCredited, int amount) {
-    return debitedCredited.map(entry -> newDebitCmd(entry._1, entry._2, amount)).map(i -> (AccountCommand) i).toList();
+  public List<AccountCommand> debitCmd(Map<Id, Id> debitedCredited, int amount) {
+    return debitedCredited.map(entry -> debitCmd(entry._1, entry._2, amount)).map(i -> (AccountCommand) i).toList();
   }
 
-  public static List<AccountCommand> newRandomDebitAmountCmd(Map<Id, Id> debitedCredited, int maxAmount) {
+  public List<AccountCommand> randomDebitAmountCmd(Map<Id, Id> debitedCredited, int maxAmount) {
     var random = new Random();
-    return debitedCredited.map(entry -> newDebitCmd(entry._1, entry._2, random.nextInt(maxAmount)))
+    return debitedCredited.map(entry -> debitCmd(entry._1, entry._2, random.nextInt(maxAmount)))
                           .map(i -> (AccountCommand) i)
                           .toList();
   }
 
-  public static CloseAccount newCloseAccountCmd(Id i) {
+  public CloseAccount closeAccountCmd(Id i) {
     return new CloseAccount(idSupplier.get(), i, timeSupplier.get());
   }
 
-  public static List<AccountCommand> toCloseAccountCmd(List<Id> ids) {
-    return ids.map(Data::newCloseAccountCmd);
+  public List<AccountCommand> toCloseAccountCmd(List<Id> ids) {
+    return ids.map(this::closeAccountCmd);
   }
 
-  private Data() {}
+  private Data(String namePrefix) {
+    this.namePrefix = namePrefix;
+    this.counter = new AtomicLong();
+    this.idSupplier = () -> Id.of(counter.getAndIncrement());
+    this.timeSupplier = counter::getAndIncrement;
+  }
+
+  private Data(String namePrefix, AtomicLong counter, Supplier<Id> idSupplier, Supplier<Long> timeSupplier) {
+    this.namePrefix = namePrefix;
+    this.counter = counter;
+    this.idSupplier = idSupplier;
+    this.timeSupplier = timeSupplier;
+  }
 }
