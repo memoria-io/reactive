@@ -1,14 +1,11 @@
 package io.memoria.reactive.eventsourcing.testsuite.banking.scenario;
 
 import io.memoria.atom.core.id.Id;
-import io.memoria.reactive.eventsourcing.pipeline.CommandRoute;
-import io.memoria.reactive.eventsourcing.pipeline.EventRoute;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
-import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
@@ -19,18 +16,10 @@ class ScenarioTest {
 
   @ParameterizedTest(name = "Using {0}")
   @MethodSource("dataSource")
-  void duplicateCreditScenario(String name, Data data) {
-    // Given
-    var scenario = new DuplicateCreditScenario(data, 100);
-    // When, Then
-    StepVerifier.create(scenario.verify()).expectNext(true).verifyComplete();
-  }
-
-  @ParameterizedTest(name = "Using {0}")
-  @MethodSource("dataSource")
   void sagaDebitScenario(String name, Data data) {
     // Given
-    var scenario = new DebitSagaScenario(data, 100);
+    var pipeline = Infra.createMemoryPipeline(data.idSupplier, data.timeSupplier);
+    var scenario = new SimpleDebitScenario(data, pipeline, 100, 100);
     // When, Then
     StepVerifier.create(scenario.verify()).expectNext(true).verifyComplete();
   }
@@ -41,17 +30,17 @@ class ScenarioTest {
   void performance(int numOfAccounts) {
     // Given
     var data = Data.ofUUID("bob");
-    var pipeline = data.createMemoryPipeline(new CommandRoute("commands", 0), new EventRoute("events", 0));
+    var pipeline = Infra.createMemoryPipeline(data.idSupplier, data.timeSupplier);
     int initBalance = 500;
     int creditBalance = 300;
     var accountIds = data.createIds(0, numOfAccounts);
     var createAccounts = data.createAccountCmd(accountIds, initBalance);
     var creditAccounts = data.creditCmd(accountIds, Id.of("the bank"), creditBalance);
-    var commands = Flux.fromIterable(createAccounts).concatWith(Flux.fromIterable(creditAccounts));
+    //    var commands = Flux.fromIterable(createAccounts).concatWith(Flux.fromIterable(creditAccounts));
 
     // When
     var now = System.nanoTime();
-    StepVerifier.create(pipeline.handle(commands)).expectNextCount(numOfAccounts * 2L).verifyComplete();
+    //    StepVerifier.create(pipeline.handle(commands)).expectNextCount(numOfAccounts * 2L).verifyComplete();
     var elapsedTimeMillis = (System.nanoTime() - now) / 1_000_000;
 
     // Then

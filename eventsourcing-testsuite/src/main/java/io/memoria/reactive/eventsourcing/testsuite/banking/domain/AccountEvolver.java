@@ -30,7 +30,7 @@ public record AccountEvolver(Supplier<Id> idSupplier, Supplier<Long> timeSupplie
   @Override
   public Account apply(AccountEvent accountEvent) {
     return switch (accountEvent) {
-      case AccountCreated e -> new OpenAccount(e.stateId(), e.name(), e.balance(), 0);
+      case AccountCreated e -> new OpenAccount(e.stateId(), e.name(), e.balance(), 0, 0, 0);
       default -> throw InvalidEvent.of(accountEvent);
     };
   }
