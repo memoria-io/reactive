@@ -18,6 +18,8 @@ import io.memoria.reactive.eventsourcing.testsuite.banking.domain.command.Credit
 import io.memoria.reactive.eventsourcing.testsuite.banking.domain.command.Debit;
 import io.memoria.reactive.eventsourcing.testsuite.banking.domain.event.AccountEvent;
 import io.memoria.reactive.eventsourcing.testsuite.banking.domain.state.Account;
+import io.vavr.Tuple;
+import io.vavr.collection.HashMap;
 import io.vavr.collection.List;
 import io.vavr.collection.Map;
 
@@ -82,8 +84,8 @@ public class Data {
     return List.range(0, nAccounts).shuffle().map(this::createId);
   }
 
-  public String createName(int nameVersion) {
-    return namePrefix + nameVersion;
+  public String createName(int postfix) {
+    return namePrefix + postfix;
   }
 
   public CreateAccount createAccountCmd(Id id, long balance) {
@@ -112,6 +114,11 @@ public class Data {
 
   public Debit debitCmd(Id debited, Id credited, int amount) {
     return new Debit(idSupplier.get(), debited, timeSupplier.get(), credited, amount);
+  }
+
+  public List<AccountCommand> debitCmd(List<Id> debitedIds, List<Id> creditedIds, int amount) {
+    var map = HashMap.ofEntries(debitedIds.zipWith(creditedIds, Tuple::of));
+    return debitCmd(map, amount);
   }
 
   public List<AccountCommand> debitCmd(Map<Id, Id> debitedCredited, int amount) {
