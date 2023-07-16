@@ -15,6 +15,7 @@ import io.memoria.reactive.eventsourcing.testsuite.banking.domain.event.AccountE
 import io.memoria.reactive.eventsourcing.testsuite.banking.domain.state.Account;
 import io.memoria.reactive.eventsourcing.testsuite.banking.domain.state.OpenAccount;
 import io.memoria.reactive.eventsourcing.testsuite.banking.scenario.Data;
+import io.memoria.reactive.eventsourcing.testsuite.banking.scenario.SimpleCreditScenario;
 import io.vavr.Tuple;
 import io.vavr.collection.HashMap;
 import org.assertj.core.api.Assertions;
@@ -32,29 +33,22 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 class PipelinesTest {
-  private static final AtomicLong counter = new AtomicLong();
-
   @ParameterizedTest(name = "Using {0}")
   @MethodSource("dataSource")
   void simpleCredit(String name, Data data) {
     // Given
+    int nAccounts = 100;
+    var scenario = new SimpleCreditScenario(nAccounts)
     var pipeline = createPipeline(data);
-    var nAccounts = 10;
-    int initBalance = 500;
-    int creditBalance = 300;
-    var accountIds = data.createIds(0, nAccounts);
-    var createAccounts = data.createAccountCmd(accountIds, initBalance);
-    var creditAccounts = data.creditCmd(accountIds, Id.of("the bank"), creditBalance);
+    var commands = .simpleCredit(data, nAccounts);
 
     // When
-    var commands = createAccounts.appendAll(creditAccounts);
     StepVerifier.create(pipeline.handle(Flux.fromIterable(commands))).expectNextCount(commands.size()).verifyComplete();
-    //    var finalStateMap = pipeline.domain.evolver().reduce(pipeline.subToEvents().take(nAccounts * 2)).block();
-    //
-    //    // Then
-    //    Objects.requireNonNull(finalStateMap);
-    //    finalStateMap.forEach((k, v) -> Assertions.assertThat(((OpenAccount) v).balance())
-    //                                              .isEqualTo(initBalance + creditBalance));
+    var finalStateMap = pipeline.domain.evolver().reduce(pipeline.subToEvents().take(nAccounts * 2)).block();
+    // Then
+    Objects.requireNonNull(finalStateMap);
+    finalStateMap.forEach((k, v) -> Assertions.assertThat(((OpenAccount) v).balance())
+                                              .isEqualTo(initBalance + creditBalance));
   }
 
   @ParameterizedTest(name = "Using {0}")
