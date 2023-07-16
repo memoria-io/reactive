@@ -1,12 +1,23 @@
 package io.memoria.reactive.eventsourcing.testsuite.banking.scenario;
 
 import io.memoria.atom.core.id.Id;
+import io.memoria.reactive.eventsourcing.Domain;
+import io.memoria.reactive.eventsourcing.pipeline.CommandPipeline;
+import io.memoria.reactive.eventsourcing.pipeline.CommandRoute;
+import io.memoria.reactive.eventsourcing.pipeline.EventRoute;
+import io.memoria.reactive.eventsourcing.stream.CommandStream;
+import io.memoria.reactive.eventsourcing.stream.EventStream;
+import io.memoria.reactive.eventsourcing.testsuite.banking.domain.AccountDecider;
+import io.memoria.reactive.eventsourcing.testsuite.banking.domain.AccountEvolver;
+import io.memoria.reactive.eventsourcing.testsuite.banking.domain.AccountSaga;
 import io.memoria.reactive.eventsourcing.testsuite.banking.domain.command.AccountCommand;
 import io.memoria.reactive.eventsourcing.testsuite.banking.domain.command.ChangeName;
 import io.memoria.reactive.eventsourcing.testsuite.banking.domain.command.CloseAccount;
 import io.memoria.reactive.eventsourcing.testsuite.banking.domain.command.CreateAccount;
 import io.memoria.reactive.eventsourcing.testsuite.banking.domain.command.Credit;
 import io.memoria.reactive.eventsourcing.testsuite.banking.domain.command.Debit;
+import io.memoria.reactive.eventsourcing.testsuite.banking.domain.event.AccountEvent;
+import io.memoria.reactive.eventsourcing.testsuite.banking.domain.state.Account;
 import io.vavr.collection.List;
 import io.vavr.collection.Map;
 
@@ -15,21 +26,48 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 public class Data {
-  public final String namePrefix;
-  public final AtomicLong counter;
-  public final Supplier<Id> idSupplier;
-  public final Supplier<Long> timeSupplier;
+  private final String namePrefix;
+  private final AtomicLong counter = new AtomicLong();
+  private final Supplier<Id> idSupplier;
+  private final Supplier<Long> timeSupplier;
+  public final Domain<Account, AccountCommand, AccountEvent> domain;
+
+  Data(String namePrefix) {
+    this.namePrefix = namePrefix;
+    this.idSupplier = () -> Id.of(counter.getAndIncrement());
+    this.timeSupplier = System::currentTimeMillis;
+    this.domain = stateDomain();
+  }
+
+  Data(String namePrefix, Supplier<Id> idSupplier, Supplier<Long> timeSupplier) {
+    this.namePrefix = namePrefix;
+    this.idSupplier = idSupplier;
+    this.timeSupplier = timeSupplier;
+    this.domain = stateDomain();
+  }
 
   public static Data ofSerial(String namePrefix) {
     return new Data(namePrefix);
   }
 
   public static Data ofUUID(String namePrefix) {
-    return of(namePrefix, new AtomicLong(), Id::of, () -> 0L);
+    return new Data(namePrefix, Id::of, System::currentTimeMillis);
   }
 
-  public static Data of(String namePrefix, AtomicLong counter, Supplier<Id> idSupplier, Supplier<Long> timeSupplier) {
-    return new Data(namePrefix, counter, idSupplier, timeSupplier);
+  public CommandPipeline<Account, AccountCommand, AccountEvent> createMemoryPipeline(CommandRoute commandRoute,
+                                                                                     EventRoute eventRoute) {
+    return new CommandPipeline<>(stateDomain(),
+                                 CommandStream.inMemory(),
+                                 commandRoute,
+                                 EventStream.inMemory(),
+                                 eventRoute);
+  }
+
+  public CommandPipeline<Account, AccountCommand, AccountEvent> createPipeline(CommandStream<AccountCommand> commandStream,
+                                                                               CommandRoute commandRoute,
+                                                                               EventStream<AccountEvent> eventStream,
+                                                                               EventRoute eventRoute) {
+    return new CommandPipeline<>(stateDomain(), commandStream, commandRoute, eventStream, eventRoute);
   }
 
   public Id createId(int i) {
@@ -95,17 +133,20 @@ public class Data {
     return ids.map(this::closeAccountCmd);
   }
 
-  private Data(String namePrefix) {
-    this.namePrefix = namePrefix;
-    this.counter = new AtomicLong();
-    this.idSupplier = () -> Id.of(counter.getAndIncrement());
-    this.timeSupplier = counter::getAndIncrement;
-  }
+  public String namePrefix() {return namePrefix;}
 
-  private Data(String namePrefix, AtomicLong counter, Supplier<Id> idSupplier, Supplier<Long> timeSupplier) {
-    this.namePrefix = namePrefix;
-    this.counter = counter;
-    this.idSupplier = idSupplier;
-    this.timeSupplier = timeSupplier;
+  public AtomicLong counter() {return counter;}
+
+  public Supplier<Id> idSupplier() {return idSupplier;}
+
+  public Supplier<Long> timeSupplier() {return timeSupplier;}
+
+  private Domain<Account, AccountCommand, AccountEvent> stateDomain() {
+    return new Domain<>(Account.class,
+                        AccountCommand.class,
+                        AccountEvent.class,
+                        new AccountDecider(idSupplier, timeSupplier),
+                        new AccountEvolver(idSupplier, timeSupplier),
+                        new AccountSaga(idSupplier, timeSupplier));
   }
 }

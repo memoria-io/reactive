@@ -1,21 +1,11 @@
 package io.memoria.reactive.eventsourcing.testsuite.banking;
 
 import io.memoria.atom.core.id.Id;
-import io.memoria.reactive.eventsourcing.Domain;
-import io.memoria.reactive.eventsourcing.pipeline.CommandPipeline;
 import io.memoria.reactive.eventsourcing.pipeline.CommandRoute;
 import io.memoria.reactive.eventsourcing.pipeline.EventRoute;
-import io.memoria.reactive.eventsourcing.stream.CommandStream;
-import io.memoria.reactive.eventsourcing.stream.EventStream;
-import io.memoria.reactive.eventsourcing.testsuite.banking.domain.AccountDecider;
-import io.memoria.reactive.eventsourcing.testsuite.banking.domain.AccountEvolver;
-import io.memoria.reactive.eventsourcing.testsuite.banking.domain.AccountSaga;
-import io.memoria.reactive.eventsourcing.testsuite.banking.domain.command.AccountCommand;
-import io.memoria.reactive.eventsourcing.testsuite.banking.domain.event.AccountEvent;
-import io.memoria.reactive.eventsourcing.testsuite.banking.domain.state.Account;
 import io.memoria.reactive.eventsourcing.testsuite.banking.domain.state.OpenAccount;
+import io.memoria.reactive.eventsourcing.testsuite.banking.scenario.CreateAndCreditScenario;
 import io.memoria.reactive.eventsourcing.testsuite.banking.scenario.Data;
-import io.memoria.reactive.eventsourcing.testsuite.banking.scenario.SimpleCreditScenario;
 import io.vavr.Tuple;
 import io.vavr.collection.HashMap;
 import org.assertj.core.api.Assertions;
@@ -29,7 +19,6 @@ import reactor.test.StepVerifier;
 
 import java.time.Duration;
 import java.util.Objects;
-import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Stream;
 
 class PipelinesTest {
@@ -38,24 +27,15 @@ class PipelinesTest {
   void simpleCredit(String name, Data data) {
     // Given
     int nAccounts = 100;
-    var scenario = new SimpleCreditScenario(nAccounts)
-    var pipeline = createPipeline(data);
-    var commands = .simpleCredit(data, nAccounts);
-
-    // When
-    StepVerifier.create(pipeline.handle(Flux.fromIterable(commands))).expectNextCount(commands.size()).verifyComplete();
-    var finalStateMap = pipeline.domain.evolver().reduce(pipeline.subToEvents().take(nAccounts * 2)).block();
-    // Then
-    Objects.requireNonNull(finalStateMap);
-    finalStateMap.forEach((k, v) -> Assertions.assertThat(((OpenAccount) v).balance())
-                                              .isEqualTo(initBalance + creditBalance));
+    var scenario = new CreateAndCreditScenario(data, nAccounts);
+    StepVerifier.create(scenario.verify()).expectNext(true).verifyComplete();
   }
 
   @ParameterizedTest(name = "Using {0}")
   @MethodSource("dataSource")
   void sagaDebit(String name, Data data) {
     // Given
-    var pipeline = createPipeline(data);
+    var pipeline = data.createMemoryPipeline(new CommandRoute("commands", 0), new EventRoute("events", 0));
     long start = System.nanoTime();
     var nAccounts = 10;
     int initialBalance = 500;
@@ -103,7 +83,7 @@ class PipelinesTest {
   void performance(int numOfAccounts) {
     // Given
     var data = Data.ofUUID("bob");
-    var pipeline = createPipeline(data);
+    var pipeline = data.createMemoryPipeline(new CommandRoute("commands", 0), new EventRoute("events", 0));
     int initBalance = 500;
     int creditBalance = 300;
     var accountIds = data.createIds(0, numOfAccounts);
@@ -118,25 +98,6 @@ class PipelinesTest {
 
     // Then
     System.out.println(elapsedTimeMillis);
-  }
-
-  private Domain<Account, AccountCommand, AccountEvent> stateDomain(Data data) {
-    return new Domain<>(Account.class,
-                        AccountCommand.class,
-                        AccountEvent.class,
-                        new AccountDecider(data.idSupplier, data.timeSupplier),
-                        new AccountEvolver(data.idSupplier, data.timeSupplier),
-                        new AccountSaga(data.idSupplier, data.timeSupplier));
-  }
-
-  private CommandPipeline<Account, AccountCommand, AccountEvent> createPipeline(Data data) {
-    var cmdStream = CommandStream.<AccountCommand>inMemory();
-    var cmdRoute = new CommandRoute("commands", 0);
-
-    var eventStream = EventStream.<AccountEvent>inMemory();
-    var eventRoute = new EventRoute("events", 0);
-
-    return new CommandPipeline<>(stateDomain(data), cmdStream, cmdRoute, eventStream, eventRoute);
   }
 
   private static Stream<Arguments> dataSource() {
