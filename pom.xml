@@ -26,6 +26,7 @@
     <modules>
         <module>core</module>
         <module>eventsourcing</module>
+        <module>eventsourcing-testsuite</module>
         <module>etcd</module>
         <module>kafka</module>
         <module>nats</module>

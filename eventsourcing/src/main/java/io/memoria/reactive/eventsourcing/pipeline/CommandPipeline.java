@@ -57,7 +57,7 @@ public class CommandPipeline<S extends State, C extends Command, E extends Event
   }
 
   public Flux<E> handle() {
-    return handle(commandStream.sub(commandRoute.name(), commandRoute.partition()).doOnNext(System.out::println));
+    return handle(commandStream.sub(commandRoute.name(), commandRoute.partition()));
   }
 
   public Flux<E> handle(Flux<C> cmds) {
@@ -79,7 +79,7 @@ public class CommandPipeline<S extends State, C extends Command, E extends Event
   }
 
   public Mono<E> pubEvent(E e) {
-    return eventStream.pub(eventRoute.name(), eventRoute.partition(), e);
+    return eventStream.pub(eventRoute.name(), eventRoute.partition(), e).doOnNext(System.out::println);
   }
 
   public Flux<E> subToEvents() {
@@ -146,6 +146,6 @@ public class CommandPipeline<S extends State, C extends Command, E extends Event
       processedCommands.add(e.commandId());
       processedEvents.add(e.eventId());
       return e;
-    }).flatMap(this::pubEvent);
+    });
   }
 }
