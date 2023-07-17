@@ -22,7 +22,7 @@ public final class MemESMsgStream implements ESMsgStream {
   }
 
   @Override
-  public Mono<String> lastKey(String topic, int partition) {
+  public Mono<String> last(String topic, int partition) {
     return Mono.defer(() -> Mono.justOrEmpty(lastMsg.get(topic)))
                .flatMap(tp -> Mono.justOrEmpty(tp.get(partition)))
                .map(ESMsg::key);
@@ -31,13 +31,13 @@ public final class MemESMsgStream implements ESMsgStream {
   @Override
   public Mono<ESMsg> pub(ESMsg msg) {
     return Mono.fromCallable(() -> addPartitionSink(msg.topic(), msg.partition()))
-               .flatMap(k -> Mono.fromCallable(() -> this.publishFn(msg)));
+               .flatMap(__ -> Mono.fromCallable(() -> this.publishFn(msg)));
   }
 
   @Override
   public Flux<ESMsg> sub(String topic, int partition) {
     return Mono.fromCallable(() -> addPartitionSink(topic, partition))
-               .flatMapMany(i -> this.topics.get(topic).get(partition).asFlux());
+               .flatMapMany(__ -> this.topics.get(topic).get(partition).asFlux());
   }
 
   private int addPartitionSink(String topic, int partition) {

@@ -105,6 +105,21 @@ Format Example: `JDK_Version.major.minor`
 * [ ] More structured releases based on PRs
 
 ## Release notes
+* `20.23.0`
+  * In Memory PartitionPipeline performance one thread:
+```
+Processed 6 events in  25 millis 
+Processed 60 events in  9 millis 
+Processed 600 events in  29 millis 
+Processed 6000 events in  78 millis 
+Processed 60000 events in  272 millis 
+Processed 600000 events in  2431 millis 
+Processed 1200000 events in  4934 millis 
+Processed 1800000 events in  7135 millis 
+Processed 2400000 events in  9538 millis 
+Processed 3000000 events in  12281 millis 
+Processed 3600000 events in  15280 millis 
+```
 
 * `20.21.0`
     * Using last key in ESMsgStream instead of pipelineStateRepo
