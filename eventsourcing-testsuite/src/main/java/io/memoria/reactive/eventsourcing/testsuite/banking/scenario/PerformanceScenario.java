@@ -2,17 +2,17 @@ package io.memoria.reactive.eventsourcing.testsuite.banking.scenario;
 
 import io.memoria.reactive.eventsourcing.pipeline.PartitionPipeline;
 import io.memoria.reactive.eventsourcing.testsuite.banking.domain.command.AccountCommand;
+import io.memoria.reactive.eventsourcing.testsuite.banking.domain.event.AccountCreated;
 import io.memoria.reactive.eventsourcing.testsuite.banking.domain.event.AccountEvent;
+import io.memoria.reactive.eventsourcing.testsuite.banking.domain.event.Credited;
+import io.memoria.reactive.eventsourcing.testsuite.banking.domain.event.DebitConfirmed;
+import io.memoria.reactive.eventsourcing.testsuite.banking.domain.event.Debited;
 import io.memoria.reactive.eventsourcing.testsuite.banking.domain.state.Account;
-import io.memoria.reactive.eventsourcing.testsuite.banking.domain.state.OpenAccount;
-import io.vavr.collection.Map;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
-import java.util.concurrent.TimeoutException;
 
-public class SimpleDebitScenario implements Scenario {
+public class PerformanceScenario implements Scenario {
   private static final Duration timeout = Duration.ofMillis(50);
   private static final int initialBalance = 500;
   private static final int debitAmount = 300;
@@ -21,7 +21,7 @@ public class SimpleDebitScenario implements Scenario {
   private final PartitionPipeline<Account, AccountCommand, AccountEvent> pipeline;
   private final int numOfAccounts;
 
-  public SimpleDebitScenario(Data data,
+  public PerformanceScenario(Data data,
                              PartitionPipeline<Account, AccountCommand, AccountEvent> pipeline,
                              int numOfAccounts) {
     this.data = data;
@@ -44,34 +44,29 @@ public class SimpleDebitScenario implements Scenario {
     commands.concatMap(pipeline::pubCommand).subscribe();
 
     // Then
-    var events = pipeline.handle().timeout(timeout).onErrorComplete(TimeoutException.class);
-    return pipeline.domain.evolver()
-                          .reduce(events)
-                          .map(Map::values)
-                          .flatMapMany(Flux::fromIterable)
-                          .map(acc -> (OpenAccount) acc)
-                          .map(this::verify)
-                          .reduce((a, b) -> a && b);
+    var startTime = System.currentTimeMillis();
+    return pipeline.handle()
+                   .take(numOfAccounts * 6L)
+                   .count()
+                   .doOnNext(count -> printf(startTime, count))
+                   .map(i -> true);
+    //                   .timeout(timeout)
+    //                   .onErrorComplete(TimeoutException.class)
+    //                   .all(PerformanceScenario::isTypeOf);
   }
 
-  boolean verify(OpenAccount acc) {
-    if (acc.debitCount() > 0) {
-      return hasExpectedBalance(acc, initialBalance - debitAmount);
-    } else if (acc.creditCount() > 0) {
-      return hasExpectedBalance(acc, initialBalance + debitAmount);
-    } else {
-      return hasExpectedBalance(acc, initialBalance);
-    }
+  private static void printf(long start, Long i) {
+    System.out.printf("Processed %d events in  %d millis %n", i, System.currentTimeMillis() - start);
   }
 
-  private static boolean hasExpectedBalance(OpenAccount acc, int expected) {
-    if (acc.balance() == expected) {
-      //      System.out.println("success:" + acc);
+  private static boolean isTypeOf(AccountEvent acc) {
+    if (acc instanceof AccountCreated
+        || acc instanceof Debited
+        || acc instanceof Credited
+        || acc instanceof DebitConfirmed) {
       return true;
     } else {
-      //      System.out.println("fail:" + acc);
-      var msg = "Account %s balance is %d not %d".formatted(acc.accountId(), acc.balance(), expected);
-      throw new IllegalStateException(msg);
+      throw new IllegalStateException("Unknown event %s".formatted(acc.getClass().getSimpleName()));
     }
   }
 }

@@ -19,7 +19,7 @@ import java.util.Set;
 import static io.memoria.reactive.core.reactor.ReactorUtils.booleanToMono;
 import static io.memoria.reactive.core.reactor.ReactorUtils.optionToMono;
 
-public class CommandPipeline<S extends State, C extends Command, E extends Event> {
+public class PartitionPipeline<S extends State, C extends Command, E extends Event> {
   // Core
   public final Domain<S, C, E> domain;
 
@@ -35,11 +35,11 @@ public class CommandPipeline<S extends State, C extends Command, E extends Event
   private final Set<Id> processedCommands;
   private final Set<Id> processedEvents;
 
-  public CommandPipeline(Domain<S, C, E> domain,
-                         CommandStream<C> commandStream,
-                         CommandRoute commandRoute,
-                         EventStream<E> eventStream,
-                         EventRoute eventRoute) {
+  public PartitionPipeline(Domain<S, C, E> domain,
+                           CommandStream<C> commandStream,
+                           CommandRoute commandRoute,
+                           EventStream<E> eventStream,
+                           EventRoute eventRoute) {
     // Core
     this.domain = domain;
 
