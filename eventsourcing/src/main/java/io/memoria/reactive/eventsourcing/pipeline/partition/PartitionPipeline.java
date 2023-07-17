@@ -1,4 +1,4 @@
-package io.memoria.reactive.eventsourcing.pipeline;
+package io.memoria.reactive.eventsourcing.pipeline.partition;
 
 import io.memoria.atom.core.id.Id;
 import io.memoria.reactive.core.reactor.ReactorUtils;

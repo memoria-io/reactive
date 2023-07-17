@@ -1,11 +1,11 @@
-package io.memoria.reactive.eventsourcing.pipeline;
+package io.memoria.reactive.eventsourcing.pipeline.partition;
 
-public record CommandRoute(String name, int partition, int totalPartitions) {
-  public CommandRoute(String name, int partition) {
+public record EventRoute(String name, int partition, int totalPartitions) {
+  public EventRoute(String name, int partition) {
     this(name, partition, 1);
   }
 
-  public CommandRoute {
+  public EventRoute {
     if (name == null || name.isEmpty()) {
       throw new IllegalArgumentException("Topic name can't be null or empty string");
     }
