@@ -1,4 +1,4 @@
-package io.memoria.reactive.eventsourcing.pipeline;
+package io.memoria.reactive.eventsourcing.pipeline.partition;
 
 import io.memoria.atom.core.id.Id;
 import io.memoria.reactive.core.reactor.ReactorUtils;
@@ -112,16 +112,16 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
                .flatMap(exists -> booleanToMono(!exists, decide(cmd)));
   }
 
-  private Mono<E> decide(C cmd) {
+  Mono<E> decide(C cmd) {
     return Mono.fromCallable(() -> aggregates.containsKey(cmd.stateId()))
                .flatMap(stateExists -> booleanToMono(stateExists, decideWithState(cmd), decideWithoutState(cmd)));
   }
 
-  private Mono<E> decideWithoutState(C cmd) {
+  Mono<E> decideWithoutState(C cmd) {
     return ReactorUtils.tryToMono(() -> domain.decider().apply(cmd));
   }
 
-  private Mono<E> decideWithState(C cmd) {
+  Mono<E> decideWithState(C cmd) {
     return ReactorUtils.tryToMono(() -> domain.decider().apply(aggregates.get(cmd.stateId()), cmd));
   }
 
