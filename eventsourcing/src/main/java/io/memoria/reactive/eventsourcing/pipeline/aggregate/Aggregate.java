@@ -33,6 +33,7 @@ public class Aggregate<S extends State, C extends Command, E extends Event> {
   private final CommandRoute commandRoute;
 
   public final EventPort<E> eventPort;
+  public final String eventPortTable;
   public final EventStream<E> eventStream;
   public final EventRoute eventRoute;
 
@@ -45,6 +46,7 @@ public class Aggregate<S extends State, C extends Command, E extends Event> {
                    CommandStream<C> commandStream,
                    CommandRoute commandRoute,
                    EventPort<E> eventPort,
+                   String eventPortTable,
                    EventStream<E> eventStream,
                    EventRoute eventRoute) {
     // Core
@@ -55,6 +57,7 @@ public class Aggregate<S extends State, C extends Command, E extends Event> {
     this.commandRoute = commandRoute;
 
     this.eventPort = eventPort;
+    this.eventPortTable = eventPortTable;
     this.eventStream = eventStream;
     this.eventRoute = eventRoute;
 
@@ -64,21 +67,18 @@ public class Aggregate<S extends State, C extends Command, E extends Event> {
     this.processedEvents = new HashSet<>();
   }
 
-  public Flux<E> handle(Flux<C> cmds) {
-    return cmds.concatMap(this::redirectIfNotBelong) // Redirection allows location transparency and auto sharding
-               .concatMap(this::handleCommand) // handle the command
-               .concatMap(this::evolve) // evolve the state
-               .concatMap(this::pubEvent) // publish the event
-               .concatMap(this::saga); // publish saga command;
-  }
-
   /**
    * Load previous events and build the state
    */
-  public Flux<E> init(Flux<E> events) {
-    //    return this.eventStream.last(eventRoute.name(), eventRoute.partition())
-    //                           .flatMapMany(this::subUntil)
-    return events.concatMap(this::evolve);
+  public Flux<E> init(Id stateId) {
+    return eventPort.events(eventPortTable, stateId).concatMap(this::evolve);
+  }
+
+  public Flux<E> handle(Flux<C> commands) {
+    return commands.concatMap(this::handleCommand) // handle the command
+                   .concatMap(this::evolve) // evolve the state
+                   .concatMap(this::pubEvent) // publish the event
+                   .concatMap(this::saga);
   }
 
   public Mono<C> pubCommand(C cmd) {
@@ -102,29 +102,32 @@ public class Aggregate<S extends State, C extends Command, E extends Event> {
     return eventStream.subUntil(eventRoute.name(), eventRoute.partition(), id);
   }
 
-  Mono<C> redirectIfNotBelong(C cmd) {
-    if (cmd.isInPartition(commandRoute.partition(), commandRoute.totalPartitions())) {
-      return Mono.just(cmd);
-    } else {
-      return this.pubCommand(cmd).flatMap(c -> Mono.empty());
-    }
-  }
-
   Mono<E> handleCommand(C cmd) {
-    return Mono.fromCallable(() -> processedCommands.contains(cmd.commandId()))
-               .flatMap(exists -> booleanToMono(!exists, decide(cmd)));
+    return Mono.fromCallable(() -> validate(cmd)).flatMap(exists -> booleanToMono(!exists, decide(cmd)));
   }
 
-  private Mono<E> decide(C cmd) {
+  boolean validate(C cmd) {
+    return !processedCommands.contains(cmd.commandId()) && hasCorrectState(cmd) && isInPartition(cmd);
+  }
+
+  boolean hasCorrectState(C cmd) {
+    return this.aggregate.get().stateId().equals(cmd.stateId());
+  }
+
+  boolean isInPartition(C cmd) {
+    return cmd.isInPartition(commandRoute.partition(), commandRoute.totalPartitions());
+  }
+
+  Mono<E> decide(C cmd) {
     return Mono.fromCallable(() -> aggregate.get() != null)
                .flatMap(stateExists -> booleanToMono(stateExists, decideWithState(cmd), decideWithoutState(cmd)));
   }
 
-  private Mono<E> decideWithoutState(C cmd) {
+  Mono<E> decideWithoutState(C cmd) {
     return ReactorUtils.tryToMono(() -> domain.decider().apply(cmd));
   }
 
-  private Mono<E> decideWithState(C cmd) {
+  Mono<E> decideWithState(C cmd) {
     return ReactorUtils.tryToMono(() -> domain.decider().apply(aggregate.get(), cmd));
   }
 
