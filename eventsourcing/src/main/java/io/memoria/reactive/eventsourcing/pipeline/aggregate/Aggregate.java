@@ -8,6 +8,7 @@ import io.memoria.reactive.eventsourcing.Event;
 import io.memoria.reactive.eventsourcing.State;
 import io.memoria.reactive.eventsourcing.pipeline.partition.CommandRoute;
 import io.memoria.reactive.eventsourcing.pipeline.partition.EventRoute;
+import io.memoria.reactive.eventsourcing.port.EventPort;
 import io.memoria.reactive.eventsourcing.stream.CommandStream;
 import io.memoria.reactive.eventsourcing.stream.EventStream;
 import reactor.core.publisher.Flux;
@@ -20,6 +21,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import static io.memoria.reactive.core.reactor.ReactorUtils.booleanToMono;
 import static io.memoria.reactive.core.reactor.ReactorUtils.optionToMono;
 
+/**
+ * Work in progress
+ */
 public class Aggregate<S extends State, C extends Command, E extends Event> {
   // Core
   public final Domain<S, C, E> domain;
@@ -28,6 +32,7 @@ public class Aggregate<S extends State, C extends Command, E extends Event> {
   private final CommandStream<C> commandStream;
   private final CommandRoute commandRoute;
 
+  public final EventPort<E> eventPort;
   public final EventStream<E> eventStream;
   public final EventRoute eventRoute;
 
@@ -39,6 +44,7 @@ public class Aggregate<S extends State, C extends Command, E extends Event> {
   public Aggregate(Domain<S, C, E> domain,
                    CommandStream<C> commandStream,
                    CommandRoute commandRoute,
+                   EventPort<E> eventPort,
                    EventStream<E> eventStream,
                    EventRoute eventRoute) {
     // Core
@@ -48,6 +54,7 @@ public class Aggregate<S extends State, C extends Command, E extends Event> {
     this.commandStream = commandStream;
     this.commandRoute = commandRoute;
 
+    this.eventPort = eventPort;
     this.eventStream = eventStream;
     this.eventRoute = eventRoute;
 
