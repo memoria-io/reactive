@@ -1,5 +1,6 @@
-package io.memoria.reactive.nats.eventsourcing;
+package io.memoria.reactive.nats;
 
+import io.memoria.reactive.nats.TopicConfig;
 import io.nats.client.api.StorageType;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;

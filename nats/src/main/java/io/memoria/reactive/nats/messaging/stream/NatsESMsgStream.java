@@ -1,6 +1,10 @@
-package io.memoria.reactive.nats.eventsourcing;
+package io.memoria.reactive.nats.messaging.stream;
 
 import io.memoria.reactive.core.messaging.stream.ESMsg;
+import io.memoria.reactive.core.messaging.stream.ESMsgStream;
+import io.memoria.reactive.nats.NatsConfig;
+import io.memoria.reactive.nats.NatsUtils;
+import io.memoria.reactive.nats.TopicConfig;
 import io.nats.client.Connection;
 import io.nats.client.JetStreamSubscription;
 import io.nats.client.Message;
@@ -11,12 +15,12 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-class DefaultNatsESMsgStream implements NatsESMsgStream {
-  private static final Logger log = LoggerFactory.getLogger(DefaultNatsESMsgStream.class.getName());
+public class NatsESMsgStream implements ESMsgStream {
+  private static final Logger log = LoggerFactory.getLogger(NatsESMsgStream.class.getName());
   private final NatsConfig natsConfig;
   private final Connection nc;
 
-  DefaultNatsESMsgStream(Connection nc, NatsConfig natsConfig) {
+  public NatsESMsgStream(Connection nc, NatsConfig natsConfig) {
     this.natsConfig = natsConfig;
     this.nc = nc;
     this.natsConfig.configs()

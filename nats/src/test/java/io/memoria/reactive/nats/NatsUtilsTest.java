@@ -1,4 +1,4 @@
-package io.memoria.reactive.nats.eventsourcing;
+package io.memoria.reactive.nats;
 
 import io.memoria.reactive.core.messaging.stream.ESMsg;
 import io.nats.client.impl.Headers;

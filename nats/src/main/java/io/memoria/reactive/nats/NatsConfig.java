@@ -1,5 +1,6 @@
-package io.memoria.reactive.nats.eventsourcing;
+package io.memoria.reactive.nats;
 
+import io.memoria.reactive.nats.TopicConfig;
 import io.vavr.collection.HashSet;
 import io.vavr.collection.Set;
 import io.vavr.control.Option;
