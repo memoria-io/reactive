@@ -8,6 +8,7 @@ import io.memoria.reactive.nats.TopicConfig;
 import io.nats.client.Connection;
 import io.nats.client.JetStreamSubscription;
 import io.nats.client.Message;
+import io.nats.client.Nats;
 import io.nats.client.PublishOptions;
 import io.nats.client.api.PublishAck;
 import io.nats.client.api.StreamInfo;
@@ -28,9 +29,9 @@ public class NatsESMsgStream implements ESMsgStream {
   private final NatsConfig natsConfig;
   private final Connection nc;
 
-  public NatsESMsgStream(Connection nc, NatsConfig natsConfig) {
+  public NatsESMsgStream(NatsConfig natsConfig) throws IOException, InterruptedException {
     this.natsConfig = natsConfig;
-    this.nc = nc;
+    this.nc = Nats.connect(NatsUtils.toOptions(natsConfig));
     this.natsConfig.configs()
                    .map(NatsUtils::toStreamConfiguration)
                    .map(c -> NatsUtils.createOrUpdateStream(nc, c))

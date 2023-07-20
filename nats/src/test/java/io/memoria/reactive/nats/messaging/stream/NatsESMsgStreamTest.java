@@ -1,10 +1,8 @@
 package io.memoria.reactive.nats.messaging.stream;
 
+import io.memoria.reactive.core.messaging.stream.ESMsg;
 import io.memoria.reactive.core.messaging.stream.ESMsgStream;
 import io.memoria.reactive.nats.NatsConfig;
-import io.memoria.reactive.nats.NatsUtils;
-import io.memoria.reactive.nats.TestUtils;
-import io.nats.client.Nats;
 import io.vavr.collection.List;
 import org.junit.jupiter.api.Test;
 import reactor.core.publisher.Flux;
@@ -13,20 +11,27 @@ import reactor.test.StepVerifier;
 import java.io.IOException;
 import java.util.Random;
 
+import static io.memoria.reactive.nats.TestUtils.NATS_URL;
+import static io.memoria.reactive.nats.TestUtils.createConfig;
+
 class NatsESMsgStreamTest {
-  private static final String natsUrl = "nats://localhost:4222";
   private static final int MSG_COUNT = 1000;
   private static final Random r = new Random();
 
-  private final String topic = "topic" + r.nextInt(1000);
-  private final int topicTotalPartitions = 1;
-  private final ESMsgStream repo = createRepo(topic, topicTotalPartitions);
+  private final String topic;
+  private final ESMsgStream repo;
+
+  NatsESMsgStreamTest() throws IOException, InterruptedException {
+    topic = "topic" + r.nextInt(1000);
+    int totalPartitions = 1;
+    repo = new NatsESMsgStream(new NatsConfig(NATS_URL, createConfig(topic, totalPartitions)));
+  }
 
   @Test
   void publish() {
     // Given
     var partition = 0;
-    var msgs = List.range(0, MSG_COUNT).map(i -> TestUtils.createEsMsg(topic, partition, String.valueOf(i)));
+    var msgs = List.range(0, MSG_COUNT).map(i -> createEsMsg(topic, partition, String.valueOf(i)));
     // When
     var pub = Flux.fromIterable(msgs).concatMap(repo::pub);
     // Then
@@ -38,7 +43,7 @@ class NatsESMsgStreamTest {
   void subscribe() {
     // Given
     var partition = 0;
-    var msgs = List.range(0, MSG_COUNT).map(i -> TestUtils.createEsMsg(topic, partition, String.valueOf(i)));
+    var msgs = List.range(0, MSG_COUNT).map(i -> createEsMsg(topic, partition, String.valueOf(i)));
     var pub = Flux.fromIterable(msgs).concatMap(repo::pub);
 
     // When
@@ -50,13 +55,7 @@ class NatsESMsgStreamTest {
     StepVerifier.create(sub).expectNextSequence(msgs).verifyComplete();
   }
 
-  private ESMsgStream createRepo(String topic, int nTotalPartitions) {
-    var natsConfig = new NatsConfig(natsUrl, TestUtils.createConfigs(topic, nTotalPartitions));
-    try {
-      var nc = Nats.connect(NatsUtils.toOptions(natsConfig));
-      return new NatsESMsgStream(nc, natsConfig);
-    } catch (IOException | InterruptedException e) {
-      throw new RuntimeException(e);
-    }
+  public static ESMsg createEsMsg(String topic, int partition, String key) {
+    return new ESMsg(topic, partition, key, "hello_" + key);
   }
 }

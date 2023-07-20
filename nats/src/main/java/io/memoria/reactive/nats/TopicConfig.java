@@ -1,6 +1,5 @@
 package io.memoria.reactive.nats;
 
-import io.memoria.reactive.core.messaging.stream.ESMsg;
 import io.nats.client.api.StorageType;
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
@@ -49,10 +48,6 @@ public record TopicConfig(String topic,
 
   public static String subjectName(String topic, int partition) {
     return streamName(topic, partition) + SUBJECT_EXT;
-  }
-
-  public static String toSubjectName(ESMsg msg) {
-    return subjectName(msg.topic(), msg.partition());
   }
 
   public static Tuple2<String, Integer> topicPartition(String subject) {

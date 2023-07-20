@@ -1,28 +1,20 @@
 package io.memoria.reactive.nats;
 
-import io.memoria.reactive.core.messaging.stream.ESMsg;
 import io.nats.client.Connection;
 import io.nats.client.ErrorListener;
 import io.nats.client.JetStreamApiException;
 import io.nats.client.JetStreamSubscription;
-import io.nats.client.Message;
 import io.nats.client.Options;
-import io.nats.client.PublishOptions;
 import io.nats.client.PullSubscribeOptions;
 import io.nats.client.api.AckPolicy;
 import io.nats.client.api.ConsumerConfiguration;
 import io.nats.client.api.DeliverPolicy;
-import io.nats.client.api.PublishAck;
 import io.nats.client.api.ReplayPolicy;
 import io.nats.client.api.StreamConfiguration;
 import io.nats.client.api.StreamInfo;
-import io.nats.client.impl.Headers;
-import io.nats.client.impl.NatsMessage;
 import io.vavr.control.Try;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Utility class for directly using nats, this layer is for testing NATS java driver, and ideally it shouldn't have
@@ -50,12 +42,6 @@ public class NatsUtils {
         ErrorListener.super.errorOccurred(conn, error);
       }
     };
-  }
-
-  public static CompletableFuture<PublishAck> publishMsg(Connection nc, ESMsg msg) throws IOException {
-    var message = toMessage(msg);
-    var opts = PublishOptions.builder().clearExpected().messageId(msg.key()).build();
-    return nc.jetStream().publishAsync(message, opts);
   }
 
   public static JetStreamSubscription jetStreamSub(Connection nc, TopicConfig topicConfig)
@@ -86,20 +72,6 @@ public class NatsUtils {
                                                .configuration(config)
                                                .build();
     return js.subscribe(topicConfig.subjectName(), subscribeOptions);
-  }
-
-  public static Message toMessage(ESMsg msg) {
-    var subjectName = TopicConfig.toSubjectName(msg);
-    var headers = new Headers();
-    headers.add(ID_HEADER, msg.key());
-    return NatsMessage.builder().subject(subjectName).headers(headers).data(msg.value()).build();
-  }
-
-  public static ESMsg toMsg(Message message) {
-    var value = new String(message.getData(), StandardCharsets.UTF_8);
-    var tp = TopicConfig.topicPartition(message.getSubject());
-    String key = message.getHeaders().getFirst(ID_HEADER);
-    return new ESMsg(tp._1, tp._2, key, value);
   }
 
   public static Options toOptions(NatsConfig natsConfig) {
