@@ -1,6 +1,8 @@
-package io.memoria.reactive.kafka.eventsourcing;
+package io.memoria.reactive.kafka.msg.stream;
 
-import io.memoria.reactive.core.stream.ESMsgStream;
+import io.memoria.reactive.core.messaging.stream.ESMsgStream;
+import io.memoria.reactive.kafka.KafkaUtils;
+import io.memoria.reactive.kafka.TestUtils;
 import io.vavr.collection.List;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Test;
@@ -11,16 +13,16 @@ import reactor.test.StepVerifier;
 import java.util.Random;
 
 @TestMethodOrder(OrderAnnotation.class)
-class DefaultKafkaESMsgStreamTest {
+class KafkaESMsgStreamTest {
   private static final Random random = new Random();
   private static final int MSG_COUNT = 1000;
   private final String topic = "node" + random.nextInt(1000);
   private final int partition = 0;
   private final ESMsgStream repo;
 
-  DefaultKafkaESMsgStreamTest() {
+  KafkaESMsgStreamTest() {
     var sender = KafkaUtils.createSender(TestUtils.producerConfigs());
-    repo = KafkaESMsgStream.create(TestUtils.producerConfigs(), TestUtils.consumerConfigs(), sender);
+    repo = new KafkaESMsgStream(TestUtils.producerConfigs(), TestUtils.consumerConfigs(), sender);
   }
 
   @Test

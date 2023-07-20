@@ -1,6 +1,6 @@
 package io.memoria.reactive.nats.eventsourcing;
 
-import io.memoria.reactive.core.stream.ESMsg;
+import io.memoria.reactive.core.messaging.stream.ESMsg;
 import io.nats.client.impl.Headers;
 import io.nats.client.impl.NatsMessage;
 import org.junit.jupiter.api.Assertions;

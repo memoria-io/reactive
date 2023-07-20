@@ -8,22 +8,26 @@ import io.memoria.reactive.eventsourcing.testsuite.banking.domain.state.OpenAcco
 import io.vavr.collection.Map;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.util.Logger;
+import reactor.util.Loggers;
 
 import java.time.Duration;
 import java.util.concurrent.TimeoutException;
 
 public class SimpleDebitScenario implements Scenario {
-  private static final Duration timeout = Duration.ofMillis(50);
   private static final int initialBalance = 500;
   private static final int debitAmount = 300;
 
+  private final Duration timeout;
   private final Data data;
   private final PartitionPipeline<Account, AccountCommand, AccountEvent> pipeline;
   private final int numOfAccounts;
 
-  public SimpleDebitScenario(Data data,
+  public SimpleDebitScenario(Duration timeout,
+                             Data data,
                              PartitionPipeline<Account, AccountCommand, AccountEvent> pipeline,
                              int numOfAccounts) {
+    this.timeout = timeout;
     this.data = data;
     this.pipeline = pipeline;
     this.numOfAccounts = numOfAccounts;
@@ -44,7 +48,7 @@ public class SimpleDebitScenario implements Scenario {
     commands.concatMap(pipeline::pubCommand).subscribe();
 
     // Then
-    var events = pipeline.handle().timeout(timeout).onErrorComplete(TimeoutException.class);
+    var events = pipeline.handle().log().timeout(timeout).onErrorComplete(TimeoutException.class);
     return pipeline.domain.evolver()
                           .reduce(events)
                           .map(Map::values)

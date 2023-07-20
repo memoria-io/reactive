@@ -1,10 +1,8 @@
-package io.memoria.reactive.kafka.eventsourcing;
+package io.memoria.reactive.kafka;
 
-import io.memoria.reactive.core.stream.ESMsg;
 import io.vavr.collection.List;
 import io.vavr.collection.Map;
 import io.vavr.control.Option;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
 import reactor.kafka.sender.KafkaSender;
@@ -14,10 +12,6 @@ import java.time.Duration;
 
 public class KafkaUtils {
   private KafkaUtils() {}
-
-  static ESMsg toMsg(ConsumerRecord<String, String> rec) {
-    return new ESMsg(rec.topic(), rec.partition(), rec.key(), rec.value());
-  }
 
   public static long topicSize(String topic, int partition, Map<String, Object> conf) {
     try (var consumer = new KafkaConsumer<String, String>(conf.toJavaMap())) {

@@ -14,45 +14,38 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 public class Data {
-  private final String namePrefix;
   private final AtomicLong counter = new AtomicLong();
   public final Supplier<Id> idSupplier;
   public final Supplier<Long> timeSupplier;
 
-  Data(String namePrefix) {
-    this.namePrefix = namePrefix;
+  Data() {
     this.idSupplier = () -> Id.of(counter.getAndIncrement());
     this.timeSupplier = System::currentTimeMillis;
   }
 
-  Data(String namePrefix, Supplier<Id> idSupplier, Supplier<Long> timeSupplier) {
-    this.namePrefix = namePrefix;
+  Data(Supplier<Id> idSupplier, Supplier<Long> timeSupplier) {
     this.idSupplier = idSupplier;
     this.timeSupplier = timeSupplier;
   }
 
-  public static Data ofSerial(String namePrefix) {
-    return new Data(namePrefix);
+  public static Data ofSerial() {
+    return new Data();
   }
 
-  public static Data ofUUID(String namePrefix) {
-    return new Data(namePrefix, Id::of, System::currentTimeMillis);
+  public static Data ofUUID() {
+    return new Data(Id::of, System::currentTimeMillis);
   }
 
   public Id createId(int i) {
-    return Id.of(namePrefix + i);
+    return Id.of(i);
   }
 
   public Flux<Id> createIds(int from, int to) {
     return Flux.range(from, to).map(this::createId);
   }
 
-  public String createName(int postfix) {
-    return namePrefix + postfix;
-  }
-
   public CreateAccount createAccountCmd(Id id, long balance) {
-    return new CreateAccount(idSupplier.get(), id, timeSupplier.get(), createName(0), balance);
+    return new CreateAccount(idSupplier.get(), id, timeSupplier.get(), String.valueOf(0), balance);
   }
 
   public Flux<AccountCommand> createAccountCmd(Flux<Id> ids, long balance) {
@@ -60,7 +53,7 @@ public class Data {
   }
 
   public Flux<AccountCommand> changeNameCmd(Flux<Id> ids, int version) {
-    return ids.map(id -> new ChangeName(idSupplier.get(), id, timeSupplier.get(), createName(version)));
+    return ids.map(id -> new ChangeName(idSupplier.get(), id, timeSupplier.get(), String.valueOf(version)));
   }
 
   public Credit creditCmd(Id debited, int balance, Id id) {

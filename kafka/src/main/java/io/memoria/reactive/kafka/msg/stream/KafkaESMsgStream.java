@@ -1,8 +1,11 @@
-package io.memoria.reactive.kafka.eventsourcing;
+package io.memoria.reactive.kafka.msg.stream;
 
+import io.memoria.reactive.core.messaging.stream.ESMsg;
+import io.memoria.reactive.core.messaging.stream.ESMsgStream;
 import io.memoria.reactive.core.reactor.ReactorUtils;
-import io.memoria.reactive.core.stream.ESMsg;
+import io.memoria.reactive.kafka.KafkaUtils;
 import io.vavr.collection.Map;
+import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.TopicPartition;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -17,25 +20,25 @@ import java.time.Duration;
 
 import static java.util.Collections.singleton;
 
-class DefaultKafkaESMsgStream implements KafkaESMsgStream {
+public class KafkaESMsgStream implements ESMsgStream {
   public final Map<String, Object> producerConfig;
   public final Map<String, Object> consumerConfig;
   private final KafkaSender<String, String> sender;
   private final Duration timeout;
 
-  DefaultKafkaESMsgStream(Map<String, Object> producerConfig,
+  public KafkaESMsgStream(Map<String, Object> producerConfig,
                           Map<String, Object> consumerConfig,
                           KafkaSender<String, String> sender) {
     this(producerConfig, consumerConfig, sender, Duration.ofMillis(500));
   }
 
-  DefaultKafkaESMsgStream(Map<String, Object> producerConfig,
+  public KafkaESMsgStream(Map<String, Object> producerConfig,
                           Map<String, Object> consumerConfig,
                           KafkaSender<String, String> sender,
                           Duration timeout) {
-    this.sender = sender;
     this.producerConfig = producerConfig;
     this.consumerConfig = consumerConfig;
+    this.sender = sender;
     this.timeout = timeout;
   }
 
@@ -53,7 +56,7 @@ class DefaultKafkaESMsgStream implements KafkaESMsgStream {
 
   @Override
   public Flux<ESMsg> sub(String topic, int partition) {
-    return receive(topic, partition).map(KafkaUtils::toMsg);
+    return receive(topic, partition).map(KafkaESMsgStream::toMsg);
   }
 
   private Flux<ReceiverRecord<String, String>> receive(String topic, int partition) {
@@ -67,5 +70,9 @@ class DefaultKafkaESMsgStream implements KafkaESMsgStream {
 
   private SenderRecord<String, String, ESMsg> toRecord(ESMsg esMsg) {
     return SenderRecord.create(esMsg.topic(), esMsg.partition(), null, esMsg.key(), esMsg.value(), esMsg);
+  }
+
+  public static ESMsg toMsg(ConsumerRecord<String, String> rec) {
+    return new ESMsg(rec.topic(), rec.partition(), rec.key(), rec.value());
   }
 }

@@ -6,11 +6,11 @@
     <parent>
         <groupId>io.memoria</groupId>
         <artifactId>reactive</artifactId>
-        <version>20.23.0</version>
+        <version>20.24.0</version>
     </parent>
     <groupId>io.memoria.reactive</groupId>
     <artifactId>kafka</artifactId>
-    <version>20.23.0</version>
+    <version>20.24.0</version>
     <packaging>jar</packaging>
     <name>${project.groupId}.${project.artifactId}</name>
     <description>kafka Module</description>
@@ -22,6 +22,12 @@
             <groupId>io.memoria.reactive</groupId>
             <artifactId>eventsourcing</artifactId>
             <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.memoria.reactive</groupId>
+            <artifactId>eventsourcing-testsuite</artifactId>
+            <version>${project.parent.version}</version>
+            <scope>test</scope>
         </dependency>
         <!--======================================================================================== -->
         <!-- Kafka Dependencies -->

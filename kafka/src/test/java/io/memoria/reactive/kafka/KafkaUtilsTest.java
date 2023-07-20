@@ -1,4 +1,4 @@
-package io.memoria.reactive.kafka.eventsourcing;
+package io.memoria.reactive.kafka;
 
 import io.vavr.control.Option;
 import org.junit.jupiter.api.Assertions;

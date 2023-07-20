@@ -1,6 +1,6 @@
-package io.memoria.reactive.kafka.eventsourcing;
+package io.memoria.reactive.kafka;
 
-import io.memoria.reactive.core.stream.ESMsg;
+import io.memoria.reactive.core.messaging.stream.ESMsg;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -8,7 +8,7 @@ import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 
-class TestUtils {
+public class TestUtils {
   private TestUtils() {}
 
   public static Map<String, Object> consumerConfigs() {

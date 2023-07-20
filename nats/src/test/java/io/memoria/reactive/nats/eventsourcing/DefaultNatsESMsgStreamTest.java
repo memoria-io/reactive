@@ -1,6 +1,6 @@
 package io.memoria.reactive.nats.eventsourcing;
 
-import io.memoria.reactive.core.stream.ESMsgStream;
+import io.memoria.reactive.core.messaging.stream.ESMsgStream;
 import io.nats.client.Nats;
 import io.vavr.collection.List;
 import org.junit.jupiter.api.Test;

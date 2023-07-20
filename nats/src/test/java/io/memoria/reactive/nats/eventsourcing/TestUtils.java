@@ -1,6 +1,6 @@
 package io.memoria.reactive.nats.eventsourcing;
 
-import io.memoria.reactive.core.stream.ESMsg;
+import io.memoria.reactive.core.messaging.stream.ESMsg;
 import io.nats.client.api.StorageType;
 import io.vavr.collection.List;
 

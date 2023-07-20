@@ -1,4 +1,4 @@
-package io.memoria.reactive.core.stream;
+package io.memoria.reactive.core.messaging.stream;
 
 import io.memoria.atom.core.id.Id;
 import org.assertj.core.api.Assertions;

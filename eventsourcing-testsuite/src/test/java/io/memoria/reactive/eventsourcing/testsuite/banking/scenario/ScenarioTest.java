@@ -7,6 +7,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import reactor.test.StepVerifier;
 
+import java.time.Duration;
 import java.util.stream.Stream;
 
 class ScenarioTest {
@@ -17,7 +18,7 @@ class ScenarioTest {
     // Given
     var pipeline = Infra.createMemoryPipeline(data.idSupplier, data.timeSupplier);
     // When
-    var scenario = new SimpleDebitScenario(data, pipeline, numOfAccounts);
+    var scenario = new SimpleDebitScenario(Duration.ofMillis(50), data, pipeline, numOfAccounts);
     // Then
     StepVerifier.create(scenario.verify()).expectNext(true).verifyComplete();
   }
@@ -27,7 +28,7 @@ class ScenarioTest {
   @ValueSource(ints = {1, 10, 100, 1000, 10_000, 100_000, 200_000, 300_000, 400_000, 500_000, 600_000, 1000_000})
   void performance(int numOfAccounts) {
     // Given
-    var data = Data.ofUUID("bob");
+    var data = Data.ofUUID();
     var pipeline = Infra.createMemoryPipeline(data.idSupplier, data.timeSupplier);
     // When
     var scenario = new PerformanceScenario(data, pipeline, numOfAccounts);
@@ -36,8 +37,8 @@ class ScenarioTest {
   }
 
   private static Stream<Arguments> dataSource() {
-    var arg1 = Arguments.of("Serial Ids", Data.ofSerial("bob"), 100);
-    var arg2 = Arguments.of("TimeUUIDs", Data.ofUUID("bob"), 100);
+    var arg1 = Arguments.of("Serial Ids", Data.ofSerial(), 100);
+    var arg2 = Arguments.of("TimeUUIDs", Data.ofUUID(), 100);
     return Stream.of(arg1, arg2);
   }
 }
