@@ -1,4 +1,4 @@
-package io.memoria.reactive.kafka.msg.stream;
+package io.memoria.reactive.kafka.messaging.stream;
 
 import io.memoria.reactive.core.messaging.stream.ESMsg;
 import io.memoria.reactive.core.messaging.stream.ESMsgStream;
