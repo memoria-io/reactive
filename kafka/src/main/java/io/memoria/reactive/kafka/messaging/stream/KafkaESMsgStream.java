@@ -45,8 +45,9 @@ public class KafkaESMsgStream implements ESMsgStream {
 
   @Override
   public Mono<ESMsg> pub(ESMsg msg) {
-    var rec = this.toRecord(msg);
-    return this.sender.send(Mono.just(rec)).map(SenderResult::correlationMetadata).singleOrEmpty();
+    return this.sender.send(Mono.fromCallable(() -> this.toRecord(msg)))
+                      .map(SenderResult::correlationMetadata)
+                      .single();
   }
 
   @Override
