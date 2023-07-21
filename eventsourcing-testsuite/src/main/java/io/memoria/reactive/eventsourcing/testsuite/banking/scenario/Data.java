@@ -1,13 +1,13 @@
 package io.memoria.reactive.eventsourcing.testsuite.banking.scenario;
 
 import io.memoria.atom.core.id.Id;
-import io.memoria.reactive.eventsourcing.testsuite.banking.domain.AccountDecider;
 import io.memoria.reactive.eventsourcing.testsuite.banking.domain.command.AccountCommand;
 import io.memoria.reactive.eventsourcing.testsuite.banking.domain.command.ChangeName;
 import io.memoria.reactive.eventsourcing.testsuite.banking.domain.command.CloseAccount;
 import io.memoria.reactive.eventsourcing.testsuite.banking.domain.command.CreateAccount;
-import io.memoria.reactive.eventsourcing.testsuite.banking.domain.command.Credit;
 import io.memoria.reactive.eventsourcing.testsuite.banking.domain.command.Debit;
+import io.memoria.reactive.eventsourcing.testsuite.banking.domain.event.AccountCreated;
+import io.memoria.reactive.eventsourcing.testsuite.banking.domain.event.AccountEvent;
 import reactor.core.publisher.Flux;
 import reactor.util.function.Tuple2;
 
@@ -46,7 +46,7 @@ public class Data {
   }
 
   public CreateAccount createAccountCmd(Id id, long balance) {
-    return new CreateAccount(idSupplier.get(), id, timeSupplier.get(), String.valueOf(0), balance);
+    return new CreateAccount(idSupplier.get(), id, timeSupplier.get(), id.value(), balance);
   }
 
   public Flux<AccountCommand> createAccountCmd(Flux<Id> ids, long balance) {
@@ -73,4 +73,7 @@ public class Data {
     return ids.map(this::closeAccountCmd);
   }
 
+  public AccountEvent createAccountEvent(Id id, long balance) {
+    return new AccountCreated(idSupplier.get(), idSupplier.get(), id, timeSupplier.get(), id.value(), balance);
+  }
 }

@@ -8,12 +8,10 @@ import io.memoria.reactive.eventsourcing.testsuite.banking.domain.event.Credited
 import io.memoria.reactive.eventsourcing.testsuite.banking.domain.event.DebitConfirmed;
 import io.memoria.reactive.eventsourcing.testsuite.banking.domain.event.Debited;
 import io.memoria.reactive.eventsourcing.testsuite.banking.domain.state.Account;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.time.Duration;
-
 public class PerformanceScenario implements Scenario {
-  private static final Duration timeout = Duration.ofMillis(50);
   private static final int initialBalance = 500;
   private static final int debitAmount = 300;
 
@@ -30,9 +28,9 @@ public class PerformanceScenario implements Scenario {
   }
 
   @Override
-  public Mono<Boolean> verify() {
+  public Flux<AccountEvent> handle() {
     var debitedIds = data.createIds(0, numOfAccounts);
-    var creditedIds = data.createIds(numOfAccounts, numOfAccounts * 2);
+    var creditedIds = data.createIds(numOfAccounts, numOfAccounts);
 
     // Given
     var createDebitedAcc = data.createAccountCmd(debitedIds, initialBalance);
@@ -44,15 +42,17 @@ public class PerformanceScenario implements Scenario {
     commands.concatMap(pipeline::pubCommand).subscribe();
 
     // Then
+    return pipeline.handle();
+  }
+
+  @Override
+  public Mono<Boolean> verify(Flux<AccountEvent> events) {
     var startTime = System.currentTimeMillis();
     return pipeline.handle()
-                   .take(numOfAccounts * 6L)
+                   .take(numOfAccounts * 5L)
                    .count()
                    .doOnNext(count -> printf(startTime, count))
                    .map(i -> true);
-    //                   .timeout(timeout)
-    //                   .onErrorComplete(TimeoutException.class)
-    //                   .all(PerformanceScenario::isTypeOf);
   }
 
   private static void printf(long start, Long i) {

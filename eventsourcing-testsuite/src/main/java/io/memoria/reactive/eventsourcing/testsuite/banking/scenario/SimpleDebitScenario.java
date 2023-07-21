@@ -26,7 +26,7 @@ public class SimpleDebitScenario implements Scenario {
   }
 
   @Override
-  public Mono<Boolean> verify() {
+  public Flux<AccountEvent> handle() {
     var debitedIds = data.createIds(0, numOfAccounts);
     var creditedIds = data.createIds(numOfAccounts, numOfAccounts);
     // Given
@@ -39,7 +39,11 @@ public class SimpleDebitScenario implements Scenario {
     commands.concatMap(pipeline::pubCommand).subscribe();
 
     // Then
-    var events = pipeline.handle().take(numOfAccounts * 5L).log();
+    return pipeline.handle();
+  }
+
+  @Override
+  public Mono<Boolean> verify(Flux<AccountEvent> events) {
     return pipeline.domain.evolver()
                           .reduce(events)
                           .map(Map::values)
