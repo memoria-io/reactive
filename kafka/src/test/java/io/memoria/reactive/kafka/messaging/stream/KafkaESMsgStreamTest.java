@@ -1,7 +1,6 @@
 package io.memoria.reactive.kafka.messaging.stream;
 
 import io.memoria.reactive.core.messaging.stream.ESMsgStream;
-import io.memoria.reactive.kafka.KafkaUtils;
 import io.memoria.reactive.kafka.TestUtils;
 import io.vavr.collection.List;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
@@ -10,10 +9,12 @@ import org.junit.jupiter.api.TestMethodOrder;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
+import java.time.Duration;
 import java.util.Random;
 
 @TestMethodOrder(OrderAnnotation.class)
 class KafkaESMsgStreamTest {
+  private static final Duration timeout = Duration.ofMillis(500);
   private static final Random random = new Random();
   private static final int MSG_COUNT = 1000;
   private final String topic = "node" + random.nextInt(1000);
@@ -47,11 +48,11 @@ class KafkaESMsgStreamTest {
     var pub = Flux.fromIterable(msgs).concatMap(repo::pub);
 
     // When
-    var sub = repo.sub(topic, partition).take(MSG_COUNT);
+    var sub = repo.sub(topic, partition);
 
     // Given
     StepVerifier.create(pub).expectNextCount(MSG_COUNT).verifyComplete();
-    StepVerifier.create(sub).expectNextCount(MSG_COUNT).verifyComplete();
-    StepVerifier.create(sub).expectNextSequence(msgs).verifyComplete();
+    StepVerifier.create(sub).expectNextCount(MSG_COUNT).expectTimeout(timeout).verify();
+    StepVerifier.create(sub).expectNextSequence(msgs).expectTimeout(timeout).verify();
   }
 }

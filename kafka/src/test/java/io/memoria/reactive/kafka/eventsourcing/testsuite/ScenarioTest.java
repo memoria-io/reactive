@@ -16,7 +16,6 @@ import io.memoria.reactive.kafka.TestUtils;
 import io.memoria.reactive.kafka.eventsourcing.KafkaCommandStream;
 import io.memoria.reactive.kafka.eventsourcing.KafkaEventStream;
 import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import reactor.test.StepVerifier;
@@ -57,14 +56,16 @@ class ScenarioTest {
 
   }
 
-  @Test
-  void simpleDebitScenario() {
-    // Given
-    int numOfAccounts = 100;
+  @ParameterizedTest(name = "Using {0} accounts")
+  @ValueSource(ints = {1, 3, 7, 9, 10, 100, 1000})
+  void simpleDebitScenario(int numOfAccounts) {
     // When
     var scenario = new SimpleDebitScenario(data, pipeline, numOfAccounts);
     // Then
-    StepVerifier.create(scenario.verify()).expectNext(true).verifyComplete();
+    StepVerifier.create(scenario.handle())
+                .expectNextCount(numOfAccounts * 5L)
+                .expectTimeout(Duration.ofMillis(1000))
+                .verify();
   }
 
   @Disabled("For debugging purposes only")
@@ -74,6 +75,9 @@ class ScenarioTest {
     // When
     var scenario = new PerformanceScenario(data, pipeline, numOfAccounts);
     // Then
-    StepVerifier.create(scenario.verify()).expectNext(true).verifyComplete();
+    StepVerifier.create(scenario.handle())
+                .expectNextCount(numOfAccounts * 5L)
+                .expectTimeout(Duration.ofMillis(1000))
+                .verify();
   }
 }
