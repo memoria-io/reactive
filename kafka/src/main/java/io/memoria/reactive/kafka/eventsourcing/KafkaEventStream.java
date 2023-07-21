@@ -52,7 +52,7 @@ public class KafkaEventStream<E extends Event> implements EventStream<E> {
 
   @Override
   public Mono<E> pub(String topic, int partition, E c) {
-    return this.sender.send(this.toRecord(topic, partition, c)).map(SenderResult::correlationMetadata).singleOrEmpty();
+    return this.sender.send(this.toRecord(topic, partition, c)).map(SenderResult::correlationMetadata).single();
   }
 
   @Override

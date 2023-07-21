@@ -29,20 +29,20 @@ import static io.memoria.reactive.nats.TestUtils.createConfig;
 
 class ScenarioTest {
   private static final TextTransformer transformer = new SerializableTransformer();
-
   // Pipeline
   private final Data data = Data.ofUUID();
   private final PartitionPipeline<Account, AccountCommand, AccountEvent> pipeline;
 
   ScenarioTest() throws IOException, InterruptedException {
-    // Config
     var random = new Random();
     int topicPostfix = random.nextInt(1000);
-
+    // Command
     var commandRoute = new CommandRoute("commands" + topicPostfix, 0);
+    System.out.println(commandRoute);
     var commandConfig = createConfig(commandRoute.name(), commandRoute.totalPartitions());
 
     var eventRoute = new EventRoute("events" + topicPostfix, 0);
+    System.out.println(eventRoute);
     var eventConfig = createConfig(eventRoute.name(), eventRoute.totalPartitions());
 
     var natsConfig = new NatsConfig(NATS_URL, commandConfig.addAll(eventConfig));
