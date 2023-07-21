@@ -21,8 +21,7 @@ class KafkaESMsgStreamTest {
   private final ESMsgStream repo;
 
   KafkaESMsgStreamTest() {
-    var sender = KafkaUtils.createSender(TestUtils.producerConfigs());
-    repo = new KafkaESMsgStream(TestUtils.producerConfigs(), TestUtils.consumerConfigs(), sender);
+    repo = new KafkaESMsgStream(TestUtils.producerConfigs(), TestUtils.consumerConfigs());
   }
 
   @Test

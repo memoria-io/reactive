@@ -4,6 +4,7 @@ import io.memoria.atom.core.text.TextTransformer;
 import io.memoria.reactive.core.reactor.ReactorUtils;
 import io.memoria.reactive.eventsourcing.Command;
 import io.memoria.reactive.eventsourcing.stream.CommandStream;
+import io.memoria.reactive.kafka.KafkaUtils;
 import io.vavr.collection.Map;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.TopicPartition;
@@ -28,18 +29,17 @@ public class KafkaCommandStream<C extends Command> implements CommandStream<C> {
   public KafkaCommandStream(Map<String, Object> producerConfig,
                             Map<String, Object> consumerConfig,
                             Class<C> cClass,
-                            TextTransformer transformer,
-                            KafkaSender<String, String> sender) {
+                            TextTransformer transformer) {
     this.producerConfig = producerConfig;
     this.consumerConfig = consumerConfig;
     this.cClass = cClass;
     this.transformer = transformer;
-    this.sender = sender;
+    this.sender = KafkaUtils.createSender(producerConfig);
   }
 
   @Override
   public Mono<C> pub(String topic, int partition, C c) {
-    return this.sender.send(this.toRecord(topic, partition, c)).map(SenderResult::correlationMetadata).singleOrEmpty();
+    return this.sender.send(this.toRecord(topic, partition, c)).map(SenderResult::correlationMetadata).single();
   }
 
   @Override

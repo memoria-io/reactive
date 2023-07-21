@@ -22,7 +22,6 @@ import org.junit.jupiter.params.provider.ValueSource;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.util.Random;
 
 import static io.memoria.reactive.nats.TestUtils.NATS_URL;
@@ -65,9 +64,9 @@ class ScenarioTest {
   @Test
   void simpleDebitScenario() {
     // Given
-    int numOfAccounts = 100;
+    int numOfAccounts = 1000;
     // When
-    var scenario = new SimpleDebitScenario(Duration.ofMillis(100), data, pipeline, numOfAccounts);
+    var scenario = new SimpleDebitScenario(data, pipeline, numOfAccounts);
     // Then
     StepVerifier.create(scenario.verify()).expectNext(true).verifyComplete();
   }

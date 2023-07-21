@@ -26,19 +26,14 @@ public class KafkaESMsgStream implements ESMsgStream {
   private final KafkaSender<String, String> sender;
   private final Duration timeout;
 
-  public KafkaESMsgStream(Map<String, Object> producerConfig,
-                          Map<String, Object> consumerConfig,
-                          KafkaSender<String, String> sender) {
-    this(producerConfig, consumerConfig, sender, Duration.ofMillis(500));
+  public KafkaESMsgStream(Map<String, Object> producerConfig, Map<String, Object> consumerConfig) {
+    this(producerConfig, consumerConfig, Duration.ofMillis(500));
   }
 
-  public KafkaESMsgStream(Map<String, Object> producerConfig,
-                          Map<String, Object> consumerConfig,
-                          KafkaSender<String, String> sender,
-                          Duration timeout) {
+  public KafkaESMsgStream(Map<String, Object> producerConfig, Map<String, Object> consumerConfig, Duration timeout) {
     this.producerConfig = producerConfig;
     this.consumerConfig = consumerConfig;
-    this.sender = sender;
+    this.sender = KafkaUtils.createSender(producerConfig);
     this.timeout = timeout;
   }
 

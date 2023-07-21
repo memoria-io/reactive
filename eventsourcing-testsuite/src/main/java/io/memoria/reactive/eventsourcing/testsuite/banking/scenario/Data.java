@@ -1,6 +1,7 @@
 package io.memoria.reactive.eventsourcing.testsuite.banking.scenario;
 
 import io.memoria.atom.core.id.Id;
+import io.memoria.reactive.eventsourcing.testsuite.banking.domain.AccountDecider;
 import io.memoria.reactive.eventsourcing.testsuite.banking.domain.command.AccountCommand;
 import io.memoria.reactive.eventsourcing.testsuite.banking.domain.command.ChangeName;
 import io.memoria.reactive.eventsourcing.testsuite.banking.domain.command.CloseAccount;
@@ -54,14 +55,6 @@ public class Data {
 
   public Flux<AccountCommand> changeNameCmd(Flux<Id> ids, int version) {
     return ids.map(id -> new ChangeName(idSupplier.get(), id, timeSupplier.get(), String.valueOf(version)));
-  }
-
-  public Credit creditCmd(Id debited, int balance, Id id) {
-    return new Credit(idSupplier.get(), id, timeSupplier.get(), debited, balance);
-  }
-
-  public Flux<AccountCommand> creditCmd(Flux<Id> credited, Id debited, int balance) {
-    return credited.map(id -> creditCmd(debited, balance, id));
   }
 
   public Debit debitCmd(Id debited, Id credited, int amount) {

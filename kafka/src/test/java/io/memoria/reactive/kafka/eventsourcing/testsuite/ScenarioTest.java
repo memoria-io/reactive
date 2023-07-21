@@ -12,7 +12,6 @@ import io.memoria.reactive.eventsourcing.testsuite.banking.scenario.Data;
 import io.memoria.reactive.eventsourcing.testsuite.banking.scenario.Infra;
 import io.memoria.reactive.eventsourcing.testsuite.banking.scenario.PerformanceScenario;
 import io.memoria.reactive.eventsourcing.testsuite.banking.scenario.SimpleDebitScenario;
-import io.memoria.reactive.kafka.KafkaUtils;
 import io.memoria.reactive.kafka.TestUtils;
 import io.memoria.reactive.kafka.eventsourcing.KafkaCommandStream;
 import io.memoria.reactive.kafka.eventsourcing.KafkaEventStream;
@@ -32,7 +31,6 @@ class ScenarioTest {
   private final PartitionPipeline<Account, AccountCommand, AccountEvent> pipeline;
 
   ScenarioTest() {
-    var sender = KafkaUtils.createSender(TestUtils.producerConfigs());
     var random = new Random();
     int topicPostfix = random.nextInt(1000);
     // Command
@@ -40,14 +38,12 @@ class ScenarioTest {
     var commandStream = new KafkaCommandStream<>(TestUtils.producerConfigs(),
                                                  TestUtils.consumerConfigs(),
                                                  AccountCommand.class,
-                                                 transformer,
-                                                 sender);
+                                                 transformer);
     // Event
     var eventStream = new KafkaEventStream<>(TestUtils.producerConfigs(),
                                              TestUtils.consumerConfigs(),
                                              AccountEvent.class,
                                              transformer,
-                                             sender,
                                              Duration.ofMillis(500));
     var eventRoute = new EventRoute("events" + topicPostfix, 0);
 
@@ -66,7 +62,7 @@ class ScenarioTest {
     // Given
     int numOfAccounts = 100;
     // When
-    var scenario = new SimpleDebitScenario(Duration.ofSeconds(1), data, pipeline, numOfAccounts);
+    var scenario = new SimpleDebitScenario(data, pipeline, numOfAccounts);
     // Then
     StepVerifier.create(scenario.verify()).expectNext(true).verifyComplete();
   }

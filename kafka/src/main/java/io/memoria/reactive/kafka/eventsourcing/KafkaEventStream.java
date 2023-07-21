@@ -25,22 +25,21 @@ import static java.util.Collections.singleton;
 public class KafkaEventStream<E extends Event> implements EventStream<E> {
   public final Map<String, Object> producerConfig;
   public final Map<String, Object> consumerConfig;
-  public final Class<E> cClass;
+  public final Class<E> eClass;
   public final TextTransformer transformer;
   private final KafkaSender<String, String> sender;
   private final Duration timeout;
 
   public KafkaEventStream(Map<String, Object> producerConfig,
                           Map<String, Object> consumerConfig,
-                          Class<E> cClass,
+                          Class<E> eClass,
                           TextTransformer transformer,
-                          KafkaSender<String, String> sender,
                           Duration timeout) {
     this.producerConfig = producerConfig;
     this.consumerConfig = consumerConfig;
-    this.cClass = cClass;
+    this.eClass = eClass;
     this.transformer = transformer;
-    this.sender = sender;
+    this.sender = KafkaUtils.createSender(producerConfig);
     this.timeout = timeout;
   }
 
@@ -80,6 +79,6 @@ public class KafkaEventStream<E extends Event> implements EventStream<E> {
   }
 
   public Mono<E> toMsg(ConsumerRecord<String, String> rec) {
-    return ReactorUtils.tryToMono(() -> transformer.deserialize(rec.value(), cClass));
+    return ReactorUtils.tryToMono(() -> transformer.deserialize(rec.value(), eClass));
   }
 }

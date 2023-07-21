@@ -7,7 +7,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import reactor.test.StepVerifier;
 
-import java.time.Duration;
 import java.util.stream.Stream;
 
 class ScenarioTest {
@@ -18,7 +17,7 @@ class ScenarioTest {
     // Given
     var pipeline = Infra.createMemoryPipeline(data.idSupplier, data.timeSupplier);
     // When
-    var scenario = new SimpleDebitScenario(Duration.ofMillis(50), data, pipeline, numOfAccounts);
+    var scenario = new SimpleDebitScenario(data, pipeline, numOfAccounts);
     // Then
     StepVerifier.create(scenario.verify()).expectNext(true).verifyComplete();
   }
@@ -40,5 +39,6 @@ class ScenarioTest {
     var arg1 = Arguments.of("Serial Ids", Data.ofSerial(), 100);
     var arg2 = Arguments.of("TimeUUIDs", Data.ofUUID(), 100);
     return Stream.of(arg1, arg2);
+//    return Stream.of(arg2);
   }
 }
