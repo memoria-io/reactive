@@ -1,28 +1,25 @@
 package io.memoria.reactive.nats;
 
-import io.memoria.reactive.core.messaging.stream.ESMsg;
-import io.memoria.reactive.nats.messaging.stream.NatsESMsgStream;
-import io.nats.client.impl.Headers;
-import io.nats.client.impl.NatsMessage;
-import org.junit.jupiter.api.Assertions;
+import io.memoria.atom.core.text.SerializableTransformer;
+import io.memoria.atom.core.text.TextTransformer;
+import io.memoria.reactive.eventsourcing.testsuite.banking.domain.event.AccountEvent;
+import io.nats.client.JetStreamApiException;
+import io.nats.client.Message;
+import io.nats.client.Nats;
 import org.junit.jupiter.api.Test;
 
+import java.io.IOException;
+
 class NatsUtilsTest {
+  private static final TextTransformer transformer = new SerializableTransformer();
 
   @Test
-  void toMessage() {
-    var message = NatsESMsgStream.toMessage(new ESMsg("topic", 0, 1000 + "", "hello world"));
-    Assertions.assertEquals("1000", message.getHeaders().getFirst(NatsUtils.ID_HEADER));
-    Assertions.assertEquals("topic_0.subject", message.getSubject());
-  }
-
-  @Test
-  void toMsg() {
-    var h = new Headers();
-    h.add(NatsUtils.ID_HEADER, "1000");
-    var message = NatsMessage.builder().data("hello world").subject("topic_0.subject").headers(h).build();
-    var msg = NatsESMsgStream.toMsg(message);
-    Assertions.assertEquals("topic", msg.topic());
-    Assertions.assertEquals(0, msg.partition());
+  void consume() throws IOException, InterruptedException, JetStreamApiException {
+    var con = Nats.connect(Utils.NATS_URL);
+    NatsUtils.fetch(con, Utils.createTopicConfig("20-events-451", 0))
+             .map(Message::getData)
+             .map(String::new)
+             .map(str -> transformer.deserialize(str, AccountEvent.class).get())
+             .forEach(System.out::println);
   }
 }

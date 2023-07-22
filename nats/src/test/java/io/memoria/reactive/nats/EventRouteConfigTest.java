@@ -1,6 +1,5 @@
 package io.memoria.reactive.nats;
 
-import io.memoria.reactive.nats.TopicConfig;
 import io.nats.client.api.StorageType;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -11,7 +10,15 @@ class EventRouteConfigTest {
   @Test
   void validation() {
     Assertions.assertThatIllegalArgumentException()
-              .isThrownBy(() -> new TopicConfig("", 0, StorageType.File, 1, 100, Duration.ofMillis(100), false, false));
+              .isThrownBy(() -> new TopicConfig("",
+                                                0,
+                                                StorageType.File,
+                                                1,
+                                                100,
+                                                Duration.ofMillis(100),
+                                                Duration.ofMillis(300),
+                                                false,
+                                                false));
     Assertions.assertThatIllegalArgumentException()
               .isThrownBy(() -> new TopicConfig(null,
                                                 -1,
@@ -19,6 +26,7 @@ class EventRouteConfigTest {
                                                 1,
                                                 100,
                                                 Duration.ofMillis(100),
+                                                Duration.ofMillis(300),
                                                 false,
                                                 false));
     Assertions.assertThatIllegalArgumentException()
@@ -28,6 +36,7 @@ class EventRouteConfigTest {
                                                 1,
                                                 100,
                                                 Duration.ofMillis(100),
+                                                Duration.ofMillis(300),
                                                 false,
                                                 false));
     Assertions.assertThatIllegalArgumentException()
@@ -37,6 +46,7 @@ class EventRouteConfigTest {
                                                 0,
                                                 100,
                                                 Duration.ofMillis(100),
+                                                Duration.ofMillis(300),
                                                 false,
                                                 false));
     Assertions.assertThatIllegalArgumentException()
@@ -46,6 +56,7 @@ class EventRouteConfigTest {
                                                 6,
                                                 100,
                                                 Duration.ofMillis(100),
+                                                Duration.ofMillis(300),
                                                 false,
                                                 false));
     Assertions.assertThatIllegalArgumentException()
@@ -55,6 +66,7 @@ class EventRouteConfigTest {
                                                 1,
                                                 -1,
                                                 Duration.ofMillis(100),
+                                                Duration.ofMillis(300),
                                                 false,
                                                 false));
   }

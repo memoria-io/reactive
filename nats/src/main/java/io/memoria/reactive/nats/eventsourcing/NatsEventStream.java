@@ -9,11 +9,10 @@ import io.memoria.reactive.nats.NatsConfig;
 import io.memoria.reactive.nats.NatsUtils;
 import io.memoria.reactive.nats.TopicConfig;
 import io.nats.client.Connection;
+import io.nats.client.JetStream;
 import io.nats.client.JetStreamSubscription;
 import io.nats.client.Message;
-import io.nats.client.Nats;
-import io.nats.client.PublishOptions;
-import io.nats.client.api.PublishAck;
+import io.nats.client.api.DeliverPolicy;
 import io.nats.client.api.StreamInfo;
 import io.nats.client.impl.Headers;
 import io.nats.client.impl.NatsMessage;
@@ -25,19 +24,26 @@ import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.concurrent.CompletableFuture;
+import java.util.List;
 
 public class NatsEventStream<E extends Event> implements EventStream<E> {
   private static final Logger log = LoggerFactory.getLogger(NatsEventStream.class.getName());
   private final NatsConfig natsConfig;
   private final Connection nc;
+  private final JetStream js;
   private final Class<E> cClass;
   private final TextTransformer transformer;
 
-  public NatsEventStream(NatsConfig natsConfig, Class<E> cClass, TextTransformer transformer)
+  public NatsEventStream(NatsConfig natsConfig, Class<E> eventClass, TextTransformer transformer)
           throws IOException, InterruptedException {
+    this(natsConfig, NatsUtils.natsConnection(natsConfig), eventClass, transformer);
+  }
+
+  public NatsEventStream(NatsConfig natsConfig, Connection connection, Class<E> cClass, TextTransformer transformer)
+          throws IOException {
     this.natsConfig = natsConfig;
-    this.nc = Nats.connect(NatsUtils.toOptions(natsConfig));
+    this.nc = connection;
+    this.js = nc.jetStream();
     this.cClass = cClass;
     this.transformer = transformer;
     this.natsConfig.configs()
@@ -49,51 +55,48 @@ public class NatsEventStream<E extends Event> implements EventStream<E> {
   }
 
   @Override
-  public Mono<Id> last(String topic, int partition) {
-    var topicConfig = this.natsConfig.find(topic, partition).get();
-    return Mono.fromCallable(() -> NatsUtils.jetStreamSubLast(nc, topicConfig))
-               .flatMapMany(sub -> this.fetchBatch(sub, topicConfig))
-               .next()
-               .flatMap(this::toMsg)
-               .map(E::eventId);
-  }
-
-  @Override
-  public Mono<E> pub(String topic, int partition, E cmd) {
-    return ReactorUtils.tryToMono(() -> transformer.serialize(cmd))
-                       .flatMap(cmdValue -> publish(topic, partition, cmd, cmdValue))
-                       .thenReturn(cmd);
+  public Mono<E> pub(String topic, int partition, E event) {
+    //    System.out.println(event.eventId());
+    //    var opts = PublishOptions.builder().clearExpected().messageId(event.eventId().value()).build();
+    return ReactorUtils.tryToMono(() -> transformer.serialize(event))
+                       .map(value -> toMessage(topic, partition, event, value))
+                       .map(js::publishAsync)
+                       .flatMap(Mono::fromFuture)
+                       .doOnNext(i -> System.out.println(i.getSeqno()))
+                       .map(i -> event);
   }
 
   @Override
   public Flux<E> sub(String topic, int partition) {
     var topicConfig = this.natsConfig.find(topic, partition).get();
-    return Mono.fromCallable(() -> NatsUtils.jetStreamSub(nc, topicConfig))
-               .flatMapMany(sub -> this.fetchBatch(sub, topicConfig).repeat())
+    var sub = NatsUtils.jetStreamSub(js, topicConfig, DeliverPolicy.All);
+    return Mono.fromCallable(() -> this.fetchBatch(sub, topicConfig))
+               .repeat()
+               .concatMap(Flux::fromIterable)
                .concatMap(this::toMsg);
   }
 
-  Mono<PublishAck> publish(String topic, int partition, E cmd, String cmdValue) {
-    return Mono.fromCallable(() -> this.publishMsg(topic, partition, cmd, cmdValue)).flatMap(Mono::fromFuture);
-  }
-
-  Flux<Message> fetchBatch(JetStreamSubscription sub, TopicConfig config) {
-    return Mono.fromCallable(() -> sub.fetch(config.fetchBatchSize(), config.fetchMaxWait()))
+  @Override
+  public Mono<Id> last(String topic, int partition) {
+    var topicConfig = this.natsConfig.find(topic, partition).get();
+    return Mono.fromCallable(() -> NatsUtils.jetStreamSub(js, topicConfig, DeliverPolicy.Last))
+               .map(sub -> this.fetchBatch(sub, topicConfig))
                .flatMapMany(Flux::fromIterable)
-               .doOnNext(Message::ack);
+               .singleOrEmpty()
+               .flatMap(this::toMsg)
+               .map(E::eventId);
   }
 
-  CompletableFuture<PublishAck> publishMsg(String topic, int partition, E msg, String cmdValue) throws IOException {
-    var message = toMessage(topic, partition, msg, cmdValue);
-    var opts = PublishOptions.builder().clearExpected().messageId(msg.commandId().value()).build();
-    return nc.jetStream().publishAsync(message, opts);
+  List<Message> fetchBatch(JetStreamSubscription sub, TopicConfig config) {
+    return sub.fetch(config.fetchBatchSize(), config.fetchMaxWait());
   }
 
-  Message toMessage(String topic, int partition, E cmd, String cmdValue) {
+  Message toMessage(String topic, int partition, E event, String value) {
     var subjectName = TopicConfig.subjectName(topic, partition);
     var headers = new Headers();
-    headers.add(NatsUtils.ID_HEADER, cmd.commandId().value());
-    return NatsMessage.builder().subject(subjectName).headers(headers).data(cmdValue).build();
+    headers = headers.add(NatsUtils.ID_HEADER, event.eventId().value());
+    //    return NatsMessage.builder().subject(subjectName).headers(headers).data(value).build();
+    return NatsMessage.builder().subject(subjectName).data(value).build();
   }
 
   Mono<E> toMsg(Message message) {

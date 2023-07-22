@@ -13,6 +13,7 @@ public record TopicConfig(String topic,
                           int replicas,
                           int fetchBatchSize,
                           Duration fetchMaxWait,
+                          Duration fetchLastMaxWait,
                           boolean denyDelete,
                           boolean denyPurge) {
 
@@ -63,8 +64,17 @@ public record TopicConfig(String topic,
                                        StorageType storageType,
                                        int replicationFactor,
                                        int fetchBatch,
-                                       Duration fetchMaxWait) {
-    return new TopicConfig(topic, partition, storageType, replicationFactor, fetchBatch, fetchMaxWait, true, true);
+                                       Duration fetchMaxWait,
+                                       Duration fetchLastMaxWait) {
+    return new TopicConfig(topic,
+                           partition,
+                           storageType,
+                           replicationFactor,
+                           fetchBatch,
+                           fetchMaxWait,
+                           fetchLastMaxWait,
+                           true,
+                           true);
   }
 
   @Override
