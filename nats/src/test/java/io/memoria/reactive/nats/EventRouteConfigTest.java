@@ -10,64 +10,58 @@ class EventRouteConfigTest {
   @Test
   void validation() {
     Assertions.assertThatIllegalArgumentException()
-              .isThrownBy(() -> new TopicConfig("",
-                                                0,
-                                                StorageType.File,
-                                                1,
-                                                100,
-                                                Duration.ofMillis(100),
-                                                Duration.ofMillis(300),
-                                                false,
-                                                false));
+              .isThrownBy(() -> new NatsConfig("",
+                                               StorageType.File,
+                                               1,
+                                               100,
+                                               Duration.ofMillis(100),
+                                               Duration.ofMillis(300),
+                                               false,
+                                               false));
     Assertions.assertThatIllegalArgumentException()
-              .isThrownBy(() -> new TopicConfig(null,
-                                                -1,
-                                                StorageType.File,
-                                                1,
-                                                100,
-                                                Duration.ofMillis(100),
-                                                Duration.ofMillis(300),
-                                                false,
-                                                false));
+              .isThrownBy(() -> new NatsConfig("",
+                                               StorageType.File,
+                                               1,
+                                               100,
+                                               Duration.ofMillis(100),
+                                               Duration.ofMillis(300),
+                                               false,
+                                               false));
     Assertions.assertThatIllegalArgumentException()
-              .isThrownBy(() -> new TopicConfig("topic",
-                                                -1,
-                                                StorageType.File,
-                                                1,
-                                                100,
-                                                Duration.ofMillis(100),
-                                                Duration.ofMillis(300),
-                                                false,
-                                                false));
+              .isThrownBy(() -> new NatsConfig("url",
+                                               StorageType.File,
+                                               1,
+                                               100,
+                                               Duration.ofMillis(100),
+                                               Duration.ofMillis(300),
+                                               false,
+                                               false));
     Assertions.assertThatIllegalArgumentException()
-              .isThrownBy(() -> new TopicConfig("topic",
-                                                0,
-                                                StorageType.File,
-                                                0,
-                                                100,
-                                                Duration.ofMillis(100),
-                                                Duration.ofMillis(300),
-                                                false,
-                                                false));
+              .isThrownBy(() -> new NatsConfig("url",
+                                               StorageType.File,
+                                               0,
+                                               100,
+                                               Duration.ofMillis(100),
+                                               Duration.ofMillis(300),
+                                               false,
+                                               false));
     Assertions.assertThatIllegalArgumentException()
-              .isThrownBy(() -> new TopicConfig("topic",
-                                                0,
-                                                StorageType.File,
-                                                6,
-                                                100,
-                                                Duration.ofMillis(100),
-                                                Duration.ofMillis(300),
-                                                false,
-                                                false));
+              .isThrownBy(() -> new NatsConfig("url",
+                                               StorageType.File,
+                                               6,
+                                               100,
+                                               Duration.ofMillis(100),
+                                               Duration.ofMillis(300),
+                                               false,
+                                               false));
     Assertions.assertThatIllegalArgumentException()
-              .isThrownBy(() -> new TopicConfig("topic",
-                                                0,
-                                                StorageType.File,
-                                                1,
-                                                -1,
-                                                Duration.ofMillis(100),
-                                                Duration.ofMillis(300),
-                                                false,
-                                                false));
+              .isThrownBy(() -> new NatsConfig("url",
+                                               StorageType.File,
+                                               1,
+                                               -1,
+                                               Duration.ofMillis(100),
+                                               Duration.ofMillis(300),
+                                               false,
+                                               false));
   }
 }

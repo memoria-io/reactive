@@ -25,8 +25,8 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.Random;
 
-import static io.memoria.reactive.nats.Utils.NATS_URL;
-import static io.memoria.reactive.nats.Utils.createConfig;
+import static io.memoria.reactive.nats.TestUtils.NATS_URL;
+import static io.memoria.reactive.nats.TestUtils.defaultTopicConfigs;
 
 class ScenarioTest {
   private static final TextTransformer transformer = new SerializableTransformer();
@@ -110,8 +110,8 @@ class ScenarioTest {
 
   private PartitionPipeline<Account, AccountCommand, AccountEvent> createPipeline(CommandRoute commandRoute,
                                                                                   EventRoute eventRoute) {
-    var commandConfig = createConfig(commandRoute.name(), commandRoute.totalPartitions());
-    var eventConfig = createConfig(eventRoute.name(), eventRoute.totalPartitions());
+    var commandConfig = defaultTopicConfigs(commandRoute.name(), commandRoute.totalPartitions());
+    var eventConfig = defaultTopicConfigs(eventRoute.name(), eventRoute.totalPartitions());
     var natsConfig = new NatsConfig(NATS_URL, commandConfig.addAll(eventConfig));
 
     try {

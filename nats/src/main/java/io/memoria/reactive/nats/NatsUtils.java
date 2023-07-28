@@ -4,7 +4,6 @@ import io.nats.client.Connection;
 import io.nats.client.ErrorListener;
 import io.nats.client.JetStream;
 import io.nats.client.JetStreamApiException;
-import io.nats.client.JetStreamOptions;
 import io.nats.client.JetStreamSubscription;
 import io.nats.client.Message;
 import io.nats.client.Nats;
@@ -16,6 +15,8 @@ import io.nats.client.api.DeliverPolicy;
 import io.nats.client.api.ReplayPolicy;
 import io.nats.client.api.StreamConfiguration;
 import io.nats.client.api.StreamInfo;
+import io.vavr.Tuple;
+import io.vavr.Tuple2;
 import io.vavr.collection.List;
 import io.vavr.control.Option;
 import io.vavr.control.Try;
@@ -31,11 +32,24 @@ import java.util.function.Function;
  */
 public class NatsUtils {
   public static final String ID_HEADER = "ID_HEADER";
+  public static final String SPLIT_TOKEN = "_";
+  public static final String SUBJECT_EXT = ".subject";
 
   private NatsUtils() {}
 
   public static Connection natsConnection(NatsConfig natsConfig) throws IOException, InterruptedException {
     return Nats.connect(Options.builder().server(natsConfig.url()).errorListener(errorListener()).build());
+  }
+
+  public static StreamConfiguration toStreamConfiguration(NatsConfig c, String topic, int partition) {
+    return StreamConfiguration.builder()
+                              .replicas(c.replicas())
+                              .storageType(c.storageType())
+                              .denyDelete(c.denyDelete())
+                              .denyPurge(c.denyPurge())
+                              .name(streamName(topic, partition))
+                              .subjects(subjectName(topic, partition))
+                              .build();
   }
 
   public static Try<StreamInfo> createOrUpdateStream(Connection nc, StreamConfiguration streamConfiguration) {
@@ -48,42 +62,26 @@ public class NatsUtils {
     });
   }
 
-  public static JetStreamSubscription jetStreamSub(JetStream js, TopicConfig topicConfig, DeliverPolicy deliverPolicy) {
+  public static JetStreamSubscription jetStreamSub(JetStream js,
+                                                   DeliverPolicy deliverPolicy,
+                                                   String topic,
+                                                   int partition) {
     var config = ConsumerConfiguration.builder()
                                       .ackPolicy(AckPolicy.Explicit)
                                       .deliverPolicy(deliverPolicy)
                                       .replayPolicy(ReplayPolicy.Instant)
                                       .build();
-    var subscribeOptions = PullSubscribeOptions.builder()
-                                               .stream(topicConfig.streamName())
-                                               .configuration(config)
-                                               .build();
+    var streamName = streamName(topic, partition);
+    var subscribeOptions = PullSubscribeOptions.builder().stream(streamName).configuration(config).build();
     try {
-      return js.subscribe(topicConfig.subjectName(), subscribeOptions);
+      String subjectName = subjectName(topic, partition);
+      return js.subscribe(subjectName, subscribeOptions);
     } catch (IOException | JetStreamApiException e) {
       throw new RuntimeException(e);
     }
   }
 
-  public static StreamConfiguration toStreamConfiguration(TopicConfig c) {
-    return StreamConfiguration.builder()
-                              .replicas(c.replicas())
-                              .storageType(c.storageType())
-                              .denyDelete(c.denyDelete())
-                              .denyPurge(c.denyPurge())
-                              .name(c.streamName())
-                              .subjects(c.subjectName())
-                              .build();
-  }
-
-  public static List<Message> fetch(Connection connection, TopicConfig config) throws IOException {
-    JetStreamOptions jso = JetStreamOptions.builder().optOut290ConsumerCreate(true).build();
-    JetStream js = connection.jetStream(jso);
-    var sub = jetStreamSub(js, config, DeliverPolicy.All);
-    return List.ofAll(sub.fetch(config.fetchBatchSize(), config.fetchMaxWait()));
-  }
-
-  public static Flux<Message> fetch(JetStreamSubscription sub, TopicConfig config) {
+  public static Flux<Message> fetch(JetStreamSubscription sub, NatsConfig config) {
     return Flux.generate((SynchronousSink<Flux<Message>> sink) -> {
       var tr = Try.of(() -> blockingFetch(sub, config));
       if (tr.isSuccess()) {
@@ -94,17 +92,15 @@ public class NatsUtils {
     }).concatMap(Function.identity());
   }
 
-  public static List<Message> blockingFetch(JetStreamSubscription sub, TopicConfig config) {
-    System.out.println("blocking fetch called");
+  public static List<Message> blockingFetch(JetStreamSubscription sub, NatsConfig config) {
     return List.ofAll(sub.fetch(config.fetchBatchSize(), config.fetchMaxWait()));
   }
 
-  public static Option<Message> blockingFetchLast(JetStreamSubscription sub, TopicConfig config) {
+  public static Option<Message> blockingFetchLast(JetStreamSubscription sub, NatsConfig config) {
     return List.ofAll(sub.fetch(config.fetchBatchSize(), config.fetchMaxWait())).lastOption();
   }
 
   public static Message acknowledge(Message m) {
-    System.out.println("ack_" + new String(m.getData()));
     m.ack();
     return m;
   }
@@ -116,5 +112,21 @@ public class NatsUtils {
         ErrorListener.super.errorOccurred(conn, error);
       }
     };
+  }
+
+  public static String streamName(String topic, int partition) {
+    return "%s%s%d".formatted(topic, SPLIT_TOKEN, partition);
+  }
+
+  public static String subjectName(String topic, int partition) {
+    return streamName(topic, partition) + SUBJECT_EXT;
+  }
+
+  public static Tuple2<String, Integer> topicPartition(String subject) {
+    var idx = subject.indexOf(SUBJECT_EXT);
+    var s = subject.substring(0, idx).split(SPLIT_TOKEN);
+    var topic = s[0];
+    var partition = Integer.parseInt(s[1]);
+    return Tuple.of(topic, partition);
   }
 }

@@ -3,17 +3,13 @@ package io.memoria.reactive.nats.eventsourcing;
 import io.memoria.atom.core.text.SerializableTransformer;
 import io.memoria.reactive.eventsourcing.stream.CommandStream;
 import io.memoria.reactive.eventsourcing.testsuite.banking.domain.command.AccountCommand;
-import io.memoria.reactive.eventsourcing.testsuite.banking.scenario.Data;
-import io.memoria.reactive.nats.NatsConfig;
-import io.memoria.reactive.nats.Utils;
+import io.memoria.reactive.nats.TestUtils;
 import org.junit.jupiter.api.Test;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
 import java.time.Duration;
 import java.util.Random;
-
-import static io.memoria.reactive.nats.Utils.NATS_URL;
 
 class NatsCommandStreamTest {
   private static final Duration timeout = Duration.ofMillis(500);
@@ -23,12 +19,12 @@ class NatsCommandStreamTest {
   private final String topic = "topic" + r.nextInt(1000);
   private final int partition = 0;
   private final CommandStream<AccountCommand> commandStream;
-  private final Data data;
+  private final io.memoria.reactive.eventsourcing.testsuite.banking.scenario.Data data;
 
   NatsCommandStreamTest() throws IOException, InterruptedException {
-    var config = new NatsConfig(NATS_URL, Utils.createConfig(topic, 1));
+    var config = TestUtils.natsConfig();
     this.commandStream = new NatsCommandStream<>(config, AccountCommand.class, new SerializableTransformer());
-    this.data = Data.ofUUID();
+    this.data = io.memoria.reactive.eventsourcing.testsuite.banking.scenario.Data.ofUUID();
   }
 
   @Test

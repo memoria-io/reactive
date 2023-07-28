@@ -1,20 +1,31 @@
 package io.memoria.reactive.nats;
 
-import io.vavr.collection.HashSet;
-import io.vavr.collection.List;
-import io.vavr.collection.Set;
-import io.vavr.control.Option;
+import io.nats.client.api.StorageType;
 
-public record NatsConfig(String url, Set<TopicConfig> configs) {
-  public NatsConfig(String url, List<TopicConfig> topicConfig) {
-    this(url, topicConfig.toSet());
-  }
+import java.time.Duration;
 
-  public NatsConfig(String url, TopicConfig... topicConfig) {
-    this(url, HashSet.of(topicConfig));
-  }
+public record NatsConfig(String url,
+                         StorageType storageType,
+                         int replicas,
+                         int fetchBatchSize,
+                         Duration fetchMaxWait,
+                         Duration fetchLastMaxWait,
+                         boolean denyDelete,
+                         boolean denyPurge) {
 
-  public Option<TopicConfig> find(String name, int partition) {
-    return configs.find(tp -> tp.topic().equals(name) && tp.partition() == partition);
+  public static NatsConfig appendOnly(String url,
+                                      StorageType storageType,
+                                      int replicationFactor,
+                                      int fetchBatch,
+                                      Duration fetchOnceMaxWait,
+                                      Duration fetchLastMsgMaxWait) {
+    return new NatsConfig(url,
+                          storageType,
+                          replicationFactor,
+                          fetchBatch,
+                          fetchOnceMaxWait,
+                          fetchLastMsgMaxWait,
+                          true,
+                          true);
   }
 }
