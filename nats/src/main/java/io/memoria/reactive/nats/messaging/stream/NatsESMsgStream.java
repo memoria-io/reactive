@@ -44,7 +44,9 @@ public class NatsESMsgStream implements ESMsgStream {
 
   @Override
   public Flux<ESMsg> sub(String topic, int partition) {
-    return NatsUtils.fetchAllMessages(js, natsConfig, topic, partition).map(NatsESMsgStream::toESMsg);
+    return NatsUtils.fetchAllMessages(js, natsConfig, topic, partition)
+                    .map(NatsESMsgStream::toESMsg)
+                    .subscribeOn(scheduler);
   }
 
   @Override

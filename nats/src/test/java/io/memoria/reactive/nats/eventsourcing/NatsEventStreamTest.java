@@ -62,9 +62,6 @@ class NatsEventStreamTest {
 
     // Then
     StepVerifier.create(pub).expectNextCount(COUNT).verifyComplete();
-    StepVerifier.create(sub)
-                .expectNextCount(COUNT)
-                .expectTimeout(timeout)
-                .verify();
+    StepVerifier.create(sub).expectNextCount(COUNT).expectTimeout(timeout).verify();
   }
 }

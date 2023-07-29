@@ -40,6 +40,18 @@ public class NatsUtils {
 
   private NatsUtils() {}
 
+  public static String subjectName(String topic, int partition) {
+    return streamName(topic, partition) + SUBJECT_EXT;
+  }
+
+  public static Tuple2<String, Integer> topicPartition(String subject) {
+    var idx = subject.indexOf(SUBJECT_EXT);
+    var s = subject.substring(0, idx).split(SPLIT_TOKEN);
+    var topic = s[0];
+    var partition = Integer.parseInt(s[1]);
+    return Tuple.of(topic, partition);
+  }
+
   public static Connection natsConnection(NatsConfig natsConfig) throws IOException, InterruptedException {
     return Nats.connect(Options.builder().server(natsConfig.url()).errorListener(errorListener()).build());
   }
@@ -70,21 +82,33 @@ public class NatsUtils {
                .flatMap(ReactorUtils::optionToMono);
   }
 
-  static Flux<Message> fetch(JetStreamSubscription sub, int fetchBatchSize, Duration fetchMaxWait) {
-    return Flux.generate((SynchronousSink<Flux<Message>> sink) -> {
-      var tr = Try.of(() -> blockingFetch(sub, fetchBatchSize, fetchMaxWait));
-      if (tr.isSuccess()) {
-        sink.next(Flux.fromIterable(tr.get()));
-      } else {
-        sink.error(tr.getCause());
-      }
-    }).concatMap(Function.identity());
+  static List<Message> blockingFetch(JetStreamSubscription sub, int fetchBatchSize, Duration fetchMaxWait) {
+    return List.ofAll(sub.fetch(fetchBatchSize, fetchMaxWait));
   }
 
-  public static JetStreamSubscription jetStreamSub(JetStream js,
-                                                   DeliverPolicy deliverPolicy,
-                                                   String topic,
-                                                   int partition) {
+  static Option<Message> blockingFetchLast(JetStreamSubscription sub, NatsConfig config) {
+    return List.ofAll(sub.fetch(config.fetchBatchSize(), config.fetchMaxWait())).lastOption();
+  }
+
+  static Message acknowledge(Message m) {
+    m.ack();
+    return m;
+  }
+
+  static ErrorListener errorListener() {
+    return new ErrorListener() {
+      @Override
+      public void errorOccurred(Connection conn, String error) {
+        ErrorListener.super.errorOccurred(conn, error);
+      }
+    };
+  }
+
+  static String streamName(String topic, int partition) {
+    return "%s%s%d".formatted(topic, SPLIT_TOKEN, partition);
+  }
+
+  static JetStreamSubscription jetStreamSub(JetStream js, DeliverPolicy deliverPolicy, String topic, int partition) {
     var config = ConsumerConfiguration.builder()
                                       .ackPolicy(AckPolicy.Explicit)
                                       .deliverPolicy(deliverPolicy)
@@ -100,42 +124,15 @@ public class NatsUtils {
     }
   }
 
-  public static List<Message> blockingFetch(JetStreamSubscription sub, int fetchBatchSize, Duration fetchMaxWait) {
-    return List.ofAll(sub.fetch(fetchBatchSize, fetchMaxWait));
-  }
-
-  public static Option<Message> blockingFetchLast(JetStreamSubscription sub, NatsConfig config) {
-    return List.ofAll(sub.fetch(config.fetchBatchSize(), config.fetchMaxWait())).lastOption();
-  }
-
-  public static Message acknowledge(Message m) {
-    m.ack();
-    return m;
-  }
-
-  public static ErrorListener errorListener() {
-    return new ErrorListener() {
-      @Override
-      public void errorOccurred(Connection conn, String error) {
-        ErrorListener.super.errorOccurred(conn, error);
+  static Flux<Message> fetch(JetStreamSubscription sub, int fetchBatchSize, Duration fetchMaxWait) {
+    return Flux.generate((SynchronousSink<Flux<Message>> sink) -> {
+      var tr = Try.of(() -> blockingFetch(sub, fetchBatchSize, fetchMaxWait));
+      if (tr.isSuccess()) {
+        sink.next(Flux.fromIterable(tr.get()));
+      } else {
+        sink.error(tr.getCause());
       }
-    };
-  }
-
-  public static String streamName(String topic, int partition) {
-    return "%s%s%d".formatted(topic, SPLIT_TOKEN, partition);
-  }
-
-  public static String subjectName(String topic, int partition) {
-    return streamName(topic, partition) + SUBJECT_EXT;
-  }
-
-  public static Tuple2<String, Integer> topicPartition(String subject) {
-    var idx = subject.indexOf(SUBJECT_EXT);
-    var s = subject.substring(0, idx).split(SPLIT_TOKEN);
-    var topic = s[0];
-    var partition = Integer.parseInt(s[1]);
-    return Tuple.of(topic, partition);
+    }).concatMap(Function.identity());
   }
 
   static StreamConfiguration streamConfiguration(NatsConfig natsConfig, String topic, int partition) {

@@ -10,7 +10,7 @@ public record OpenAccount(Id accountId, String name, long balance, int debitCoun
   }
 
   public OpenAccount withCredit(long credit) {
-    return new OpenAccount(accountId, name, balance + credit, debitCount, confirmedDebit, creditCount+1);
+    return new OpenAccount(accountId, name, balance + credit, debitCount, confirmedDebit, creditCount + 1);
   }
 
   public OpenAccount withDebit(long debit) {

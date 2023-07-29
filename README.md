@@ -105,8 +105,10 @@ Format Example: `JDK_Version.major.minor`
 * [ ] More structured releases based on PRs
 
 ## Release notes
+
 * `20.23.0`
-  * In Memory PartitionPipeline performance one thread:
+    * In Memory PartitionPipeline performance one thread:
+
 ```
 Processed 6 events in  25 millis 
 Processed 60 events in  9 millis 
