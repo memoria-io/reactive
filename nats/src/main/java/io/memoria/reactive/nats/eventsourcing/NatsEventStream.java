@@ -10,37 +10,40 @@ import io.memoria.reactive.nats.NatsUtils;
 import io.nats.client.Connection;
 import io.nats.client.JetStream;
 import io.nats.client.Message;
-import io.nats.client.api.DeliverPolicy;
 import io.nats.client.impl.Headers;
 import io.nats.client.impl.NatsMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
-import static io.memoria.reactive.nats.NatsUtils.jetStreamSub;
-
 public class NatsEventStream<E extends Event> implements EventStream<E> {
   private static final Logger log = LoggerFactory.getLogger(NatsEventStream.class.getName());
-  private final NatsConfig config;
+  private final NatsConfig natsConfig;
   private final JetStream js;
   private final Class<E> cClass;
   private final TextTransformer transformer;
+  private final Scheduler scheduler;
 
-  public NatsEventStream(NatsConfig config, Class<E> eventClass, TextTransformer transformer)
+  public NatsEventStream(NatsConfig natsConfig, Class<E> eventClass, TextTransformer transformer, Scheduler scheduler)
           throws IOException, InterruptedException {
-    this(config, NatsUtils.natsConnection(config), eventClass, transformer);
+    this(natsConfig, NatsUtils.natsConnection(natsConfig), eventClass, transformer, scheduler);
   }
 
-  public NatsEventStream(NatsConfig config, Connection connection, Class<E> cClass, TextTransformer transformer)
-          throws IOException {
-    this.config = config;
+  public NatsEventStream(NatsConfig natsConfig,
+                         Connection connection,
+                         Class<E> cClass,
+                         TextTransformer transformer,
+                         Scheduler scheduler) throws IOException {
+    this.natsConfig = natsConfig;
     this.js = connection.jetStream();
     this.cClass = cClass;
     this.transformer = transformer;
+    this.scheduler = scheduler;
   }
 
   @Override
@@ -49,27 +52,17 @@ public class NatsEventStream<E extends Event> implements EventStream<E> {
                        .map(value -> toMessage(topic, partition, event, value))
                        .map(js::publishAsync)
                        .flatMap(Mono::fromFuture)
-                       .doOnNext(i -> System.out.println(i.getSeqno()))
                        .map(i -> event);
   }
 
   @Override
   public Flux<E> sub(String topic, int partition) {
-    return Mono.fromCallable(() -> jetStreamSub(js, DeliverPolicy.All, topic, partition))
-               .map(sub -> sub.fetch(config.fetchBatchSize(), config.fetchMaxWait()))
-               .repeat()
-               .concatMap(Flux::fromIterable)
-               .concatMap(this::toEvent);
+    return NatsUtils.fetchAllMessages(js, natsConfig, topic, partition).concatMap(this::toEvent).subscribeOn(scheduler);
   }
 
   @Override
   public Mono<Id> last(String topic, int partition) {
-    return Mono.fromCallable(() -> jetStreamSub(js, DeliverPolicy.Last, topic, partition))
-               .map(sub -> sub.fetch(config.fetchBatchSize(), config.fetchMaxWait()))
-               .flatMapMany(Flux::fromIterable)
-               .singleOrEmpty()
-               .flatMap(this::toEvent)
-               .map(E::eventId);
+    return NatsUtils.fetchLastMessage(js, natsConfig, topic, partition).flatMap(this::toEvent).map(E::eventId);
   }
 
   Message toMessage(String topic, int partition, E event, String value) {

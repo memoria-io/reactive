@@ -2,14 +2,12 @@ package io.memoria.reactive.nats.messaging.stream;
 
 import io.memoria.reactive.core.messaging.stream.ESMsg;
 import io.memoria.reactive.core.messaging.stream.ESMsgStream;
-import io.memoria.reactive.core.reactor.ReactorUtils;
 import io.memoria.reactive.nats.NatsConfig;
 import io.memoria.reactive.nats.NatsUtils;
 import io.nats.client.Connection;
 import io.nats.client.JetStream;
 import io.nats.client.Message;
 import io.nats.client.PublishOptions;
-import io.nats.client.api.DeliverPolicy;
 import io.nats.client.api.PublishAck;
 import io.nats.client.impl.Headers;
 import io.nats.client.impl.NatsMessage;
@@ -18,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
-import reactor.core.scheduler.Schedulers;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -47,21 +44,15 @@ public class NatsESMsgStream implements ESMsgStream {
 
   @Override
   public Flux<ESMsg> sub(String topic, int partition) {
-    return Mono.fromCallable(() -> NatsUtils.jetStreamSub(js, DeliverPolicy.All, topic, partition))
-               .flatMapMany(sub -> NatsUtils.fetch(sub, natsConfig))
-               .subscribeOn(scheduler)
-               .map(NatsUtils::acknowledge)
-               .map(NatsESMsgStream::toESMsg);
+    return NatsUtils.fetchAllMessages(js, natsConfig, topic, partition).map(NatsESMsgStream::toESMsg);
   }
 
   @Override
   public Mono<String> last(String topic, int partition) {
-    return Mono.fromCallable(() -> NatsUtils.jetStreamSub(js, DeliverPolicy.Last, topic, partition))
-               .map(sub -> NatsUtils.blockingFetchLast(sub, natsConfig))
-               .subscribeOn(Schedulers.boundedElastic())
-               .flatMap(ReactorUtils::optionToMono)
-               .map(NatsESMsgStream::toESMsg)
-               .map(ESMsg::key);
+    return NatsUtils.fetchLastMessage(js, natsConfig, topic, partition)
+                    .map(NatsESMsgStream::toESMsg)
+                    .map(ESMsg::key)
+                    .subscribeOn(scheduler);
   }
 
   public CompletableFuture<PublishAck> publishESMsg(ESMsg msg) {

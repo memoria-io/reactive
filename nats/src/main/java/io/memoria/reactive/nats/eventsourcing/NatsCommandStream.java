@@ -8,38 +8,42 @@ import io.memoria.reactive.nats.NatsConfig;
 import io.memoria.reactive.nats.NatsUtils;
 import io.nats.client.Connection;
 import io.nats.client.JetStream;
-import io.nats.client.JetStreamSubscription;
 import io.nats.client.Message;
 import io.nats.client.PublishOptions;
-import io.nats.client.api.DeliverPolicy;
 import io.nats.client.impl.Headers;
 import io.nats.client.impl.NatsMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Scheduler;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
 public class NatsCommandStream<C extends Command> implements CommandStream<C> {
   private static final Logger log = LoggerFactory.getLogger(NatsCommandStream.class.getName());
-  private final NatsConfig config;
+  private final NatsConfig natsConfig;
   private final JetStream js;
   private final Class<C> cClass;
   private final TextTransformer transformer;
+  private final Scheduler scheduler;
 
-  public NatsCommandStream(NatsConfig config, Class<C> cClass, TextTransformer transformer)
+  public NatsCommandStream(NatsConfig natsConfig, Class<C> cClass, TextTransformer transformer, Scheduler scheduler)
           throws IOException, InterruptedException {
-    this(config, NatsUtils.natsConnection(config), cClass, transformer);
+    this(natsConfig, NatsUtils.natsConnection(natsConfig), cClass, transformer, scheduler);
   }
 
-  public NatsCommandStream(NatsConfig config, Connection connection, Class<C> cClass, TextTransformer transformer)
-          throws IOException {
-    this.config = config;
+  public NatsCommandStream(NatsConfig natsConfig,
+                           Connection connection,
+                           Class<C> cClass,
+                           TextTransformer transformer,
+                           Scheduler scheduler) throws IOException {
+    this.natsConfig = natsConfig;
     this.js = connection.jetStream();
     this.cClass = cClass;
     this.transformer = transformer;
+    this.scheduler = scheduler;
   }
 
   @Override
@@ -54,15 +58,9 @@ public class NatsCommandStream<C extends Command> implements CommandStream<C> {
 
   @Override
   public Flux<C> sub(String topic, int partition) {
-    return Mono.fromCallable(() -> NatsUtils.jetStreamSub(js, DeliverPolicy.All, topic, partition))
-               .flatMapMany(sub -> this.fetchBatch(sub, config).repeat())
-               .concatMap(this::toCommand);
-  }
-
-  Flux<Message> fetchBatch(JetStreamSubscription sub, NatsConfig config) {
-    return Mono.fromCallable(() -> sub.fetch(config.fetchBatchSize(), config.fetchMaxWait()))
-               .flatMapMany(Flux::fromIterable)
-               .doOnNext(Message::ack);
+    return NatsUtils.fetchAllMessages(js, natsConfig, topic, partition)
+                    .concatMap(this::toCommand)
+                    .subscribeOn(scheduler);
   }
 
   Message toMessage(String topic, int partition, C cmd, String cmdValue) {

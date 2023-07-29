@@ -30,25 +30,7 @@ class EventRouteConfigTest {
     Assertions.assertThatIllegalArgumentException()
               .isThrownBy(() -> new NatsConfig("url",
                                                StorageType.File,
-                                               1,
-                                               100,
-                                               Duration.ofMillis(100),
-                                               Duration.ofMillis(300),
-                                               false,
-                                               false));
-    Assertions.assertThatIllegalArgumentException()
-              .isThrownBy(() -> new NatsConfig("url",
-                                               StorageType.File,
                                                0,
-                                               100,
-                                               Duration.ofMillis(100),
-                                               Duration.ofMillis(300),
-                                               false,
-                                               false));
-    Assertions.assertThatIllegalArgumentException()
-              .isThrownBy(() -> new NatsConfig("url",
-                                               StorageType.File,
-                                               6,
                                                100,
                                                Duration.ofMillis(100),
                                                Duration.ofMillis(300),

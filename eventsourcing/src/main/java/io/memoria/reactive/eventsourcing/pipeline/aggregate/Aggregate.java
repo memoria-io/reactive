@@ -83,23 +83,23 @@ public class Aggregate<S extends State, C extends Command, E extends Event> {
 
   public Mono<C> pubCommand(C cmd) {
     return Mono.fromCallable(() -> cmd.partition(commandRoute.totalPartitions()))
-               .flatMap(partition -> commandStream.pub(commandRoute.name(), partition, cmd));
+               .flatMap(partition -> commandStream.pub(commandRoute.topicName(), partition, cmd));
   }
 
   public Flux<C> subToCommands() {
-    return commandStream.sub(commandRoute.name(), commandRoute.partition());
+    return commandStream.sub(commandRoute.topicName(), commandRoute.partition());
   }
 
   public Mono<E> pubEvent(E e) {
-    return eventStream.pub(eventRoute.name(), eventRoute.partition(), e);
+    return eventStream.pub(eventRoute.topicName(), eventRoute.partition(), e);
   }
 
   public Flux<E> subToEvents() {
-    return eventStream.sub(eventRoute.name(), eventRoute.partition());
+    return eventStream.sub(eventRoute.topicName(), eventRoute.partition());
   }
 
   public Flux<E> subUntil(Id id) {
-    return eventStream.subUntil(eventRoute.name(), eventRoute.partition(), id);
+    return eventStream.subUntil(eventRoute.topicName(), eventRoute.partition(), id);
   }
 
   Mono<E> handleCommand(C cmd) {
