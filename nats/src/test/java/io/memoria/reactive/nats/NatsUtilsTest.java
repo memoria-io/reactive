@@ -1,7 +1,5 @@
 package io.memoria.reactive.nats;
 
-import io.memoria.atom.core.text.SerializableTransformer;
-import io.memoria.atom.core.text.TextTransformer;
 import io.nats.client.JetStreamApiException;
 import io.nats.client.Nats;
 import io.nats.client.api.StreamInfo;
@@ -15,7 +13,6 @@ import static io.memoria.reactive.nats.TestUtils.natsConfig;
 
 class NatsUtilsTest {
   private static final Logger log = LoggerFactory.getLogger(NatsUtilsTest.class.getName());
-  private static final TextTransformer transformer = new SerializableTransformer();
 
   @Test
   void consume() throws IOException, InterruptedException {

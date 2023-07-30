@@ -2,10 +2,10 @@ package io.memoria.reactive.nats.eventsourcing;
 
 import io.memoria.atom.core.text.SerializableTransformer;
 import io.memoria.reactive.eventsourcing.stream.EventStream;
-import io.memoria.reactive.eventsourcing.testsuite.banking.domain.event.AccountEvent;
-import io.memoria.reactive.eventsourcing.testsuite.banking.scenario.Data;
+import io.memoria.reactive.testsuite.TestsuiteUtils;
+import io.memoria.reactive.testsuite.eventsourcing.banking.domain.event.AccountEvent;
+import io.memoria.reactive.testsuite.eventsourcing.banking.BankingData;
 import io.memoria.reactive.nats.NatsUtils;
-import io.memoria.reactive.nats.TestUtils;
 import io.nats.client.JetStreamApiException;
 import io.nats.client.api.StreamInfo;
 import org.junit.jupiter.api.MethodOrderer;
@@ -24,10 +24,10 @@ import static io.memoria.reactive.nats.TestUtils.natsConfig;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class NatsEventStreamTest {
   private static final Logger log = LoggerFactory.getLogger(NatsEventStreamTest.class.getName());
-  private static final String topic = TestUtils.topicName(NatsEventStreamTest.class);
+  private static final String topic = TestsuiteUtils.topicName(NatsEventStreamTest.class);
   private static final int partition = 0;
   private static final EventStream<AccountEvent> eventStream;
-  private static final Data data;
+  private static final BankingData BANKING_DATA;
 
   static {
     try {
@@ -35,7 +35,7 @@ class NatsEventStreamTest {
                                           AccountEvent.class,
                                           new SerializableTransformer(),
                                           Schedulers.boundedElastic());
-      data = Data.ofUUID();
+      BANKING_DATA = BankingData.ofUUID();
       NatsUtils.createOrUpdateTopic(natsConfig, topic, 1).map(StreamInfo::toString).forEach(log::info);
     } catch (IOException | InterruptedException | JetStreamApiException e) {
       throw new RuntimeException(e);
@@ -46,12 +46,12 @@ class NatsEventStreamTest {
   @Order(0)
   void publish() {
     // Given
-    var ids = data.createIds(0, TestUtils.MSG_COUNT);
-    var events = ids.map(id -> data.createAccountEvent(id, 500));
+    var ids = BANKING_DATA.createIds(0, TestsuiteUtils.MSG_COUNT);
+    var events = ids.map(id -> BANKING_DATA.createAccountEvent(id, 500));
     // When
     var pub = events.flatMap(event -> eventStream.pub(topic, partition, event));
     // Then
-    StepVerifier.create(pub).expectNextCount(TestUtils.MSG_COUNT).verifyComplete();
+    StepVerifier.create(pub).expectNextCount(TestsuiteUtils.MSG_COUNT).verifyComplete();
   }
 
   @Test
@@ -61,6 +61,6 @@ class NatsEventStreamTest {
     var sub = eventStream.sub(topic, partition);
 
     // Then
-    StepVerifier.create(sub).expectNextCount(TestUtils.MSG_COUNT).expectTimeout(TestUtils.TIMEOUT).verify();
+    StepVerifier.create(sub).expectNextCount(TestsuiteUtils.MSG_COUNT).expectTimeout(TestsuiteUtils.TIMEOUT).verify();
   }
 }
