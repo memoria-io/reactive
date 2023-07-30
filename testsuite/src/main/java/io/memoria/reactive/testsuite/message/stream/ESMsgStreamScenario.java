@@ -1,10 +1,11 @@
-package io.memoria.reactive.testsuite.message;
+package io.memoria.reactive.testsuite.message.stream;
 
 import io.memoria.reactive.core.message.stream.ESMsg;
 import io.memoria.reactive.core.message.stream.ESMsgStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public class ESMsgStreamScenario {
   private static final Logger log = LoggerFactory.getLogger(ESMsgStreamScenario.class.getName());
@@ -27,5 +28,9 @@ public class ESMsgStreamScenario {
 
   public Flux<ESMsg> subscribe() {
     return repo.sub(topic, partition);
+  }
+
+  public Mono<String> last() {
+    return repo.last(topic, partition);
   }
 }
