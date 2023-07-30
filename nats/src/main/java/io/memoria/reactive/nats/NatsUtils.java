@@ -19,7 +19,7 @@ import io.nats.client.api.StreamInfo;
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
 import io.vavr.collection.List;
-import io.vavr.control.Option;
+import io.vavr.collection.Traversable;
 import io.vavr.control.Try;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -27,7 +27,6 @@ import reactor.core.publisher.SynchronousSink;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.function.Function;
 
 /**
  * Utility class for directly using nats, this layer is for testing NATS java driver, and ideally it shouldn't have
@@ -72,40 +71,27 @@ public class NatsUtils {
 
   public static Flux<Message> fetchAllMessages(JetStream js, NatsConfig natsConfig, String topic, int partition) {
     return Mono.fromCallable(() -> jetStreamSub(js, DeliverPolicy.All, topic, partition))
-               .flatMapMany(sub -> fetch(sub, natsConfig.fetchBatchSize(), natsConfig.fetchMaxWait()))
-               .map(NatsUtils::acknowledge);
+               .flatMapMany(sub -> fetchMessages(sub, natsConfig.fetchBatchSize(), natsConfig.fetchMaxWait()))
+               .concatMap(Flux::fromIterable)
+               .doOnNext(Message::ack);
   }
 
-  public static Mono<Message> fetchLastMessage(JetStream js, NatsConfig natsConfig, String topic, int partition) {
+  public static Mono<Message> fetchLastMessage(JetStream js, NatsConfig config, String topic, int partition) {
     return Mono.fromCallable(() -> jetStreamSub(js, DeliverPolicy.Last, topic, partition))
-               .map(sub -> blockingFetchLast(sub, natsConfig))
+               .map(sub -> List.ofAll(sub.fetch(config.fetchBatchSize(), config.fetchMaxWait())))
+               .map(Traversable::lastOption)
                .flatMap(ReactorUtils::optionToMono);
   }
 
-  static List<Message> blockingFetch(JetStreamSubscription sub, int fetchBatchSize, Duration fetchMaxWait) {
-    return List.ofAll(sub.fetch(fetchBatchSize, fetchMaxWait));
-  }
-
-  static Option<Message> blockingFetchLast(JetStreamSubscription sub, NatsConfig config) {
-    return List.ofAll(sub.fetch(config.fetchBatchSize(), config.fetchMaxWait())).lastOption();
-  }
-
-  static Message acknowledge(Message m) {
-    m.ack();
-    return m;
-  }
-
-  static ErrorListener errorListener() {
-    return new ErrorListener() {
-      @Override
-      public void errorOccurred(Connection conn, String error) {
-        ErrorListener.super.errorOccurred(conn, error);
+  static Flux<List<Message>> fetchMessages(JetStreamSubscription sub, int fetchBatchSize, Duration fetchMaxWait) {
+    return Flux.generate((SynchronousSink<List<Message>> sink) -> {
+      var tr = Try.of(() -> sub.fetch(fetchBatchSize, fetchMaxWait));
+      if (tr.isSuccess()) {
+        sink.next(List.ofAll(tr.get()));
+      } else {
+        sink.error(tr.getCause());
       }
-    };
-  }
-
-  static String streamName(String topic, int partition) {
-    return "%s%s%d".formatted(topic, SPLIT_TOKEN, partition);
+    });
   }
 
   static JetStreamSubscription jetStreamSub(JetStream js, DeliverPolicy deliverPolicy, String topic, int partition) {
@@ -122,17 +108,6 @@ public class NatsUtils {
     } catch (IOException | JetStreamApiException e) {
       throw new RuntimeException(e);
     }
-  }
-
-  static Flux<Message> fetch(JetStreamSubscription sub, int fetchBatchSize, Duration fetchMaxWait) {
-    return Flux.generate((SynchronousSink<Flux<Message>> sink) -> {
-      var tr = Try.of(() -> blockingFetch(sub, fetchBatchSize, fetchMaxWait));
-      if (tr.isSuccess()) {
-        sink.next(Flux.fromIterable(tr.get()));
-      } else {
-        sink.error(tr.getCause());
-      }
-    }).concatMap(Function.identity());
   }
 
   static StreamConfiguration streamConfiguration(NatsConfig natsConfig, String topic, int partition) {
@@ -153,5 +128,18 @@ public class NatsUtils {
       return nc.jetStreamManagement().updateStream(streamConfiguration);
     else
       return nc.jetStreamManagement().addStream(streamConfiguration);
+  }
+
+  static ErrorListener errorListener() {
+    return new ErrorListener() {
+      @Override
+      public void errorOccurred(Connection conn, String error) {
+        ErrorListener.super.errorOccurred(conn, error);
+      }
+    };
+  }
+
+  static String streamName(String topic, int partition) {
+    return "%s%s%d".formatted(topic, SPLIT_TOKEN, partition);
   }
 }

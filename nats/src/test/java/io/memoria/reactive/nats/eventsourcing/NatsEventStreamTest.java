@@ -8,7 +8,10 @@ import io.memoria.reactive.nats.NatsUtils;
 import io.memoria.reactive.nats.TestUtils;
 import io.nats.client.JetStreamApiException;
 import io.nats.client.api.StreamInfo;
+import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestMethodOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.scheduler.Schedulers;
@@ -18,50 +21,48 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.Random;
 
+@TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class NatsEventStreamTest {
   private static final Logger log = LoggerFactory.getLogger(NatsEventStreamTest.class.getName());
-
-  private static final Duration timeout = Duration.ofMillis(1000);
-  private static final int COUNT = 10000;
   private static final Random r = new Random();
+  private static final String topic = "topic" + r.nextInt(1000);
+  private static final int partition = 0;
+  private static final EventStream<AccountEvent> eventStream;
+  private static final Data data;
 
-  private final String topic = "topic" + r.nextInt(1000);
-  private final int partition = 0;
-  private final EventStream<AccountEvent> eventStream;
-  private final Data data;
-
-  NatsEventStreamTest() throws IOException, InterruptedException, JetStreamApiException {
-    var natsConfig = TestUtils.natsConfig();
-    this.eventStream = new NatsEventStream<>(natsConfig,
-                                             AccountEvent.class,
-                                             new SerializableTransformer(),
-                                             Schedulers.boundedElastic());
-    this.data = Data.ofUUID();
-    NatsUtils.createOrUpdateTopic(natsConfig, topic, 1).map(StreamInfo::toString).forEach(log::info);
+  static {
+    try {
+      var natsConfig = TestUtils.natsConfig();
+      eventStream = new NatsEventStream<>(natsConfig,
+                                          AccountEvent.class,
+                                          new SerializableTransformer(),
+                                          Schedulers.boundedElastic());
+      data = Data.ofUUID();
+      NatsUtils.createOrUpdateTopic(natsConfig, topic, 1).map(StreamInfo::toString).forEach(log::info);
+    } catch (IOException | InterruptedException | JetStreamApiException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @Test
+  @Order(0)
   void publish() {
     // Given
-    var ids = data.createIds(0, COUNT);
+    var ids = data.createIds(0, TestUtils.COUNT);
     var events = ids.map(id -> data.createAccountEvent(id, 500));
     // When
-    var pub = events.concatMap(event -> eventStream.pub(topic, partition, event));
+    var pub = events.flatMap(event -> eventStream.pub(topic, partition, event));
     // Then
-    StepVerifier.create(pub).expectNextCount(COUNT).verifyComplete();
+    StepVerifier.create(pub).expectNextCount(TestUtils.COUNT).verifyComplete();
   }
 
   @Test
+  @Order(1)
   void subscribe() {
-    // Given
-    var ids = data.createIds(0, COUNT);
-    var events = ids.map(id -> data.createAccountEvent(id, 500));
     // When
-    var pub = events.concatMap(event -> eventStream.pub(topic, partition, event));
     var sub = eventStream.sub(topic, partition);
 
     // Then
-    StepVerifier.create(pub).expectNextCount(COUNT).verifyComplete();
-    StepVerifier.create(sub).expectNextCount(COUNT).expectTimeout(timeout).verify();
+    StepVerifier.create(sub).expectNextCount(TestUtils.COUNT).expectTimeout(TestUtils.timeout).verify();
   }
 }

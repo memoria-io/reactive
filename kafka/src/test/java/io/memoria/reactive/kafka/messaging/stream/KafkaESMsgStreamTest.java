@@ -33,9 +33,9 @@ class KafkaESMsgStreamTest {
   @Test
   void publish() {
     // Given
-    var msgs = List.range(0, MSG_COUNT).map(i -> TestUtils.createEsMsg(topic, partition, i));
+    var msgs = List.range(0, MSG_COUNT).map(i -> TestUtils.createEsMsg(i));
     // When
-    var pub = Flux.fromIterable(msgs).concatMap(repo::pub);
+    var pub = Flux.fromIterable(msgs).concatMap(msg -> repo.pub(topic,partition,msg));
     // Then
     StepVerifier.create(pub).expectNextCount(MSG_COUNT).verifyComplete();
     StepVerifier.create(repo.last(topic, partition)).expectNext(msgs.last().key()).verifyComplete();
@@ -44,8 +44,8 @@ class KafkaESMsgStreamTest {
   @Test
   void subscribe() {
     // Given
-    var msgs = List.range(0, MSG_COUNT).map(i -> TestUtils.createEsMsg(topic, partition, i));
-    var pub = Flux.fromIterable(msgs).concatMap(repo::pub);
+    var msgs = List.range(0, MSG_COUNT).map(i -> TestUtils.createEsMsg(i));
+    var pub = Flux.fromIterable(msgs).concatMap(msg -> repo.pub(topic,partition,msg));
 
     // When
     var sub = repo.sub(topic, partition);

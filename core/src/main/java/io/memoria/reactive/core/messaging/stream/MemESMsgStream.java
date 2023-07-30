@@ -29,9 +29,9 @@ public final class MemESMsgStream implements ESMsgStream {
   }
 
   @Override
-  public Mono<ESMsg> pub(ESMsg msg) {
-    return Mono.fromCallable(() -> addPartitionSink(msg.topic(), msg.partition()))
-               .flatMap(__ -> Mono.fromCallable(() -> this.publishFn(msg)));
+  public Mono<ESMsg> pub(String topic, int partition, ESMsg msg) {
+    return Mono.fromCallable(() -> addPartitionSink(topic, partition))
+               .flatMap(__ -> Mono.fromCallable(() -> this.publishFn(topic, partition, msg)));
   }
 
   @Override
@@ -51,9 +51,7 @@ public final class MemESMsgStream implements ESMsgStream {
     return partition;
   }
 
-  private ESMsg publishFn(ESMsg msg) {
-    String topic = msg.topic();
-    int partition = msg.partition();
+  private ESMsg publishFn(String topic, int partition, ESMsg msg) {
     this.topics.get(topic).get(partition).tryEmitNext(msg);
     this.lastMsg.get(topic).put(partition, msg);
     return msg;

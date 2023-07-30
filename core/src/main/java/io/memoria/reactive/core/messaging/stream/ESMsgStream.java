@@ -10,7 +10,7 @@ public interface ESMsgStream {
    */
   Mono<String> last(String topic, int partition);
 
-  Mono<ESMsg> pub(ESMsg esMsg);
+  Mono<ESMsg> pub(String topic, int partition, ESMsg esMsg);
 
   Flux<ESMsg> sub(String topic, int partition);
 

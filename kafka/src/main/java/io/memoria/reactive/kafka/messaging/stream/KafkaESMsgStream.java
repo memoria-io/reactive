@@ -44,8 +44,8 @@ public class KafkaESMsgStream implements ESMsgStream {
   }
 
   @Override
-  public Mono<ESMsg> pub(ESMsg msg) {
-    return this.sender.send(Mono.fromCallable(() -> this.toRecord(msg)))
+  public Mono<ESMsg> pub(String topic, int partition, ESMsg msg) {
+    return this.sender.send(Mono.fromCallable(() -> this.toRecord(topic, partition, msg)))
                       .map(SenderResult::correlationMetadata)
                       .single();
   }
@@ -55,7 +55,7 @@ public class KafkaESMsgStream implements ESMsgStream {
     return receive(topic, partition).map(KafkaESMsgStream::toMsg);
   }
 
-  private Flux<ReceiverRecord<String, String>> receive(String topic, int partition) {
+  Flux<ReceiverRecord<String, String>> receive(String topic, int partition) {
     var tp = new TopicPartition(topic, partition);
     var receiverOptions = ReceiverOptions.<String, String>create(consumerConfig.toJavaMap())
                                          .subscription(singleton(topic))
@@ -64,11 +64,11 @@ public class KafkaESMsgStream implements ESMsgStream {
     return KafkaReceiver.create(receiverOptions).receive();
   }
 
-  private SenderRecord<String, String, ESMsg> toRecord(ESMsg esMsg) {
-    return SenderRecord.create(esMsg.topic(), esMsg.partition(), null, esMsg.key(), esMsg.value(), esMsg);
+  static SenderRecord<String, String, ESMsg> toRecord(String topic, int partition, ESMsg esMsg) {
+    return SenderRecord.create(topic, partition, null, esMsg.key(), esMsg.value(), esMsg);
   }
 
-  public static ESMsg toMsg(ConsumerRecord<String, String> rec) {
-    return new ESMsg(rec.topic(), rec.partition(), rec.key(), rec.value());
+  static ESMsg toMsg(ConsumerRecord<String, String> rec) {
+    return new ESMsg(rec.key(), rec.value());
   }
 }

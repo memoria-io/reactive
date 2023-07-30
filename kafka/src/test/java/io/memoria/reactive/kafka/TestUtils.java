@@ -37,7 +37,7 @@ public class TestUtils {
                       StringSerializer.class);
   }
 
-  public static ESMsg createEsMsg(String topic, int partition, int i) {
-    return new ESMsg(topic, partition, String.valueOf(i), "hello" + i);
+  public static ESMsg createEsMsg(int i) {
+    return new ESMsg(String.valueOf(i), "hello" + i);
   }
 }

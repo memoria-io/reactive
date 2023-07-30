@@ -52,7 +52,7 @@ public class NatsEventStream<E extends Event> implements EventStream<E> {
                        .map(value -> toMessage(topic, partition, event, value))
                        .map(js::publishAsync)
                        .flatMap(Mono::fromFuture)
-                       .map(i -> event);
+                       .map(ack -> event);
   }
 
   @Override
