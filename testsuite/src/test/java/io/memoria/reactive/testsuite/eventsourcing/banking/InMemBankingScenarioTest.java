@@ -1,5 +1,6 @@
 package io.memoria.reactive.testsuite.eventsourcing.banking;
 
+import io.memoria.reactive.testsuite.TestsuiteUtils;
 import io.memoria.reactive.testsuite.eventsourcing.banking.scenario.PerformanceScenario;
 import io.memoria.reactive.testsuite.eventsourcing.banking.scenario.SimpleDebitScenario;
 import org.junit.jupiter.api.Disabled;
@@ -9,7 +10,6 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.junit.jupiter.params.provider.ValueSource;
 import reactor.test.StepVerifier;
 
-import java.time.Duration;
 import java.util.stream.Stream;
 
 class InMemBankingScenarioTest {
@@ -27,7 +27,7 @@ class InMemBankingScenarioTest {
     // Then
     StepVerifier.create(scenario.handleCommands())
                 .expectNextCount(numOfAccounts * 5L)
-                .expectTimeout(Duration.ofMillis(1000))
+                .expectTimeout(TestsuiteUtils.TIMEOUT)
                 .verify();
   }
 
@@ -40,10 +40,11 @@ class InMemBankingScenarioTest {
     var pipeline = BankingInfra.createMemoryPipeline(data.idSupplier, data.timeSupplier);
     // When
     var scenario = new PerformanceScenario(data, pipeline, numOfAccounts);
+    StepVerifier.create(scenario.publishCommands()).expectNextCount(numOfAccounts * 3L).verifyComplete();
     // Then
     StepVerifier.create(scenario.handleCommands())
                 .expectNextCount(numOfAccounts * 5L)
-                .expectTimeout(Duration.ofMillis(1000))
+                .expectTimeout(TestsuiteUtils.TIMEOUT)
                 .verify();
   }
 
