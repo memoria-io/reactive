@@ -73,6 +73,10 @@ public class BankingData {
     return ids.map(this::closeAccountCmd);
   }
 
+  public Flux<AccountEvent> createAccountEvent(Flux<Id> ids, long balance) {
+    return ids.map(id -> createAccountEvent(id, balance));
+  }
+
   public AccountEvent createAccountEvent(Id id, long balance) {
     return new AccountCreated(idSupplier.get(), idSupplier.get(), id, timeSupplier.get(), id.value(), balance);
   }
