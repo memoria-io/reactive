@@ -11,6 +11,8 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
+import static io.memoria.reactive.nats.TestUtils.natsConfig;
+
 class NatsUtilsTest {
   private static final Logger log = LoggerFactory.getLogger(NatsUtilsTest.class.getName());
   private static final TextTransformer transformer = new SerializableTransformer();
@@ -19,7 +21,6 @@ class NatsUtilsTest {
   void consume() throws IOException, InterruptedException {
     try (var nc = Nats.connect(TestUtils.NATS_URL)) {
 
-      NatsConfig natsConfig = TestUtils.natsConfig();
       String topic = "20-events-451";
       int numOfPartitions = 1;
       NatsUtils.createOrUpdateTopic(natsConfig, topic, numOfPartitions).map(StreamInfo::toString).forEach(log::info);

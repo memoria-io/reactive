@@ -13,7 +13,6 @@ import io.memoria.reactive.eventsourcing.testsuite.banking.scenario.Infra;
 import io.memoria.reactive.eventsourcing.testsuite.banking.scenario.PerformanceScenario;
 import io.memoria.reactive.eventsourcing.testsuite.banking.scenario.SimpleDebitScenario;
 import io.memoria.reactive.nats.NatsUtils;
-import io.memoria.reactive.nats.TestUtils;
 import io.memoria.reactive.nats.eventsourcing.NatsCommandStream;
 import io.memoria.reactive.nats.eventsourcing.NatsEventStream;
 import io.nats.client.JetStreamApiException;
@@ -28,11 +27,13 @@ import java.io.IOException;
 import java.time.Duration;
 import java.util.Random;
 
+import static io.memoria.reactive.nats.TestUtils.natsConfig;
+
 class ScenarioTest {
   private static final TextTransformer transformer = new SerializableTransformer();
   private static final String commandsTopicPrefix = "commands";
   private static final String eventsTopicPrefix = "events";
-  private static final Duration timeout = Duration.ofMillis(5000);
+  private static final Duration timeout = Duration.ofMillis(300);
   private static final Random r = new Random();
   private static final Data data = Data.ofUUID();
 
@@ -51,7 +52,7 @@ class ScenarioTest {
 
     // Then
     var now = System.currentTimeMillis();
-    StepVerifier.create(scenario.handle()).expectNextCount(numOfAccounts * 5L).expectTimeout(timeout).verify();
+    StepVerifier.create(scenario.handleCommands()).expectNextCount(numOfAccounts * 5L).expectTimeout(timeout).verify();
     System.out.println(System.currentTimeMillis() - now);
     //    StepVerifier.create(scenario.verify(scenario.handle()))
     //                .expectNextCount(numOfAccounts * 5L)
@@ -74,10 +75,7 @@ class ScenarioTest {
     var scenario = new PerformanceScenario(data, pipeline, numOfAccounts);
 
     // Then
-    StepVerifier.create(scenario.handle())
-                .expectNextCount(numOfAccounts * 5L)
-                .expectTimeout(Duration.ofMillis(1000))
-                .verify();
+    StepVerifier.create(scenario.handleCommands()).expectNextCount(numOfAccounts * 5L).expectTimeout(timeout).verify();
   }
 
   @Disabled("Manual check")
@@ -104,8 +102,8 @@ class ScenarioTest {
           throws IOException, InterruptedException, JetStreamApiException {
     System.out.printf("Creating %s %n", commandRoute);
     System.out.printf("Creating %s %n", eventRoute);
-    NatsUtils.createOrUpdateTopic(TestUtils.natsConfig(), commandRoute.topicName(), commandRoute.totalPartitions());
-    NatsUtils.createOrUpdateTopic(TestUtils.natsConfig(), eventRoute.topicName(), eventRoute.totalPartitions());
+    NatsUtils.createOrUpdateTopic(natsConfig, commandRoute.topicName(), commandRoute.totalPartitions());
+    NatsUtils.createOrUpdateTopic(natsConfig, eventRoute.topicName(), eventRoute.totalPartitions());
   }
 
   private String toCommandTopic(int numOfAccounts, int random) {
@@ -118,7 +116,6 @@ class ScenarioTest {
 
   private PartitionPipeline<Account, AccountCommand, AccountEvent> createPipeline(CommandRoute commandRoute,
                                                                                   EventRoute eventRoute) {
-    var natsConfig = TestUtils.natsConfig();
     try {
       // Streams
       var commandStream = new NatsCommandStream<>(natsConfig,

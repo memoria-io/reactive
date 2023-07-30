@@ -18,21 +18,19 @@ import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
-import java.time.Duration;
-import java.util.Random;
+
+import static io.memoria.reactive.nats.TestUtils.natsConfig;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class NatsEventStreamTest {
   private static final Logger log = LoggerFactory.getLogger(NatsEventStreamTest.class.getName());
-  private static final Random r = new Random();
-  private static final String topic = "topic" + r.nextInt(1000);
+  private static final String topic = TestUtils.topicName(NatsEventStreamTest.class);
   private static final int partition = 0;
   private static final EventStream<AccountEvent> eventStream;
   private static final Data data;
 
   static {
     try {
-      var natsConfig = TestUtils.natsConfig();
       eventStream = new NatsEventStream<>(natsConfig,
                                           AccountEvent.class,
                                           new SerializableTransformer(),
@@ -48,12 +46,12 @@ class NatsEventStreamTest {
   @Order(0)
   void publish() {
     // Given
-    var ids = data.createIds(0, TestUtils.COUNT);
+    var ids = data.createIds(0, TestUtils.MSG_COUNT);
     var events = ids.map(id -> data.createAccountEvent(id, 500));
     // When
     var pub = events.flatMap(event -> eventStream.pub(topic, partition, event));
     // Then
-    StepVerifier.create(pub).expectNextCount(TestUtils.COUNT).verifyComplete();
+    StepVerifier.create(pub).expectNextCount(TestUtils.MSG_COUNT).verifyComplete();
   }
 
   @Test
@@ -63,6 +61,6 @@ class NatsEventStreamTest {
     var sub = eventStream.sub(topic, partition);
 
     // Then
-    StepVerifier.create(sub).expectNextCount(TestUtils.COUNT).expectTimeout(TestUtils.timeout).verify();
+    StepVerifier.create(sub).expectNextCount(TestUtils.MSG_COUNT).expectTimeout(TestUtils.TIMEOUT).verify();
   }
 }

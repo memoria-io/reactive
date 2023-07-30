@@ -3,7 +3,6 @@ package io.memoria.reactive.nats.messaging.stream;
 import io.memoria.atom.core.text.SerializableTransformer;
 import io.memoria.reactive.core.messaging.stream.ESMsg;
 import io.memoria.reactive.core.messaging.stream.ESMsgStream;
-import io.memoria.reactive.nats.NatsConfig;
 import io.memoria.reactive.nats.NatsUtils;
 import io.memoria.reactive.nats.TestUtils;
 import io.nats.client.JetStreamApiException;
@@ -21,18 +20,17 @@ import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
-import java.util.Random;
+
+import static io.memoria.reactive.nats.TestUtils.natsConfig;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class NatsESMsgStreamTest {
   private static final Logger log = LoggerFactory.getLogger(NatsESMsgStreamTest.class.getName());
-  private static final Random r = new Random();
-  private static final String topic = "topic" + r.nextInt(1000);
+  private static final String topic = TestUtils.topicName(NatsESMsgStreamTest.class);
   private static final int partition = 0;
   private static final ESMsgStream repo;
 
   static {
-    NatsConfig natsConfig = TestUtils.natsConfig();
     try {
       NatsUtils.createOrUpdateTopic(natsConfig, topic, 1).map(StreamInfo::toString).forEach(log::info);
       repo = new NatsESMsgStream(natsConfig, Schedulers.boundedElastic(), new SerializableTransformer());
@@ -45,14 +43,16 @@ class NatsESMsgStreamTest {
   @Order(0)
   void publish() {
     // Given
-    var msgs = List.range(0, TestUtils.COUNT).map(i -> new ESMsg(String.valueOf(i), "hello world"));
+    var msgs = List.range(0, TestUtils.MSG_COUNT).map(i -> new ESMsg(String.valueOf(i), "hello world"));
 
     // When
     var pub = Flux.fromIterable(msgs).flatMap(msg -> repo.pub(topic, partition, msg));
 
     // Then
-    StepVerifier.create(pub).expectNextCount(TestUtils.COUNT).verifyComplete();
-    StepVerifier.create(repo.last(topic, partition)).expectNext(String.valueOf(TestUtils.COUNT - 1)).verifyComplete();
+    StepVerifier.create(pub).expectNextCount(TestUtils.MSG_COUNT).verifyComplete();
+    StepVerifier.create(repo.last(topic, partition))
+                .expectNext(String.valueOf(TestUtils.MSG_COUNT - 1))
+                .verifyComplete();
   }
 
   @Test
@@ -62,7 +62,7 @@ class NatsESMsgStreamTest {
     var sub = repo.sub(topic, partition);
 
     // Then
-    StepVerifier.create(sub).expectNextCount(TestUtils.COUNT).expectTimeout(TestUtils.timeout).verify();
+    StepVerifier.create(sub).expectNextCount(TestUtils.MSG_COUNT).expectTimeout(TestUtils.TIMEOUT).verify();
   }
 
   @Test

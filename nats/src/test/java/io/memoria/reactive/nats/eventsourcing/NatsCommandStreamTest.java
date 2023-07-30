@@ -1,6 +1,5 @@
 package io.memoria.reactive.nats.eventsourcing;
 
-import io.memoria.atom.core.text.SerializableTransformer;
 import io.memoria.reactive.eventsourcing.stream.CommandStream;
 import io.memoria.reactive.eventsourcing.testsuite.banking.domain.command.AccountCommand;
 import io.memoria.reactive.eventsourcing.testsuite.banking.scenario.Data;
@@ -13,28 +12,25 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
-import java.util.Random;
+
+import static io.memoria.reactive.nats.TestUtils.natsConfig;
+import static io.memoria.reactive.nats.TestUtils.scheduler;
+import static io.memoria.reactive.nats.TestUtils.transformer;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class NatsCommandStreamTest {
   private static final Logger log = LoggerFactory.getLogger(NatsCommandStreamTest.class.getName());
-  private static final Random r = new Random();
-  private static final String topic = "topic" + r.nextInt(1000);
+  private static final String topic = TestUtils.topicName(NatsCommandStreamTest.class);
   private static final int partition = 0;
   private static final CommandStream<AccountCommand> commandStream;
   private static final Data data;
 
   static {
     try {
-      var natsConfig = TestUtils.natsConfig();
-      commandStream = new NatsCommandStream<>(natsConfig,
-                                              AccountCommand.class,
-                                              new SerializableTransformer(),
-                                              Schedulers.boundedElastic());
+      commandStream = new NatsCommandStream<>(natsConfig, AccountCommand.class, transformer, scheduler);
       data = Data.ofUUID();
       NatsUtils.createOrUpdateTopic(natsConfig, topic, 1).map(StreamInfo::toString).forEach(log::info);
     } catch (IOException | InterruptedException | JetStreamApiException e) {
@@ -45,14 +41,14 @@ class NatsCommandStreamTest {
   @Test
   void publish() {
     // Given
-    var ids = data.createIds(0, TestUtils.COUNT);
+    var ids = data.createIds(0, TestUtils.MSG_COUNT);
     var commands = ids.map(id -> data.createAccountCmd(id, 500));
 
     // When
     var pub = commands.flatMap(cmd -> commandStream.pub(topic, partition, cmd));
 
     // Then
-    StepVerifier.create(pub).expectNextCount(TestUtils.COUNT).verifyComplete();
+    StepVerifier.create(pub).expectNextCount(TestUtils.MSG_COUNT).verifyComplete();
   }
 
   @Test
@@ -61,6 +57,6 @@ class NatsCommandStreamTest {
     var sub = commandStream.sub(topic, partition);
 
     // Then
-    StepVerifier.create(sub).expectNextCount(TestUtils.COUNT).expectTimeout(TestUtils.timeout).verify();
+    StepVerifier.create(sub).expectNextCount(TestUtils.MSG_COUNT).expectTimeout(TestUtils.TIMEOUT).verify();
   }
 }

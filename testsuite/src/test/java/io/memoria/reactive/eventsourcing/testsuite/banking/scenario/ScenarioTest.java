@@ -20,7 +20,7 @@ class ScenarioTest {
     // When
     var scenario = new SimpleDebitScenario(data, pipeline, numOfAccounts);
     // Then
-    StepVerifier.create(scenario.handle())
+    StepVerifier.create(scenario.handleCommands())
                 .expectNextCount(numOfAccounts * 5L)
                 .expectTimeout(Duration.ofMillis(1000))
                 .verify();
@@ -36,7 +36,7 @@ class ScenarioTest {
     // When
     var scenario = new PerformanceScenario(data, pipeline, numOfAccounts);
     // Then
-    StepVerifier.create(scenario.handle())
+    StepVerifier.create(scenario.handleCommands())
                 .expectNextCount(numOfAccounts * 5L)
                 .expectTimeout(Duration.ofMillis(1000))
                 .verify();
