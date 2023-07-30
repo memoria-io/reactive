@@ -1,7 +1,7 @@
-package io.memoria.reactive.kafka.messaging.stream;
+package io.memoria.reactive.kafka.message.stream;
 
-import io.memoria.reactive.core.messaging.stream.ESMsg;
-import io.memoria.reactive.core.messaging.stream.ESMsgStream;
+import io.memoria.reactive.core.message.stream.ESMsg;
+import io.memoria.reactive.core.message.stream.ESMsgStream;
 import io.memoria.reactive.core.reactor.ReactorUtils;
 import io.memoria.reactive.kafka.KafkaUtils;
 import io.vavr.collection.Map;

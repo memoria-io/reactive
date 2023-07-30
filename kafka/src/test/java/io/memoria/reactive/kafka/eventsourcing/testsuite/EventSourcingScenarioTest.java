@@ -5,13 +5,13 @@ import io.memoria.atom.core.text.TextTransformer;
 import io.memoria.reactive.eventsourcing.pipeline.partition.CommandRoute;
 import io.memoria.reactive.eventsourcing.pipeline.partition.EventRoute;
 import io.memoria.reactive.eventsourcing.pipeline.partition.PartitionPipeline;
-import io.memoria.reactive.eventsourcing.testsuite.banking.domain.command.AccountCommand;
-import io.memoria.reactive.eventsourcing.testsuite.banking.domain.event.AccountEvent;
-import io.memoria.reactive.eventsourcing.testsuite.banking.domain.state.Account;
-import io.memoria.reactive.eventsourcing.testsuite.banking.scenario.Data;
-import io.memoria.reactive.eventsourcing.testsuite.banking.scenario.Infra;
-import io.memoria.reactive.eventsourcing.testsuite.banking.scenario.PerformanceScenario;
-import io.memoria.reactive.eventsourcing.testsuite.banking.scenario.SimpleDebitScenario;
+import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.AccountCommand;
+import io.memoria.reactive.testsuite.eventsourcing.banking.domain.event.AccountEvent;
+import io.memoria.reactive.testsuite.eventsourcing.banking.domain.state.Account;
+import io.memoria.reactive.testsuite.eventsourcing.banking.BankingData;
+import io.memoria.reactive.testsuite.eventsourcing.banking.BankingInfra;
+import io.memoria.reactive.testsuite.eventsourcing.banking.scenario.PerformanceScenario;
+import io.memoria.reactive.testsuite.eventsourcing.banking.scenario.SimpleDebitScenario;
 import io.memoria.reactive.kafka.TestUtils;
 import io.memoria.reactive.kafka.eventsourcing.KafkaCommandStream;
 import io.memoria.reactive.kafka.eventsourcing.KafkaEventStream;
@@ -23,13 +23,13 @@ import reactor.test.StepVerifier;
 import java.time.Duration;
 import java.util.Random;
 
-class ScenarioTest {
+class EventSourcingScenarioTest {
   private static final TextTransformer transformer = new SerializableTransformer();
   // Pipeline
-  private final Data data = Data.ofUUID();
+  private final BankingData bankingData = BankingData.ofUUID();
   private final PartitionPipeline<Account, AccountCommand, AccountEvent> pipeline;
 
-  ScenarioTest() {
+  EventSourcingScenarioTest() {
     var random = new Random();
     int topicPostfix = random.nextInt(1000);
     // Command
@@ -47,12 +47,12 @@ class ScenarioTest {
     var eventRoute = new EventRoute("events" + topicPostfix, 0);
 
     // Pipeline
-    this.pipeline = Infra.createPipeline(data.idSupplier,
-                                         data.timeSupplier,
-                                         commandStream,
-                                         commandRoute,
-                                         eventStream,
-                                         eventRoute);
+    this.pipeline = BankingInfra.createPipeline(bankingData.idSupplier,
+                                                bankingData.timeSupplier,
+                                                commandStream,
+                                                commandRoute,
+                                                eventStream,
+                                                eventRoute);
 
   }
 
@@ -60,7 +60,7 @@ class ScenarioTest {
   @ValueSource(ints = {1, 3, 7, 9, 10, 100, 1000})
   void simpleDebitScenario(int numOfAccounts) {
     // When
-    var scenario = new SimpleDebitScenario(data, pipeline, numOfAccounts);
+    var scenario = new SimpleDebitScenario(bankingData, pipeline, numOfAccounts);
 
     // Then
     StepVerifier.create(scenario.handleCommands())
@@ -74,7 +74,7 @@ class ScenarioTest {
   @ValueSource(ints = {1, 10, 100, 1000, 10_000, 100_000, 200_000, 300_000, 400_000, 500_000, 600_000, 1000_000})
   void performance(int numOfAccounts) {
     // When
-    var scenario = new PerformanceScenario(data, pipeline, numOfAccounts);
+    var scenario = new PerformanceScenario(bankingData, pipeline, numOfAccounts);
     // Then
     StepVerifier.create(scenario.handleCommands())
                 .expectNextCount(numOfAccounts * 5L)

@@ -1,6 +1,6 @@
 package io.memoria.reactive.kafka;
 
-import io.memoria.reactive.core.messaging.stream.ESMsg;
+import io.memoria.reactive.core.message.stream.ESMsg;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;

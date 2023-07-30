@@ -1,6 +1,6 @@
-package io.memoria.reactive.kafka.messaging.stream;
+package io.memoria.reactive.kafka.message.stream;
 
-import io.memoria.reactive.core.messaging.stream.ESMsgStream;
+import io.memoria.reactive.core.message.stream.ESMsgStream;
 import io.memoria.reactive.kafka.TestUtils;
 import io.vavr.collection.List;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
