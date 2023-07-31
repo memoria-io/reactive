@@ -1,16 +1,19 @@
 package io.memoria.reactive.testsuite.eventsourcing.banking.domain.event;
 
 import io.memoria.atom.core.id.Id;
+import io.memoria.reactive.eventsourcing.CommandId;
+import io.memoria.reactive.eventsourcing.EventId;
+import io.memoria.reactive.eventsourcing.StateId;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.Debit;
 
-public record Debited(Id eventId, Id commandId, Id debitedAcc, long timestamp, Id creditedAcc, long amount)
+public record Debited(EventId eventId, CommandId commandId, StateId debitedAcc, long timestamp, StateId creditedAcc, long amount)
         implements AccountEvent {
   @Override
-  public Id accountId() {
+  public StateId accountId() {
     return debitedAcc;
   }
 
-  public static Debited from(Id eventId, long timestamp, Debit cmd) {
+  public static Debited from(EventId eventId, long timestamp, Debit cmd) {
     return new Debited(eventId, cmd.commandId(), cmd.debitedAcc(), timestamp, cmd.creditedAcc(), cmd.amount());
   }
 }

@@ -1,11 +1,12 @@
 package io.memoria.reactive.testsuite.eventsourcing.banking.domain.command;
 
-import io.memoria.atom.core.id.Id;
+import io.memoria.reactive.eventsourcing.CommandId;
+import io.memoria.reactive.eventsourcing.StateId;
 
-public record Credit(Id commandId, Id creditedAcc, long timestamp, Id debitedAcc, long amount)
+public record Credit(CommandId commandId, StateId creditedAcc, long timestamp, StateId debitedAcc, long amount)
         implements AccountCommand {
   @Override
-  public Id accountId() {
+  public StateId accountId() {
     return creditedAcc;
   }
 }

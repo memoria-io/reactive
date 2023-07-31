@@ -48,7 +48,7 @@ public class NatsCommandStream<C extends Command> implements CommandStream<C> {
 
   @Override
   public Mono<C> pub(String topic, int partition, C cmd) {
-    var opts = PublishOptions.builder().clearExpected().messageId(cmd.commandId().value()).build();
+    var opts = PublishOptions.builder().clearExpected().messageId(cmd.commandId().id().value()).build();
     return ReactorUtils.tryToMono(() -> transformer.serialize(cmd))
                        .map(cmdValue -> toMessage(topic, partition, cmd, cmdValue))
                        .map(message -> js.publishAsync(message, opts))
@@ -66,7 +66,7 @@ public class NatsCommandStream<C extends Command> implements CommandStream<C> {
   Message toMessage(String topic, int partition, C cmd, String cmdValue) {
     var subjectName = NatsUtils.subjectName(topic, partition);
     var headers = new Headers();
-    headers.add(NatsUtils.ID_HEADER, cmd.commandId().value());
+    headers.add(NatsUtils.ID_HEADER, cmd.commandId().id().value());
     return NatsMessage.builder().subject(subjectName).headers(headers).data(cmdValue).build();
   }
 

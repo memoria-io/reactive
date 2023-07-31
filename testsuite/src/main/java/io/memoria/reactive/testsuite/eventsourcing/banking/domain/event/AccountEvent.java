@@ -2,6 +2,7 @@ package io.memoria.reactive.testsuite.eventsourcing.banking.domain.event;
 
 import io.memoria.atom.core.id.Id;
 import io.memoria.reactive.eventsourcing.Event;
+import io.memoria.reactive.eventsourcing.StateId;
 
 public sealed interface AccountEvent extends Event permits AccountClosed,
                                                            AccountCreated,
@@ -11,9 +12,9 @@ public sealed interface AccountEvent extends Event permits AccountClosed,
                                                            DebitConfirmed,
                                                            Debited,
                                                            NameChanged {
-  Id accountId();
+  StateId accountId();
 
-  default Id stateId() {
+  default StateId stateId() {
     return accountId();
   }
 }

@@ -5,7 +5,9 @@ import io.vavr.control.Option;
 import java.io.Serializable;
 
 public interface Event extends Shardable, Serializable {
-  Option<EventId> sagaEventId();
+  default Option<EventId> sagaEventId() {
+    return Option.none();
+  }
 
   CommandId commandId();
 

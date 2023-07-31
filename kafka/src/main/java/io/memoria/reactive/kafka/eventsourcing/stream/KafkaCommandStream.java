@@ -62,7 +62,7 @@ public class KafkaCommandStream<C extends Command> implements CommandStream<C> {
   }
 
   private SenderRecord<String, String, C> toRecord(String topic, int partition, C cmd, String payload) {
-    return SenderRecord.create(topic, partition, null, cmd.commandId().value(), payload, cmd);
+    return SenderRecord.create(topic, partition, null, cmd.commandId().id().value(), payload, cmd);
   }
 
   public Mono<C> toMsg(ConsumerRecord<String, String> rec) {

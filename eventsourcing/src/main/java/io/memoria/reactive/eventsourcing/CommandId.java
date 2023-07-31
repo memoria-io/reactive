@@ -2,12 +2,16 @@ package io.memoria.reactive.eventsourcing;
 
 import io.memoria.atom.core.id.Id;
 
+import java.io.Serializable;
 import java.util.UUID;
 
-public record CommandId(Id id) implements Comparable<CommandId> {
-
+public record CommandId(Id id) implements Comparable<CommandId>, Serializable {
   public static CommandId of() {
     return new CommandId(Id.of());
+  }
+
+  public static CommandId of(Id id) {
+    return new CommandId(id);
   }
 
   public static CommandId of(UUID id) {

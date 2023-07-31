@@ -1,9 +1,9 @@
 package io.memoria.reactive.kafka.eventsourcing.stream;
 
-import io.memoria.atom.core.id.Id;
 import io.memoria.atom.core.text.TextTransformer;
 import io.memoria.reactive.core.reactor.ReactorUtils;
 import io.memoria.reactive.eventsourcing.Event;
+import io.memoria.reactive.eventsourcing.EventId;
 import io.memoria.reactive.eventsourcing.stream.EventStream;
 import io.memoria.reactive.kafka.KafkaUtils;
 import io.vavr.collection.Map;
@@ -44,10 +44,10 @@ public class KafkaEventStream<E extends Event> implements EventStream<E> {
   }
 
   @Override
-  public Mono<Id> last(String topic, int partition) {
+  public Mono<EventId> last(String topic, int partition) {
     return Mono.fromCallable(() -> KafkaUtils.lastKey(topic, partition, timeout, consumerConfig))
                .flatMap(ReactorUtils::optionToMono)
-               .map(Id::of);
+               .map(EventId::of);
   }
 
   @Override
@@ -75,7 +75,7 @@ public class KafkaEventStream<E extends Event> implements EventStream<E> {
   }
 
   private SenderRecord<String, String, E> toRecord(String topic, int partition, E event, String payload) {
-    return SenderRecord.create(topic, partition, null, event.commandId().value(), payload, event);
+    return SenderRecord.create(topic, partition, null, event.commandId().id().value(), payload, event);
   }
 
   public Mono<E> toMsg(ConsumerRecord<String, String> rec) {

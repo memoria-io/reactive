@@ -1,5 +1,7 @@
 package io.memoria.reactive.testsuite.eventsourcing.banking.domain.command;
 
-import io.memoria.atom.core.id.Id;
+import io.memoria.reactive.eventsourcing.CommandId;
+import io.memoria.reactive.eventsourcing.StateId;
 
-public record ChangeName(Id commandId, Id accountId, long timestamp, String name) implements AccountCommand {}
+public record ChangeName(CommandId commandId, StateId accountId, long timestamp, String name)
+        implements AccountCommand {}

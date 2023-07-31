@@ -1,6 +1,9 @@
 package io.memoria.reactive.testsuite.eventsourcing.banking;
 
 import io.memoria.atom.core.id.Id;
+import io.memoria.reactive.eventsourcing.CommandId;
+import io.memoria.reactive.eventsourcing.EventId;
+import io.memoria.reactive.eventsourcing.StateId;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.AccountCommand;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.ChangeName;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.CloseAccount;
@@ -45,39 +48,51 @@ public class BankingData {
     return Flux.range(from, to).map(this::createId);
   }
 
-  public CreateAccount createAccountCmd(Id id, long balance) {
-    return new CreateAccount(idSupplier.get(), id, timeSupplier.get(), id.value(), balance);
+  public CreateAccount createAccountCmd(StateId stateId, long balance) {
+    return new CreateAccount(CommandId.of(idSupplier.get()),
+                             stateId,
+                             timeSupplier.get(),
+                             stateId.id().value(),
+                             balance);
   }
 
-  public Flux<AccountCommand> createAccountCmd(Flux<Id> ids, long balance) {
-    return ids.map(id -> createAccountCmd(id, balance));
+  public Flux<AccountCommand> createAccountCmd(Flux<StateId> stateIds, long balance) {
+    return stateIds.map(id -> createAccountCmd(id, balance));
   }
 
-  public Flux<AccountCommand> changeNameCmd(Flux<Id> ids, int version) {
-    return ids.map(id -> new ChangeName(idSupplier.get(), id, timeSupplier.get(), String.valueOf(version)));
+  public Flux<AccountCommand> changeNameCmd(Flux<StateId> stateIds, int version) {
+    return stateIds.map(stateId -> new ChangeName(CommandId.of(idSupplier.get()),
+                                                  stateId,
+                                                  timeSupplier.get(),
+                                                  String.valueOf(version)));
   }
 
-  public Debit debitCmd(Id debited, Id credited, int amount) {
-    return new Debit(idSupplier.get(), debited, timeSupplier.get(), credited, amount);
+  public Debit debitCmd(StateId debited, StateId credited, int amount) {
+    return new Debit(CommandId.of(idSupplier.get()), debited, timeSupplier.get(), credited, amount);
   }
 
-  public Flux<AccountCommand> debitCmd(Flux<Tuple2<Id, Id>> debitedCredited, int amount) {
+  public Flux<AccountCommand> debitCmd(Flux<Tuple2<StateId, StateId>> debitedCredited, int amount) {
     return debitedCredited.map(entry -> debitCmd(entry.getT1(), entry.getT2(), amount));
   }
 
-  public CloseAccount closeAccountCmd(Id i) {
-    return new CloseAccount(idSupplier.get(), i, timeSupplier.get());
+  public CloseAccount closeAccountCmd(StateId stateId) {
+    return new CloseAccount(CommandId.of(idSupplier.get()), stateId, timeSupplier.get());
   }
 
-  public Flux<AccountCommand> closeAccounts(Flux<Id> ids) {
-    return ids.map(this::closeAccountCmd);
+  public Flux<AccountCommand> closeAccounts(Flux<StateId> stateIds) {
+    return stateIds.map(this::closeAccountCmd);
   }
 
-  public Flux<AccountEvent> createAccountEvent(Flux<Id> ids, long balance) {
-    return ids.map(id -> createAccountEvent(id, balance));
+  public Flux<AccountEvent> createAccountEvent(Flux<StateId> stateIds, long balance) {
+    return stateIds.map(stateId -> createAccountEvent(stateId, balance));
   }
 
-  public AccountEvent createAccountEvent(Id id, long balance) {
-    return new AccountCreated(idSupplier.get(), idSupplier.get(), id, timeSupplier.get(), id.value(), balance);
+  public AccountEvent createAccountEvent(StateId stateId, long balance) {
+    return new AccountCreated(EventId.of(idSupplier.get()),
+                              CommandId.of(idSupplier.get()),
+                              stateId,
+                              timeSupplier.get(),
+                              stateId.id().value(),
+                              balance);
   }
 }

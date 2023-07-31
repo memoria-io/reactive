@@ -45,7 +45,7 @@ public class KafkaESMsgStream implements ESMsgStream {
 
   @Override
   public Mono<ESMsg> pub(String topic, int partition, ESMsg msg) {
-    return this.sender.send(Mono.fromCallable(() -> this.toRecord(topic, partition, msg)))
+    return this.sender.send(Mono.fromCallable(() -> toRecord(topic, partition, msg)))
                       .map(SenderResult::correlationMetadata)
                       .single();
   }

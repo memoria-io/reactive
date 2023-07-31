@@ -1,9 +1,9 @@
 package io.memoria.reactive.nats.eventsourcing.stream;
 
-import io.memoria.atom.core.id.Id;
 import io.memoria.atom.core.text.TextTransformer;
 import io.memoria.reactive.core.reactor.ReactorUtils;
 import io.memoria.reactive.eventsourcing.Event;
+import io.memoria.reactive.eventsourcing.EventId;
 import io.memoria.reactive.eventsourcing.stream.EventStream;
 import io.memoria.reactive.nats.NatsConfig;
 import io.memoria.reactive.nats.NatsUtils;
@@ -69,14 +69,14 @@ public class NatsEventStream<E extends Event> implements EventStream<E> {
   }
 
   @Override
-  public Mono<Id> last(String topic, int partition) {
+  public Mono<EventId> last(String topic, int partition) {
     return NatsUtils.fetchLastMessage(js, natsConfig, topic, partition).flatMap(this::toEvent).map(E::eventId);
   }
 
   Message toMessage(String topic, int partition, E event, String value) {
     var subjectName = NatsUtils.subjectName(topic, partition);
     var headers = new Headers();
-    headers = headers.add(NatsUtils.ID_HEADER, event.eventId().value());
+    headers = headers.add(NatsUtils.ID_HEADER, event.eventId().id().value());
     return NatsMessage.builder().subject(subjectName).headers(headers).data(value).build();
     //    return NatsMessage.builder().subject(subjectName).data(value).build();
   }

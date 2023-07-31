@@ -1,8 +1,9 @@
 package io.memoria.reactive.testsuite.eventsourcing.banking.domain.state;
 
 import io.memoria.atom.core.id.Id;
+import io.memoria.reactive.eventsourcing.StateId;
 
-public record OpenAccount(Id accountId, String name, long balance, int debitCount, int confirmedDebit, int creditCount)
+public record OpenAccount(StateId accountId, String name, long balance, int debitCount, int confirmedDebit, int creditCount)
         implements Account {
 
   public boolean hasOngoingDebit() {

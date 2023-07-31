@@ -2,12 +2,17 @@ package io.memoria.reactive.eventsourcing;
 
 import io.memoria.atom.core.id.Id;
 
+import java.io.Serializable;
 import java.util.UUID;
 
-public record StateId(Id id) implements Comparable<StateId> {
+public record StateId(Id id) implements Comparable<StateId>, Serializable {
 
   public static StateId of() {
     return new StateId(Id.of());
+  }
+
+  public static StateId of(Id id) {
+    return new StateId(id);
   }
 
   public static StateId of(UUID id) {

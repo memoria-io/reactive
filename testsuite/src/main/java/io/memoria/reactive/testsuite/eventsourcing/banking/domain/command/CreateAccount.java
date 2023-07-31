@@ -1,6 +1,7 @@
 package io.memoria.reactive.testsuite.eventsourcing.banking.domain.command;
 
-import io.memoria.atom.core.id.Id;
+import io.memoria.reactive.eventsourcing.CommandId;
+import io.memoria.reactive.eventsourcing.StateId;
 
-public record CreateAccount(Id commandId, Id accountId, long timestamp, String accountName, long balance)
+public record CreateAccount(CommandId commandId, StateId accountId, long timestamp, String accountName, long balance)
         implements AccountCommand {}
