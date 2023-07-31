@@ -1,6 +1,5 @@
 package io.memoria.reactive.kafka;
 
-import io.memoria.reactive.core.message.stream.ESMsg;
 import io.memoria.reactive.eventsourcing.pipeline.partition.CommandRoute;
 import io.memoria.reactive.eventsourcing.pipeline.partition.EventRoute;
 import io.memoria.reactive.eventsourcing.pipeline.partition.PartitionPipeline;
@@ -53,10 +52,6 @@ public class TestUtils {
                       StringSerializer.class,
                       ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
                       StringSerializer.class);
-  }
-
-  public static ESMsg createEsMsg(int i) {
-    return new ESMsg(String.valueOf(i), "hello" + i);
   }
 
   public static PartitionPipeline<Account, AccountCommand, AccountEvent> createPipeline() {

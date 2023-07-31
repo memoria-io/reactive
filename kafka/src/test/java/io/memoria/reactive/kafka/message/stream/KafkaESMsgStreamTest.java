@@ -31,7 +31,7 @@ class KafkaESMsgStreamTest {
   @Test
   void publish() {
     // Given
-    var msgs = List.range(0, MSG_COUNT).map(TestUtils::createEsMsg);
+    var msgs = List.range(0, MSG_COUNT).map(TestsuiteUtils::createEsMsg);
     // When
     var pub = Flux.fromIterable(msgs).concatMap(msg -> repo.pub(topic, partition, msg));
     // Then
@@ -42,7 +42,7 @@ class KafkaESMsgStreamTest {
   @Test
   void subscribe() {
     // Given
-    var msgs = List.range(0, MSG_COUNT).map(TestUtils::createEsMsg);
+    var msgs = List.range(0, MSG_COUNT).map(TestsuiteUtils::createEsMsg);
     var pub = Flux.fromIterable(msgs).concatMap(msg -> repo.pub(topic, partition, msg));
 
     // When
