@@ -49,12 +49,10 @@ public class NatsEventStream<E extends Event> implements EventStream<E> {
   @Override
   public Mono<E> pub(String topic, int partition, E event) {
     return ReactorUtils.tryToMono(() -> transformer.serialize(event))
+                       .doOnNext(msg -> System.out.printf("publishing: %s %n", event))
                        .map(value -> toMessage(topic, partition, event, value))
                        .map(js::publishAsync)
                        .flatMap(Mono::fromFuture)
-                       .doOnNext(ack -> System.out.printf("seq:%d, isDuplicate:%s%n",
-                                                          ack.getSeqno(),
-                                                          ack.isDuplicate()))
                        .map(ack -> event);
   }
 

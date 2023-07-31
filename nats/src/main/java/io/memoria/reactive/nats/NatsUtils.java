@@ -24,9 +24,11 @@ import io.vavr.control.Try;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.SynchronousSink;
+import reactor.core.scheduler.Schedulers;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.function.Function;
 
 /**
  * Utility class for directly using nats, this layer is for testing NATS java driver, and ideally it shouldn't have
@@ -69,14 +71,21 @@ public class NatsUtils {
     return result;
   }
 
+  public static Flux<Message> fetchAllMessagesForCmds(JetStream js,
+                                                      NatsConfig natsConfig,
+                                                      String topic,
+                                                      int partition) {
+    return Mono.fromCallable(() -> {
+      System.out.printf("subscribing to %s %d%n", topic, partition);
+      return jetStreamSub(js, DeliverPolicy.All, topic, partition);
+    }).flatMapMany(sub -> fetchMessagesForCmds(sub, natsConfig.fetchBatchSize(), natsConfig.fetchMaxWait()));
+  }
+
   public static Flux<Message> fetchAllMessages(JetStream js, NatsConfig natsConfig, String topic, int partition) {
     return Mono.fromCallable(() -> {
-                 System.out.printf("subscribing to %s %d%n", topic, partition);
-                 return jetStreamSub(js, DeliverPolicy.All, topic, partition);
-               })
-               .flatMapMany(sub -> fetchMessages(sub, natsConfig.fetchBatchSize(), natsConfig.fetchMaxWait()))
-               .concatMap(Flux::fromIterable)
-               .doOnNext(Message::ack);
+      System.out.printf("subscribing to %s %d%n", topic, partition);
+      return jetStreamSub(js, DeliverPolicy.All, topic, partition);
+    }).flatMapMany(sub -> fetchMessages(sub, natsConfig.fetchBatchSize(), natsConfig.fetchMaxWait()));
   }
 
   public static Mono<Message> fetchLastMessage(JetStream js, NatsConfig config, String topic, int partition) {
@@ -86,17 +95,57 @@ public class NatsUtils {
                .flatMap(ReactorUtils::optionToMono);
   }
 
-  static Flux<List<Message>> fetchMessages(JetStreamSubscription sub, int fetchBatchSize, Duration fetchMaxWait) {
-    return Flux.generate((SynchronousSink<List<Message>> sink) -> {
+  //  static Flux<List<Message>> fetchMessages(JetStreamSubscription sub, int fetchBatchSize, Duration fetchMaxWait) {
+  //    return Flux.generate((SynchronousSink<List<Message>> sink) -> {
+  //      var tr = Try.of(() -> sub.fetch(fetchBatchSize, fetchMaxWait));
+  //      if (tr.isSuccess()) {
+  //        List<Message> messages = List.ofAll(tr.get()).dropWhile(Message::isStatusMessage);
+  //        messages.forEach(System.out::println);
+  //        sink.next(messages);
+  //      } else {
+  //        sink.error(tr.getCause());
+  //      }
+  //    });
+  //  }
+  static Flux<Message> fetchMessagesForCmds(JetStreamSubscription sub, int fetchBatchSize, Duration fetchMaxWait) {
+    //    return Mono.fromCallable(() -> Flux.fromIterable(sub.fetch(fetchBatchSize, fetchMaxWait)))
+    //               .repeat()
+    //               .flatMap(Function.identity())
+    //               .map(message -> {
+    //                 message.ack();
+    //                 return message;
+    //               });
+    return Flux.generate((SynchronousSink<Flux<Message>> sink) -> {
       var tr = Try.of(() -> sub.fetch(fetchBatchSize, fetchMaxWait));
       if (tr.isSuccess()) {
         List<Message> messages = List.ofAll(tr.get()).dropWhile(Message::isStatusMessage);
         messages.forEach(System.out::println);
-        sink.next(messages);
+        System.out.println("fetchMessageForCmds is called size=" + messages.size());
+        sink.next(Flux.fromIterable(messages));
       } else {
         sink.error(tr.getCause());
       }
-    });
+    }).concatMap(Function.identity()).subscribeOn(Schedulers.boundedElastic());
+  }
+
+  static Flux<Message> fetchMessages(JetStreamSubscription sub, int fetchBatchSize, Duration fetchMaxWait) {
+    return Mono.fromCallable(() -> Flux.fromIterable(sub.fetch(fetchBatchSize, fetchMaxWait)))
+               .repeat()
+               .flatMap(Function.identity())
+               .map(message -> {
+                 message.ack();
+                 return message;
+               });
+    //    return Flux.generate((SynchronousSink<Flux<Message>> sink) -> {
+    //      var tr = Try.of(() -> sub.fetch(fetchBatchSize, fetchMaxWait));
+    //      if (tr.isSuccess()) {
+    //        List<Message> messages = List.ofAll(tr.get()).dropWhile(Message::isStatusMessage);
+    //        messages.forEach(System.out::println);
+    //        sink.next(Flux.fromIterable(messages));
+    //      } else {
+    //        sink.error(tr.getCause());
+    //      }
+    //    }).concatMap(Function.identity());
   }
 
   static JetStreamSubscription jetStreamSub(JetStream js, DeliverPolicy deliverPolicy, String topic, int partition) {

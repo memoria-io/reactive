@@ -1,7 +1,7 @@
 package io.memoria.reactive.nats.eventsourcing.stream;
 
 import io.memoria.reactive.nats.NatsUtils;
-import io.memoria.reactive.testsuite.TestsuiteUtils;
+import io.memoria.reactive.testsuite.TestsuiteDefaults;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingData;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.AccountCommand;
 import io.memoria.reactive.testsuite.eventsourcing.banking.stream.CommandStreamScenario;
@@ -17,14 +17,14 @@ import reactor.test.StepVerifier;
 import java.io.IOException;
 
 import static io.memoria.reactive.nats.TestUtils.NATS_CONFIG;
-import static io.memoria.reactive.testsuite.TestsuiteUtils.MSG_COUNT;
-import static io.memoria.reactive.testsuite.TestsuiteUtils.SCHEDULER;
-import static io.memoria.reactive.testsuite.TestsuiteUtils.TRANSFORMER;
+import static io.memoria.reactive.testsuite.TestsuiteDefaults.MSG_COUNT;
+import static io.memoria.reactive.testsuite.TestsuiteDefaults.SCHEDULER;
+import static io.memoria.reactive.testsuite.TestsuiteDefaults.TRANSFORMER;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class NatsCommandStreamTest {
   private static final Logger log = LoggerFactory.getLogger(NatsCommandStreamTest.class.getName());
-  private static final String topic = TestsuiteUtils.topicName(NatsCommandStreamTest.class);
+  private static final String topic = TestsuiteDefaults.topicName(NatsCommandStreamTest.class);
   private static final int partition = 0;
   private static final CommandStreamScenario scenario;
 
@@ -45,6 +45,6 @@ class NatsCommandStreamTest {
 
   @Test
   void subscribe() {
-    StepVerifier.create(scenario.subscribe()).expectNextCount(MSG_COUNT).expectTimeout(TestsuiteUtils.TIMEOUT).verify();
+    StepVerifier.create(scenario.subscribe()).expectNextCount(MSG_COUNT).expectTimeout(TestsuiteDefaults.TIMEOUT).verify();
   }
 }

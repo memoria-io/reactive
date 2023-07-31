@@ -10,6 +10,7 @@ import io.nats.client.Connection;
 import io.nats.client.JetStream;
 import io.nats.client.Message;
 import io.nats.client.PublishOptions;
+import io.nats.client.api.PublishAck;
 import io.nats.client.impl.Headers;
 import io.nats.client.impl.NatsMessage;
 import org.slf4j.Logger;
@@ -20,6 +21,7 @@ import reactor.core.scheduler.Scheduler;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CompletableFuture;
 
 public class NatsCommandStream<C extends Command> implements CommandStream<C> {
   private static final Logger log = LoggerFactory.getLogger(NatsCommandStream.class.getName());
@@ -48,26 +50,27 @@ public class NatsCommandStream<C extends Command> implements CommandStream<C> {
 
   @Override
   public Mono<C> pub(String topic, int partition, C cmd) {
-    var opts = PublishOptions.builder().clearExpected().messageId(cmd.commandId().id().value()).build();
     return ReactorUtils.tryToMono(() -> transformer.serialize(cmd))
-                       .map(cmdValue -> toMessage(topic, partition, cmd, cmdValue))
-                       .map(message -> js.publishAsync(message, opts))
+                       .doOnNext(c -> System.out.printf("publishing: %s%n", cmd))
+                       .map(cmdValue -> publishAsync(topic, partition, cmd, cmdValue))
                        .flatMap(Mono::fromFuture)
                        .map(ack -> cmd);
   }
 
   @Override
   public Flux<C> sub(String topic, int partition) {
-    return NatsUtils.fetchAllMessages(js, natsConfig, topic, partition)
+    return NatsUtils.fetchAllMessagesForCmds(js, natsConfig, topic, partition)
                     .concatMap(this::toCommand)
-                    .subscribeOn(scheduler);
+                    .doOnNext(c -> System.out.printf("received: %s%n", c));
   }
 
-  Message toMessage(String topic, int partition, C cmd, String cmdValue) {
+  CompletableFuture<PublishAck> publishAsync(String topic, int partition, C cmd, String cmdValue) {
+    var opts = PublishOptions.builder().clearExpected().messageId(cmd.commandId().id().value()).build();
     var subjectName = NatsUtils.subjectName(topic, partition);
     var headers = new Headers();
     headers.add(NatsUtils.ID_HEADER, cmd.commandId().id().value());
-    return NatsMessage.builder().subject(subjectName).headers(headers).data(cmdValue).build();
+    var message = NatsMessage.builder().subject(subjectName).headers(headers).data(cmdValue).build();
+    return js.publishAsync(message, opts);
   }
 
   Mono<C> toCommand(Message message) {

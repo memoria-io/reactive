@@ -19,8 +19,8 @@ import org.apache.kafka.common.serialization.StringSerializer;
 
 import java.time.Duration;
 
-import static io.memoria.reactive.testsuite.TestsuiteUtils.TRANSFORMER;
-import static io.memoria.reactive.testsuite.TestsuiteUtils.topicName;
+import static io.memoria.reactive.testsuite.TestsuiteDefaults.TRANSFORMER;
+import static io.memoria.reactive.testsuite.TestsuiteDefaults.topicName;
 
 public class TestUtils {
   public static final Duration kafkaTimeout = Duration.ofMillis(500);

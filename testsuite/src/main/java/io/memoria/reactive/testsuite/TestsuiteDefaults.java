@@ -8,7 +8,7 @@ import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
 
-public class TestsuiteUtils {
+public class TestsuiteDefaults {
 
   public static final Scheduler SCHEDULER = Schedulers.boundedElastic();
   public static final int MSG_COUNT = 10003;

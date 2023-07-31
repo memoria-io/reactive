@@ -1,7 +1,7 @@
 package io.memoria.reactive.nats.message.stream;
 
 import io.memoria.reactive.nats.NatsUtils;
-import io.memoria.reactive.testsuite.TestsuiteUtils;
+import io.memoria.reactive.testsuite.TestsuiteDefaults;
 import io.memoria.reactive.testsuite.message.stream.ESMsgStreamScenario;
 import io.nats.client.JetStreamApiException;
 import io.nats.client.api.StreamInfo;
@@ -17,7 +17,7 @@ import reactor.test.StepVerifier;
 import java.io.IOException;
 
 import static io.memoria.reactive.nats.TestUtils.NATS_CONFIG;
-import static io.memoria.reactive.testsuite.TestsuiteUtils.*;
+import static io.memoria.reactive.testsuite.TestsuiteDefaults.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class NatsESMsgStreamTest {
@@ -26,7 +26,7 @@ class NatsESMsgStreamTest {
 
   static {
     try {
-      String topic = TestsuiteUtils.topicName(NatsESMsgStreamTest.class);
+      String topic = TestsuiteDefaults.topicName(NatsESMsgStreamTest.class);
       NatsUtils.createOrUpdateTopic(NATS_CONFIG, topic, 1).map(StreamInfo::toString).forEach(log::info);
       var repo = new NatsESMsgStream(NATS_CONFIG, TRANSFORMER, SCHEDULER);
       scenario = new ESMsgStreamScenario(MSG_COUNT, topic, 0, repo);

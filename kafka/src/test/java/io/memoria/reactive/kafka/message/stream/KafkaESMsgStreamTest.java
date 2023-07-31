@@ -2,7 +2,7 @@ package io.memoria.reactive.kafka.message.stream;
 
 import io.memoria.reactive.core.message.stream.ESMsgStream;
 import io.memoria.reactive.kafka.TestUtils;
-import io.memoria.reactive.testsuite.TestsuiteUtils;
+import io.memoria.reactive.testsuite.TestsuiteDefaults;
 import io.vavr.collection.List;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Test;
@@ -10,12 +10,12 @@ import org.junit.jupiter.api.TestMethodOrder;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
-import static io.memoria.reactive.testsuite.TestsuiteUtils.MSG_COUNT;
-import static io.memoria.reactive.testsuite.TestsuiteUtils.TIMEOUT;
+import static io.memoria.reactive.testsuite.TestsuiteDefaults.MSG_COUNT;
+import static io.memoria.reactive.testsuite.TestsuiteDefaults.TIMEOUT;
 
 @TestMethodOrder(OrderAnnotation.class)
 class KafkaESMsgStreamTest {
-  private final String topic = TestsuiteUtils.topicName("messages");
+  private final String topic = TestsuiteDefaults.topicName("messages");
   private final int partition = 0;
   private final ESMsgStream repo;
 
@@ -31,7 +31,7 @@ class KafkaESMsgStreamTest {
   @Test
   void publish() {
     // Given
-    var msgs = List.range(0, MSG_COUNT).map(TestsuiteUtils::createEsMsg);
+    var msgs = List.range(0, MSG_COUNT).map(TestsuiteDefaults::createEsMsg);
     // When
     var pub = Flux.fromIterable(msgs).concatMap(msg -> repo.pub(topic, partition, msg));
     // Then
@@ -42,7 +42,7 @@ class KafkaESMsgStreamTest {
   @Test
   void subscribe() {
     // Given
-    var msgs = List.range(0, MSG_COUNT).map(TestsuiteUtils::createEsMsg);
+    var msgs = List.range(0, MSG_COUNT).map(TestsuiteDefaults::createEsMsg);
     var pub = Flux.fromIterable(msgs).concatMap(msg -> repo.pub(topic, partition, msg));
 
     // When

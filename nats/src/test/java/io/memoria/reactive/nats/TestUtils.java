@@ -5,7 +5,7 @@ import io.memoria.reactive.eventsourcing.pipeline.partition.EventRoute;
 import io.memoria.reactive.eventsourcing.pipeline.partition.PartitionPipeline;
 import io.memoria.reactive.nats.eventsourcing.stream.NatsCommandStream;
 import io.memoria.reactive.nats.eventsourcing.stream.NatsEventStream;
-import io.memoria.reactive.testsuite.TestsuiteUtils;
+import io.memoria.reactive.testsuite.TestsuiteDefaults;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingData;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingInfra;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.AccountCommand;
@@ -17,12 +17,12 @@ import io.nats.client.api.StorageType;
 import java.io.IOException;
 import java.time.Duration;
 
-import static io.memoria.reactive.testsuite.TestsuiteUtils.SCHEDULER;
-import static io.memoria.reactive.testsuite.TestsuiteUtils.TRANSFORMER;
+import static io.memoria.reactive.testsuite.TestsuiteDefaults.SCHEDULER;
+import static io.memoria.reactive.testsuite.TestsuiteDefaults.TRANSFORMER;
 
 public class TestUtils {
   public static final String NATS_URL = "nats://localhost:4222";
-  public static final BankingData DATA = BankingData.ofUUID();
+  public static final BankingData DATA = BankingData.ofSerial();
   public static final NatsConfig NATS_CONFIG = NatsConfig.appendOnly(NATS_URL,
                                                                      StorageType.File,
                                                                      1,
@@ -34,8 +34,8 @@ public class TestUtils {
     try {
       var commandStream = new NatsCommandStream<>(NATS_CONFIG, AccountCommand.class, TRANSFORMER, SCHEDULER);
       var eventStream = new NatsEventStream<>(NATS_CONFIG, AccountEvent.class, TRANSFORMER, SCHEDULER);
-      var commandRoute = new CommandRoute(TestsuiteUtils.topicName("commands"), 0);
-      var eventRoute = new EventRoute(TestsuiteUtils.topicName("events"), 0);
+      var commandRoute = new CommandRoute(TestsuiteDefaults.topicName("commands"), 0);
+      var eventRoute = new EventRoute(TestsuiteDefaults.topicName("events"), 0);
       System.out.printf("Creating %s %n", commandRoute);
       System.out.printf("Creating %s %n", eventRoute);
       NatsUtils.createOrUpdateTopic(NATS_CONFIG, commandRoute.topicName(), commandRoute.totalPartitions());
