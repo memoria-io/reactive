@@ -24,7 +24,7 @@ import static io.memoria.reactive.testsuite.TestsuiteUtils.topicName;
 
 public class TestUtils {
   public static final Duration kafkaTimeout = Duration.ofMillis(500);
-  public static final BankingData data = BankingData.ofUUID();
+  public static final BankingData DATA = BankingData.ofUUID();
 
   private TestUtils() {}
 
@@ -66,8 +66,8 @@ public class TestUtils {
                                              kafkaTimeout);
     var commandRoute = new CommandRoute(topicName("commands"), 0);
     var eventRoute = new EventRoute(topicName("events"), 0);
-    return BankingInfra.createPipeline(data.idSupplier,
-                                       data.timeSupplier,
+    return BankingInfra.createPipeline(DATA.idSupplier,
+                                       DATA.timeSupplier,
                                        commandStream,
                                        commandRoute,
                                        eventStream,

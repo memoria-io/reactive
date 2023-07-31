@@ -56,13 +56,9 @@ public class PerformanceScenario implements PartitionScenario<Account, AccountCo
   }
 
   @Override
-  public Mono<Boolean> verify(Flux<AccountEvent> events) {
+  public Mono<Boolean> verify() {
     var startTime = System.currentTimeMillis();
-    return pipeline.handle()
-                   .take(numOfAccounts * 5L)
-                   .count()
-                   .doOnNext(count -> printf(startTime, count))
-                   .map(i -> true);
+    return null;
   }
 
   private static void printf(long start, Long i) {

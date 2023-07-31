@@ -15,5 +15,5 @@ public interface PartitionScenario<S extends State, C extends Command, E extends
 
   Flux<E> handleCommands();
 
-  Mono<Boolean> verify(Flux<E> events);
+  Mono<Boolean> verify();
 }

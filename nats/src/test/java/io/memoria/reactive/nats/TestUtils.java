@@ -22,7 +22,7 @@ import static io.memoria.reactive.testsuite.TestsuiteUtils.TRANSFORMER;
 
 public class TestUtils {
   public static final String NATS_URL = "nats://localhost:4222";
-  public static final BankingData data = BankingData.ofUUID();
+  public static final BankingData DATA = BankingData.ofUUID();
   public static final NatsConfig NATS_CONFIG = NatsConfig.appendOnly(NATS_URL,
                                                                      StorageType.File,
                                                                      1,
@@ -40,8 +40,8 @@ public class TestUtils {
       System.out.printf("Creating %s %n", eventRoute);
       NatsUtils.createOrUpdateTopic(NATS_CONFIG, commandRoute.topicName(), commandRoute.totalPartitions());
       NatsUtils.createOrUpdateTopic(NATS_CONFIG, eventRoute.topicName(), eventRoute.totalPartitions());
-      return BankingInfra.createPipeline(data.idSupplier,
-                                         data.timeSupplier,
+      return BankingInfra.createPipeline(DATA.idSupplier,
+                                         DATA.timeSupplier,
                                          commandStream,
                                          commandRoute,
                                          eventStream,

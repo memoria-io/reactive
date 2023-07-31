@@ -10,13 +10,14 @@ import io.vavr.collection.Map;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+@SuppressWarnings("ClassCanBeRecord")
 public class SimpleDebitScenario implements PartitionScenario<Account, AccountCommand, AccountEvent> {
-  private static final int initialBalance = 500;
-  private static final int debitAmount = 300;
+  public static final int initialBalance = 500;
+  public static final int debitAmount = 300;
 
-  private final BankingData bankingData;
-  private final PartitionPipeline<Account, AccountCommand, AccountEvent> pipeline;
-  private final int numOfAccounts;
+  public final BankingData bankingData;
+  public final PartitionPipeline<Account, AccountCommand, AccountEvent> pipeline;
+  public final int numOfAccounts;
 
   public SimpleDebitScenario(BankingData bankingData,
                              PartitionPipeline<Account, AccountCommand, AccountEvent> pipeline,
@@ -54,9 +55,10 @@ public class SimpleDebitScenario implements PartitionScenario<Account, AccountCo
   }
 
   @Override
-  public Mono<Boolean> verify(Flux<AccountEvent> events) {
+  public Mono<Boolean> verify() {
+    var events = pipeline.eventStream.sub(pipeline.eventRoute.topicName(), pipeline.eventRoute.partition());
     return pipeline.domain.evolver()
-                          .reduce(events)
+                          .reduce(events.take(expectedEventsCount()))
                           .map(Map::values)
                           .flatMapMany(Flux::fromIterable)
                           .map(acc -> (OpenAccount) acc)
