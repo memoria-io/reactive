@@ -70,7 +70,10 @@ public class NatsUtils {
   }
 
   public static Flux<Message> fetchAllMessages(JetStream js, NatsConfig natsConfig, String topic, int partition) {
-    return Mono.fromCallable(() -> jetStreamSub(js, DeliverPolicy.All, topic, partition))
+    return Mono.fromCallable(() -> {
+                 System.out.printf("subscribing to %s %d%n", topic, partition);
+                 return jetStreamSub(js, DeliverPolicy.All, topic, partition);
+               })
                .flatMapMany(sub -> fetchMessages(sub, natsConfig.fetchBatchSize(), natsConfig.fetchMaxWait()))
                .concatMap(Flux::fromIterable)
                .doOnNext(Message::ack);
@@ -87,7 +90,9 @@ public class NatsUtils {
     return Flux.generate((SynchronousSink<List<Message>> sink) -> {
       var tr = Try.of(() -> sub.fetch(fetchBatchSize, fetchMaxWait));
       if (tr.isSuccess()) {
-        sink.next(List.ofAll(tr.get()));
+        List<Message> messages = List.ofAll(tr.get()).dropWhile(Message::isStatusMessage);
+        messages.forEach(System.out::println);
+        sink.next(messages);
       } else {
         sink.error(tr.getCause());
       }

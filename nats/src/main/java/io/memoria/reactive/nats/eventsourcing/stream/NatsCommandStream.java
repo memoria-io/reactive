@@ -53,7 +53,7 @@ public class NatsCommandStream<C extends Command> implements CommandStream<C> {
                        .map(cmdValue -> toMessage(topic, partition, cmd, cmdValue))
                        .map(message -> js.publishAsync(message, opts))
                        .flatMap(Mono::fromFuture)
-                       .thenReturn(cmd);
+                       .map(ack -> cmd);
   }
 
   @Override

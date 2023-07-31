@@ -52,12 +52,20 @@ public class NatsEventStream<E extends Event> implements EventStream<E> {
                        .map(value -> toMessage(topic, partition, event, value))
                        .map(js::publishAsync)
                        .flatMap(Mono::fromFuture)
+                       .doOnNext(ack -> System.out.printf("seq:%d, isDuplicate:%s%n",
+                                                          ack.getSeqno(),
+                                                          ack.isDuplicate()))
                        .map(ack -> event);
   }
 
   @Override
   public Flux<E> sub(String topic, int partition) {
-    return NatsUtils.fetchAllMessages(js, natsConfig, topic, partition).concatMap(this::toEvent).subscribeOn(scheduler);
+    return NatsUtils.fetchAllMessages(js, natsConfig, topic, partition)
+                    .doOnNext(System.out::println)
+                    .concatMap(this::toEvent)
+                    .doOnNext(i -> System.out.println("hello"))
+                    .doOnNext(System.out::println);
+    //                    .subscribeOn(scheduler);
   }
 
   @Override
@@ -69,8 +77,8 @@ public class NatsEventStream<E extends Event> implements EventStream<E> {
     var subjectName = NatsUtils.subjectName(topic, partition);
     var headers = new Headers();
     headers = headers.add(NatsUtils.ID_HEADER, event.eventId().value());
-    //    return NatsMessage.builder().subject(subjectName).headers(headers).data(value).build();
-    return NatsMessage.builder().subject(subjectName).data(value).build();
+    return NatsMessage.builder().subject(subjectName).headers(headers).data(value).build();
+    //    return NatsMessage.builder().subject(subjectName).data(value).build();
   }
 
   Mono<E> toEvent(Message message) {

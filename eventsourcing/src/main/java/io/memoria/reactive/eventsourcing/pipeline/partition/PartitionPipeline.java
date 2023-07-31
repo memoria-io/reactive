@@ -1,11 +1,13 @@
 package io.memoria.reactive.eventsourcing.pipeline.partition;
 
-import io.memoria.atom.core.id.Id;
 import io.memoria.reactive.core.reactor.ReactorUtils;
 import io.memoria.reactive.eventsourcing.Command;
+import io.memoria.reactive.eventsourcing.CommandId;
 import io.memoria.reactive.eventsourcing.Domain;
 import io.memoria.reactive.eventsourcing.Event;
+import io.memoria.reactive.eventsourcing.EventId;
 import io.memoria.reactive.eventsourcing.State;
+import io.memoria.reactive.eventsourcing.StateId;
 import io.memoria.reactive.eventsourcing.stream.CommandStream;
 import io.memoria.reactive.eventsourcing.stream.EventStream;
 import reactor.core.publisher.Flux;
@@ -31,9 +33,10 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
   public final EventRoute eventRoute;
 
   // In memory
-  private final Map<Id, S> aggregates;
-  private final Set<Id> processedCommands;
-  private final Set<Id> processedEvents;
+  private final Map<StateId, S> aggregates;
+  private final Set<CommandId> processedCommands;
+  private final Set<EventId> processedEvents;
+  private final Set<EventId> processedSagaEvents;
 
   public PartitionPipeline(Domain<S, C, E> domain,
                            CommandStream<C> commandStream,
@@ -54,6 +57,7 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
     this.aggregates = new HashMap<>();
     this.processedCommands = new HashSet<>();
     this.processedEvents = new HashSet<>();
+    this.processedSagaEvents = new HashSet<>();
   }
 
   public Flux<E> handle() {
@@ -86,7 +90,7 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
     return eventStream.sub(eventRoute.topicName(), eventRoute.partition());
   }
 
-  public Flux<E> subUntil(Id id) {
+  public Flux<E> subUntil(EventId id) {
     return eventStream.subUntil(eventRoute.topicName(), eventRoute.partition(), id);
   }
 
@@ -108,8 +112,7 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
   }
 
   Mono<E> handleCommand(C cmd) {
-    return Mono.fromCallable(() -> processedCommands.contains(cmd.commandId()))
-               .flatMap(exists -> booleanToMono(!exists, decide(cmd)));
+    return Mono.fromCallable(() -> isDuplicate(cmd)).flatMap(exists -> booleanToMono(!exists, decide(cmd)));
   }
 
   Mono<E> decide(C cmd) {
@@ -145,7 +148,13 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
       aggregates.put(e.stateId(), newState);
       processedCommands.add(e.commandId());
       processedEvents.add(e.eventId());
+      e.sagaEventId().forEach(processedSagaEvents::add);
       return e;
     });
+  }
+
+  boolean isDuplicate(C cmd) {
+    return cmd.sagaEventId().map(processedSagaEvents::contains).getOrElse(false)
+           || processedCommands.contains(cmd.commandId());
   }
 }

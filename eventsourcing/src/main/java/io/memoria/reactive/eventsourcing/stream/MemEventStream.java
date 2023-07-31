@@ -1,7 +1,7 @@
 package io.memoria.reactive.eventsourcing.stream;
 
-import io.memoria.atom.core.id.Id;
 import io.memoria.reactive.eventsourcing.Event;
+import io.memoria.reactive.eventsourcing.EventId;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
@@ -13,14 +13,14 @@ import java.util.concurrent.ConcurrentHashMap;
 class MemEventStream<E extends Event> implements EventStream<E> {
   private final int historySize;
   private final Map<String, Map<Integer, Many<E>>> streams = new ConcurrentHashMap<>();
-  private final Map<String, Map<Integer, Id>> last = new ConcurrentHashMap<>();
+  private final Map<String, Map<Integer, EventId>> last = new ConcurrentHashMap<>();
 
   public MemEventStream(int historySize) {
     this.historySize = historySize;
   }
 
   @Override
-  public Mono<Id> last(String topic, int partition) {
+  public Mono<EventId> last(String topic, int partition) {
     return Mono.defer(() -> Mono.justOrEmpty(last.get(topic))).flatMap(tp -> Mono.justOrEmpty(tp.get(partition)));
   }
 

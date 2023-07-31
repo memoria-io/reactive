@@ -1,11 +1,13 @@
 package io.memoria.reactive.eventsourcing.pipeline.aggregate;
 
-import io.memoria.atom.core.id.Id;
 import io.memoria.reactive.core.reactor.ReactorUtils;
 import io.memoria.reactive.eventsourcing.Command;
+import io.memoria.reactive.eventsourcing.CommandId;
 import io.memoria.reactive.eventsourcing.Domain;
 import io.memoria.reactive.eventsourcing.Event;
+import io.memoria.reactive.eventsourcing.EventId;
 import io.memoria.reactive.eventsourcing.State;
+import io.memoria.reactive.eventsourcing.StateId;
 import io.memoria.reactive.eventsourcing.pipeline.partition.CommandRoute;
 import io.memoria.reactive.eventsourcing.pipeline.partition.EventRoute;
 import io.memoria.reactive.eventsourcing.port.EventPort;
@@ -39,8 +41,8 @@ public class Aggregate<S extends State, C extends Command, E extends Event> {
 
   // In memory
   private final AtomicReference<S> aggregate;
-  private final Set<Id> processedCommands;
-  private final Set<Id> processedEvents;
+  private final Set<CommandId> processedCommands;
+  private final Set<EventId> processedEvents;
 
   public Aggregate(Domain<S, C, E> domain,
                    CommandStream<C> commandStream,
@@ -70,7 +72,7 @@ public class Aggregate<S extends State, C extends Command, E extends Event> {
   /**
    * Load previous events and build the state
    */
-  public Flux<E> init(Id stateId) {
+  public Flux<E> init(StateId stateId) {
     return eventPort.events(eventPortTable, stateId).concatMap(this::evolve);
   }
 
@@ -98,7 +100,7 @@ public class Aggregate<S extends State, C extends Command, E extends Event> {
     return eventStream.sub(eventRoute.topicName(), eventRoute.partition());
   }
 
-  public Flux<E> subUntil(Id id) {
+  public Flux<E> subUntil(EventId id) {
     return eventStream.subUntil(eventRoute.topicName(), eventRoute.partition(), id);
   }
 
