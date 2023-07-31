@@ -1,13 +1,16 @@
 package io.memoria.reactive.testsuite.eventsourcing.banking.domain.event;
 
-import io.memoria.atom.core.id.Id;
 import io.memoria.reactive.eventsourcing.CommandId;
 import io.memoria.reactive.eventsourcing.EventId;
 import io.memoria.reactive.eventsourcing.StateId;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.Credit;
 
-public record CreditRejected(EventId eventId, CommandId commandId, StateId creditedAcc, long timestamp, StateId debitedAcc, long amount)
-        implements AccountEvent {
+public record CreditRejected(EventId eventId,
+                             CommandId commandId,
+                             StateId creditedAcc,
+                             long timestamp,
+                             StateId debitedAcc,
+                             long amount) implements AccountEvent {
   @Override
   public StateId accountId() {
     return creditedAcc;

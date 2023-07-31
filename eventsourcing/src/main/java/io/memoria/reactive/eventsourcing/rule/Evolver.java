@@ -1,8 +1,6 @@
 package io.memoria.reactive.eventsourcing.rule;
 
-import io.memoria.atom.core.id.Id;
 import io.memoria.reactive.eventsourcing.Event;
-import io.memoria.reactive.eventsourcing.EventId;
 import io.memoria.reactive.eventsourcing.State;
 import io.memoria.reactive.eventsourcing.StateId;
 import io.vavr.Function2;

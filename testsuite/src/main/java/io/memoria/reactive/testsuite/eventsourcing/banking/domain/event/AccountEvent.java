@@ -1,6 +1,5 @@
 package io.memoria.reactive.testsuite.eventsourcing.banking.domain.event;
 
-import io.memoria.atom.core.id.Id;
 import io.memoria.reactive.eventsourcing.Event;
 import io.memoria.reactive.eventsourcing.StateId;
 

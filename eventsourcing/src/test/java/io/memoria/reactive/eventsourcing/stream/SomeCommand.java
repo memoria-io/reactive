@@ -11,6 +11,7 @@ record SomeCommand(EventId eventId, StateId stateId, CommandId commandId, Option
   public SomeCommand(EventId eventId, StateId stateId, CommandId commandId) {
     this(eventId, stateId, commandId, Option.none());
   }
+
   @Override
   public long timestamp() {
     return 0;
