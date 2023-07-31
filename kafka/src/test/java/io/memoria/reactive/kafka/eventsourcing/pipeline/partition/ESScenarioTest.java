@@ -1,4 +1,4 @@
-package io.memoria.reactive.kafka.eventsourcing.testsuite;
+package io.memoria.reactive.kafka.eventsourcing.pipeline.partition;
 
 import io.memoria.atom.core.text.SerializableTransformer;
 import io.memoria.atom.core.text.TextTransformer;
@@ -6,8 +6,8 @@ import io.memoria.reactive.eventsourcing.pipeline.partition.CommandRoute;
 import io.memoria.reactive.eventsourcing.pipeline.partition.EventRoute;
 import io.memoria.reactive.eventsourcing.pipeline.partition.PartitionPipeline;
 import io.memoria.reactive.kafka.TestUtils;
-import io.memoria.reactive.kafka.eventsourcing.KafkaCommandStream;
-import io.memoria.reactive.kafka.eventsourcing.KafkaEventStream;
+import io.memoria.reactive.kafka.eventsourcing.stream.KafkaCommandStream;
+import io.memoria.reactive.kafka.eventsourcing.stream.KafkaEventStream;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingData;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingInfra;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.AccountCommand;
@@ -23,13 +23,13 @@ import reactor.test.StepVerifier;
 import java.time.Duration;
 import java.util.Random;
 
-class EventSourcingScenarioTest {
+class ESScenarioTest {
   private static final TextTransformer transformer = new SerializableTransformer();
   // Pipeline
   private final BankingData bankingData = BankingData.ofUUID();
   private final PartitionPipeline<Account, AccountCommand, AccountEvent> pipeline;
 
-  EventSourcingScenarioTest() {
+  ESScenarioTest() {
     var random = new Random();
     int topicPostfix = random.nextInt(1000);
     // Command

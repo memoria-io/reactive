@@ -1,13 +1,12 @@
-package io.memoria.reactive.nats.eventsourcing.testsuite;
+package io.memoria.reactive.nats.eventsourcing.pipeline.partition;
 
-import io.memoria.atom.core.text.SerializableTransformer;
-import io.memoria.atom.core.text.TextTransformer;
 import io.memoria.reactive.eventsourcing.pipeline.partition.CommandRoute;
 import io.memoria.reactive.eventsourcing.pipeline.partition.EventRoute;
 import io.memoria.reactive.eventsourcing.pipeline.partition.PartitionPipeline;
 import io.memoria.reactive.nats.NatsUtils;
-import io.memoria.reactive.nats.eventsourcing.NatsCommandStream;
-import io.memoria.reactive.nats.eventsourcing.NatsEventStream;
+import io.memoria.reactive.nats.eventsourcing.stream.NatsCommandStream;
+import io.memoria.reactive.nats.eventsourcing.stream.NatsEventStream;
+import io.memoria.reactive.testsuite.TestsuiteUtils;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingData;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingInfra;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.AccountCommand;
@@ -20,39 +19,31 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
 
 import java.io.IOException;
-import java.time.Duration;
-import java.util.Random;
 
 import static io.memoria.reactive.nats.TestUtils.natsConfig;
+import static io.memoria.reactive.testsuite.TestsuiteUtils.*;
 
-class EventSourcingScenarioTest {
-  private static final TextTransformer transformer = new SerializableTransformer();
-  private static final String commandsTopicPrefix = "commands";
-  private static final String eventsTopicPrefix = "events";
-  private static final Duration timeout = Duration.ofMillis(300);
-  private static final Random r = new Random();
-  private static final BankingData BANKING_DATA = BankingData.ofUUID();
+class ESScenarioTest {
+  private static final BankingData data = BankingData.ofUUID();
 
-  @ParameterizedTest(name = "Using {0} accounts")
-  @ValueSource(ints = {1, 5, 10, 20})
-  void simpleDebitScenario(int numOfAccounts) throws JetStreamApiException, IOException, InterruptedException {
+  @Test
+  void simpleDebitScenario() throws JetStreamApiException, IOException, InterruptedException {
     // Given
-    int randomPostFix = r.nextInt(1000);
-    var commandRoute = new CommandRoute(toCommandTopic(numOfAccounts, randomPostFix), 0);
-    var eventRoute = new EventRoute(toEventTopic(numOfAccounts, randomPostFix), 0);
+    var commandRoute = new CommandRoute(TestsuiteUtils.topicName("commands"), 0);
+    var eventRoute = new EventRoute(TestsuiteUtils.topicName("events"), 0);
     var pipeline = createPipeline(commandRoute, eventRoute);
 
     // When
     createTopics(commandRoute, eventRoute);
-    var scenario = new SimpleDebitScenario(BANKING_DATA, pipeline, numOfAccounts);
+    var scenario = new SimpleDebitScenario(data, pipeline, MSG_COUNT);
+    StepVerifier.create(scenario.publishCommands()).expectNextCount(MSG_COUNT * 3).verifyComplete();
 
     // Then
     var now = System.currentTimeMillis();
-    StepVerifier.create(scenario.handleCommands()).expectNextCount(numOfAccounts * 5L).expectTimeout(timeout).verify();
+    StepVerifier.create(scenario.handleCommands()).expectNextCount(MSG_COUNT * 5L).expectTimeout(TIMEOUT).verify();
     System.out.println(System.currentTimeMillis() - now);
     //    StepVerifier.create(scenario.verify(scenario.handle()))
     //                .expectNextCount(numOfAccounts * 5L)
@@ -65,27 +56,24 @@ class EventSourcingScenarioTest {
   @ValueSource(ints = {1, 10, 100, 1000, 10_000, 100_000, 200_000, 300_000, 400_000, 500_000, 600_000, 1000_000})
   void performance(int numOfAccounts) throws JetStreamApiException, IOException, InterruptedException {
     // Given
-    int randomPostFix = r.nextInt(1000);
-    var commandRoute = new CommandRoute(toCommandTopic(numOfAccounts, randomPostFix), 0);
-    var eventRoute = new EventRoute(toEventTopic(numOfAccounts, randomPostFix), 0);
+    var commandRoute = new CommandRoute(TestsuiteUtils.topicName("commands"), 0);
+    var eventRoute = new EventRoute(TestsuiteUtils.topicName("events"), 0);
     var pipeline = createPipeline(commandRoute, eventRoute);
 
     // When
     createTopics(commandRoute, eventRoute);
-    var scenario = new PerformanceScenario(BANKING_DATA, pipeline, numOfAccounts);
+    var scenario = new PerformanceScenario(data, pipeline, numOfAccounts);
 
     // Then
-    StepVerifier.create(scenario.handleCommands()).expectNextCount(numOfAccounts * 5L).expectTimeout(timeout).verify();
+    StepVerifier.create(scenario.handleCommands()).expectNextCount(numOfAccounts * 5L).expectTimeout(TIMEOUT).verify();
   }
 
   @Disabled("Manual check")
   @Test
   void manualCheck() throws JetStreamApiException, IOException, InterruptedException {
     // Given
-    int numOfAccounts = 20;
-    int randomPostFix = 232;
-    var commandRoute = new CommandRoute(toCommandTopic(numOfAccounts, randomPostFix), 0);
-    var eventRoute = new EventRoute(toEventTopic(numOfAccounts, randomPostFix), 0);
+    var commandRoute = new CommandRoute(TestsuiteUtils.topicName("commands"), 0);
+    var eventRoute = new EventRoute(TestsuiteUtils.topicName("events"), 0);
     var pipeline = createPipeline(commandRoute, eventRoute);
 
     // When
@@ -106,27 +94,19 @@ class EventSourcingScenarioTest {
     NatsUtils.createOrUpdateTopic(natsConfig, eventRoute.topicName(), eventRoute.totalPartitions());
   }
 
-  private String toCommandTopic(int numOfAccounts, int random) {
-    return "%d-%s-%d".formatted(numOfAccounts, commandsTopicPrefix, random);
-  }
-
-  private String toEventTopic(int numOfAccounts, int random) {
-    return "%d-%s-%d".formatted(numOfAccounts, eventsTopicPrefix, random);
-  }
-
   private PartitionPipeline<Account, AccountCommand, AccountEvent> createPipeline(CommandRoute commandRoute,
                                                                                   EventRoute eventRoute) {
     try {
       // Streams
       var commandStream = new NatsCommandStream<>(natsConfig,
                                                   AccountCommand.class,
-                                                  transformer,
-                                                  Schedulers.boundedElastic());
-      var eventStream = new NatsEventStream<>(natsConfig, AccountEvent.class, transformer, Schedulers.boundedElastic());
+                                                  SERIALIZABLE_TRANSFORMER,
+                                                  SCHEDULER);
+      var eventStream = new NatsEventStream<>(natsConfig, AccountEvent.class, SERIALIZABLE_TRANSFORMER, SCHEDULER);
 
       // Pipeline
-      return BankingInfra.createPipeline(BANKING_DATA.idSupplier,
-                                         BANKING_DATA.timeSupplier,
+      return BankingInfra.createPipeline(data.idSupplier,
+                                         data.timeSupplier,
                                          commandStream,
                                          commandRoute,
                                          eventStream,

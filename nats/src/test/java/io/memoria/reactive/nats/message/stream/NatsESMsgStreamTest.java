@@ -27,7 +27,7 @@ class NatsESMsgStreamTest {
     try {
       String topic = TestsuiteUtils.topicName(NatsESMsgStreamTest.class);
       NatsUtils.createOrUpdateTopic(natsConfig, topic, 1).map(StreamInfo::toString).forEach(log::info);
-      var repo = new NatsESMsgStream(natsConfig, TestsuiteUtils.SCHEDULER, TestsuiteUtils.SERIALIZABLE_TRANSFORMER);
+      var repo = new NatsESMsgStream(natsConfig, TestsuiteUtils.SERIALIZABLE_TRANSFORMER, TestsuiteUtils.SCHEDULER);
       scenario = new ESMsgStreamScenario(TestsuiteUtils.MSG_COUNT, topic, 0, repo);
     } catch (IOException | InterruptedException | JetStreamApiException e) {
       throw new RuntimeException(e);

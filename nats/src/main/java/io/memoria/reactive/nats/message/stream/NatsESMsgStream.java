@@ -27,10 +27,10 @@ public class NatsESMsgStream implements ESMsgStream {
   private static final Logger log = LoggerFactory.getLogger(NatsESMsgStream.class.getName());
   private final NatsConfig natsConfig;
   private final JetStream js;
-  private final TextTransformer transformer;
   private final Scheduler scheduler;
+  private final TextTransformer transformer;
 
-  public NatsESMsgStream(NatsConfig natsConfig, Scheduler scheduler, TextTransformer transformer)
+  public NatsESMsgStream(NatsConfig natsConfig, TextTransformer transformer, Scheduler scheduler)
           throws IOException, InterruptedException {
     this(natsConfig, NatsUtils.natsConnection(natsConfig), transformer, scheduler);
   }

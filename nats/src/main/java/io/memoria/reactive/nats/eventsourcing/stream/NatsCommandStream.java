@@ -1,4 +1,4 @@
-package io.memoria.reactive.nats.eventsourcing;
+package io.memoria.reactive.nats.eventsourcing.stream;
 
 import io.memoria.atom.core.text.TextTransformer;
 import io.memoria.reactive.core.reactor.ReactorUtils;

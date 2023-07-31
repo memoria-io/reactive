@@ -17,6 +17,8 @@ public class SimpleDebitScenario implements PartitionScenario<Account, AccountCo
   private final BankingData bankingData;
   private final PartitionPipeline<Account, AccountCommand, AccountEvent> pipeline;
   private final int numOfAccounts;
+  public final int expectedCommandsCount;
+  public final int expectedEventsCount;
 
   public SimpleDebitScenario(BankingData bankingData,
                              PartitionPipeline<Account, AccountCommand, AccountEvent> pipeline,
@@ -24,6 +26,8 @@ public class SimpleDebitScenario implements PartitionScenario<Account, AccountCo
     this.bankingData = bankingData;
     this.pipeline = pipeline;
     this.numOfAccounts = numOfAccounts;
+    this.expectedCommandsCount = numOfAccounts * 3;
+    this.expectedEventsCount = numOfAccounts * 5;
   }
 
   @Override

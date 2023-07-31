@@ -1,9 +1,10 @@
-package io.memoria.reactive.kafka.eventsourcing;
+package io.memoria.reactive.kafka.eventsourcing.stream;
 
+import io.memoria.atom.core.id.Id;
 import io.memoria.atom.core.text.TextTransformer;
 import io.memoria.reactive.core.reactor.ReactorUtils;
-import io.memoria.reactive.eventsourcing.Command;
-import io.memoria.reactive.eventsourcing.stream.CommandStream;
+import io.memoria.reactive.eventsourcing.Event;
+import io.memoria.reactive.eventsourcing.stream.EventStream;
 import io.memoria.reactive.kafka.KafkaUtils;
 import io.vavr.collection.Map;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -17,33 +18,45 @@ import reactor.kafka.sender.KafkaSender;
 import reactor.kafka.sender.SenderRecord;
 import reactor.kafka.sender.SenderResult;
 
+import java.time.Duration;
+
 import static java.util.Collections.singleton;
 
-public class KafkaCommandStream<C extends Command> implements CommandStream<C> {
+public class KafkaEventStream<E extends Event> implements EventStream<E> {
   public final Map<String, Object> producerConfig;
   public final Map<String, Object> consumerConfig;
-  public final Class<C> cClass;
+  public final Class<E> eClass;
   public final TextTransformer transformer;
   private final KafkaSender<String, String> sender;
+  private final Duration timeout;
 
-  public KafkaCommandStream(Map<String, Object> producerConfig,
-                            Map<String, Object> consumerConfig,
-                            Class<C> cClass,
-                            TextTransformer transformer) {
+  public KafkaEventStream(Map<String, Object> producerConfig,
+                          Map<String, Object> consumerConfig,
+                          Class<E> eClass,
+                          TextTransformer transformer,
+                          Duration timeout) {
     this.producerConfig = producerConfig;
     this.consumerConfig = consumerConfig;
-    this.cClass = cClass;
+    this.eClass = eClass;
     this.transformer = transformer;
     this.sender = KafkaUtils.createSender(producerConfig);
+    this.timeout = timeout;
   }
 
   @Override
-  public Mono<C> pub(String topic, int partition, C c) {
+  public Mono<Id> last(String topic, int partition) {
+    return Mono.fromCallable(() -> KafkaUtils.lastKey(topic, partition, timeout, consumerConfig))
+               .flatMap(ReactorUtils::optionToMono)
+               .map(Id::of);
+  }
+
+  @Override
+  public Mono<E> pub(String topic, int partition, E c) {
     return this.sender.send(this.toRecord(topic, partition, c)).map(SenderResult::correlationMetadata).single();
   }
 
   @Override
-  public Flux<C> sub(String topic, int partition) {
+  public Flux<E> sub(String topic, int partition) {
     return receive(topic, partition).concatMap(this::toMsg);
   }
 
@@ -56,16 +69,16 @@ public class KafkaCommandStream<C extends Command> implements CommandStream<C> {
     return KafkaReceiver.create(receiverOptions).receive();
   }
 
-  private Mono<SenderRecord<String, String, C>> toRecord(String topic, int partition, C cmd) {
-    return ReactorUtils.tryToMono(() -> transformer.serialize(cmd))
-                       .map(payload -> toRecord(topic, partition, cmd, payload));
+  private Mono<SenderRecord<String, String, E>> toRecord(String topic, int partition, E event) {
+    return ReactorUtils.tryToMono(() -> transformer.serialize(event))
+                       .map(payload -> toRecord(topic, partition, event, payload));
   }
 
-  private SenderRecord<String, String, C> toRecord(String topic, int partition, C cmd, String payload) {
-    return SenderRecord.create(topic, partition, null, cmd.commandId().value(), payload, cmd);
+  private SenderRecord<String, String, E> toRecord(String topic, int partition, E event, String payload) {
+    return SenderRecord.create(topic, partition, null, event.commandId().value(), payload, event);
   }
 
-  public Mono<C> toMsg(ConsumerRecord<String, String> rec) {
-    return ReactorUtils.tryToMono(() -> transformer.deserialize(rec.value(), cClass));
+  public Mono<E> toMsg(ConsumerRecord<String, String> rec) {
+    return ReactorUtils.tryToMono(() -> transformer.deserialize(rec.value(), eClass));
   }
 }
