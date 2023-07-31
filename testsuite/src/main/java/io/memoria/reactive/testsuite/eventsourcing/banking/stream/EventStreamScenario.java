@@ -1,15 +1,14 @@
-package io.memoria.reactive.testsuite.eventsourcing.banking;
+package io.memoria.reactive.testsuite.eventsourcing.banking.stream;
 
 import io.memoria.reactive.eventsourcing.stream.EventStream;
-import io.memoria.reactive.testsuite.eventsourcing.EventStreamScenario;
+import io.memoria.reactive.testsuite.eventsourcing.banking.BankingData;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.event.AccountEvent;
-import io.memoria.reactive.testsuite.message.stream.ESMsgStreamScenario;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 
-public class BankingStreamScenario implements EventStreamScenario<AccountEvent> {
-  private static final Logger log = LoggerFactory.getLogger(ESMsgStreamScenario.class.getName());
+public class EventStreamScenario {
+  private static final Logger log = LoggerFactory.getLogger(EventStreamScenario.class.getName());
   private static final int initialBalance = 500;
 
   private final BankingData bankingData;
@@ -18,11 +17,11 @@ public class BankingStreamScenario implements EventStreamScenario<AccountEvent> 
   private final String topic;
   private final int partition;
 
-  public BankingStreamScenario(BankingData bankingData,
-                               EventStream<AccountEvent> repo,
-                               int numOfAccounts,
-                               String topic,
-                               int partition) {
+  public EventStreamScenario(BankingData bankingData,
+                             EventStream<AccountEvent> repo,
+                             int numOfAccounts,
+                             String topic,
+                             int partition) {
     this.bankingData = bankingData;
     this.repo = repo;
     this.numOfAccounts = numOfAccounts;

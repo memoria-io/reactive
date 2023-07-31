@@ -1,10 +1,10 @@
 package io.memoria.reactive.nats.eventsourcing;
 
-import io.memoria.reactive.eventsourcing.stream.CommandStream;
-import io.memoria.reactive.testsuite.TestsuiteUtils;
-import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.AccountCommand;
-import io.memoria.reactive.testsuite.eventsourcing.banking.BankingData;
 import io.memoria.reactive.nats.NatsUtils;
+import io.memoria.reactive.testsuite.TestsuiteUtils;
+import io.memoria.reactive.testsuite.eventsourcing.banking.BankingData;
+import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.AccountCommand;
+import io.memoria.reactive.testsuite.eventsourcing.banking.stream.CommandStreamScenario;
 import io.nats.client.JetStreamApiException;
 import io.nats.client.api.StreamInfo;
 import org.junit.jupiter.api.MethodOrderer;
@@ -25,14 +25,14 @@ class NatsCommandStreamTest {
   private static final Logger log = LoggerFactory.getLogger(NatsCommandStreamTest.class.getName());
   private static final String topic = TestsuiteUtils.topicName(NatsCommandStreamTest.class);
   private static final int partition = 0;
-  private static final CommandStream<AccountCommand> commandStream;
-  private static final BankingData BANKING_DATA;
+  private static final CommandStreamScenario scenario;
 
   static {
     try {
-      commandStream = new NatsCommandStream<>(natsConfig, AccountCommand.class, SERIALIZABLE_TRANSFORMER, SCHEDULER);
-      BANKING_DATA = BankingData.ofUUID();
+      var repo = new NatsCommandStream<>(natsConfig, AccountCommand.class, SERIALIZABLE_TRANSFORMER, SCHEDULER);
+      var data = BankingData.ofUUID();
       NatsUtils.createOrUpdateTopic(natsConfig, topic, 1).map(StreamInfo::toString).forEach(log::info);
+      scenario = new CommandStreamScenario(BankingData.ofUUID(), repo, TestsuiteUtils.MSG_COUNT, topic, partition);
     } catch (IOException | InterruptedException | JetStreamApiException e) {
       throw new RuntimeException(e);
     }
@@ -40,23 +40,14 @@ class NatsCommandStreamTest {
 
   @Test
   void publish() {
-    // Given
-    var ids = BANKING_DATA.createIds(0, TestsuiteUtils.MSG_COUNT);
-    var commands = ids.map(id -> BANKING_DATA.createAccountCmd(id, 500));
-
-    // When
-    var pub = commands.flatMap(cmd -> commandStream.pub(topic, partition, cmd));
-
-    // Then
-    StepVerifier.create(pub).expectNextCount(TestsuiteUtils.MSG_COUNT).verifyComplete();
+    StepVerifier.create(scenario.publish()).expectNextCount(TestsuiteUtils.MSG_COUNT).verifyComplete();
   }
 
   @Test
   void subscribe() {
-    // When
-    var sub = commandStream.sub(topic, partition);
-
-    // Then
-    StepVerifier.create(sub).expectNextCount(TestsuiteUtils.MSG_COUNT).expectTimeout(TestsuiteUtils.TIMEOUT).verify();
+    StepVerifier.create(scenario.subscribe())
+                .expectNextCount(TestsuiteUtils.MSG_COUNT)
+                .expectTimeout(TestsuiteUtils.TIMEOUT)
+                .verify();
   }
 }

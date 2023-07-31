@@ -1,16 +1,18 @@
-package io.memoria.reactive.testsuite.eventsourcing.banking.scenario;
+package io.memoria.reactive.testsuite.eventsourcing.banking.pipeline.partition;
 
 import io.memoria.reactive.eventsourcing.pipeline.partition.PartitionPipeline;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingData;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.AccountCommand;
+import io.memoria.reactive.testsuite.eventsourcing.banking.domain.event.AccountCreated;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.event.AccountEvent;
+import io.memoria.reactive.testsuite.eventsourcing.banking.domain.event.Credited;
+import io.memoria.reactive.testsuite.eventsourcing.banking.domain.event.DebitConfirmed;
+import io.memoria.reactive.testsuite.eventsourcing.banking.domain.event.Debited;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.state.Account;
-import io.memoria.reactive.testsuite.eventsourcing.banking.domain.state.OpenAccount;
-import io.vavr.collection.Map;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public class SimpleDebitScenario implements BankingScenario {
+public class PerformanceScenario implements PartitionScenario<Account, AccountCommand, AccountEvent> {
   private static final int initialBalance = 500;
   private static final int debitAmount = 300;
 
@@ -18,7 +20,7 @@ public class SimpleDebitScenario implements BankingScenario {
   private final PartitionPipeline<Account, AccountCommand, AccountEvent> pipeline;
   private final int numOfAccounts;
 
-  public SimpleDebitScenario(BankingData bankingData,
+  public PerformanceScenario(BankingData bankingData,
                              PartitionPipeline<Account, AccountCommand, AccountEvent> pipeline,
                              int numOfAccounts) {
     this.bankingData = bankingData;
@@ -45,33 +47,26 @@ public class SimpleDebitScenario implements BankingScenario {
 
   @Override
   public Mono<Boolean> verify(Flux<AccountEvent> events) {
-    return pipeline.domain.evolver()
-                          .reduce(events)
-                          .map(Map::values)
-                          .flatMapMany(Flux::fromIterable)
-                          .map(acc -> (OpenAccount) acc)
-                          .map(this::verify)
-                          .reduce((a, b) -> a && b);
+    var startTime = System.currentTimeMillis();
+    return pipeline.handle()
+                   .take(numOfAccounts * 5L)
+                   .count()
+                   .doOnNext(count -> printf(startTime, count))
+                   .map(i -> true);
   }
 
-  boolean verify(OpenAccount acc) {
-    if (acc.debitCount() > 0) {
-      return hasExpectedBalance(acc, initialBalance - debitAmount);
-    } else if (acc.creditCount() > 0) {
-      return hasExpectedBalance(acc, initialBalance + debitAmount);
-    } else {
-      return hasExpectedBalance(acc, initialBalance);
-    }
+  private static void printf(long start, Long i) {
+    System.out.printf("Processed %d events in  %d millis %n", i, System.currentTimeMillis() - start);
   }
 
-  private static boolean hasExpectedBalance(OpenAccount acc, int expected) {
-    if (acc.balance() == expected) {
-      //      System.out.println("success:" + acc);
+  private static boolean isTypeOf(AccountEvent acc) {
+    if (acc instanceof AccountCreated
+        || acc instanceof Debited
+        || acc instanceof Credited
+        || acc instanceof DebitConfirmed) {
       return true;
     } else {
-      //      System.out.println("fail:" + acc);
-      var msg = "Account %s balance is %d not %d".formatted(acc.accountId(), acc.balance(), expected);
-      throw new IllegalStateException(msg);
+      throw new IllegalStateException("Unknown event %s".formatted(acc.getClass().getSimpleName()));
     }
   }
 }
