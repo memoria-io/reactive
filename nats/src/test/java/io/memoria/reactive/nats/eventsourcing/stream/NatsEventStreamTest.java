@@ -17,7 +17,7 @@ import reactor.test.StepVerifier;
 
 import java.io.IOException;
 
-import static io.memoria.reactive.nats.TestUtils.natsConfig;
+import static io.memoria.reactive.nats.TestUtils.NATS_CONFIG;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class NatsEventStreamTest {
@@ -28,11 +28,11 @@ class NatsEventStreamTest {
 
   static {
     try {
-      var repo = new NatsEventStream<>(natsConfig,
+      var repo = new NatsEventStream<>(NATS_CONFIG,
                                        AccountEvent.class,
-                                       TestsuiteUtils.SERIALIZABLE_TRANSFORMER,
+                                       TestsuiteUtils.TRANSFORMER,
                                        TestsuiteUtils.SCHEDULER);
-      NatsUtils.createOrUpdateTopic(natsConfig, topic, 1).map(StreamInfo::toString).forEach(log::info);
+      NatsUtils.createOrUpdateTopic(NATS_CONFIG, topic, 1).map(StreamInfo::toString).forEach(log::info);
       scenario = new EventStreamScenario(BankingData.ofUUID(), repo, TestsuiteUtils.MSG_COUNT, topic, partition);
     } catch (IOException | InterruptedException | JetStreamApiException e) {
       throw new RuntimeException(e);

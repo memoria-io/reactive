@@ -7,6 +7,10 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public interface PartitionScenario<S extends State, C extends Command, E extends Event> {
+  int expectedCommandsCount();
+
+  int expectedEventsCount();
+
   Flux<C> publishCommands();
 
   Flux<E> handleCommands();

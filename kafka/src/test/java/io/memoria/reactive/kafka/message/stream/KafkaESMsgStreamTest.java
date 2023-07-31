@@ -2,6 +2,7 @@ package io.memoria.reactive.kafka.message.stream;
 
 import io.memoria.reactive.core.message.stream.ESMsgStream;
 import io.memoria.reactive.kafka.TestUtils;
+import io.memoria.reactive.testsuite.TestsuiteUtils;
 import io.vavr.collection.List;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Test;
@@ -9,15 +10,12 @@ import org.junit.jupiter.api.TestMethodOrder;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
-import java.time.Duration;
-import java.util.Random;
+import static io.memoria.reactive.testsuite.TestsuiteUtils.MSG_COUNT;
+import static io.memoria.reactive.testsuite.TestsuiteUtils.TIMEOUT;
 
 @TestMethodOrder(OrderAnnotation.class)
 class KafkaESMsgStreamTest {
-  private static final Duration timeout = Duration.ofMillis(500);
-  private static final Random random = new Random();
-  private static final int MSG_COUNT = 1000;
-  private final String topic = "node" + random.nextInt(1000);
+  private final String topic = TestsuiteUtils.topicName("messages");
   private final int partition = 0;
   private final ESMsgStream repo;
 
@@ -33,7 +31,7 @@ class KafkaESMsgStreamTest {
   @Test
   void publish() {
     // Given
-    var msgs = List.range(0, MSG_COUNT).map(i -> TestUtils.createEsMsg(i));
+    var msgs = List.range(0, MSG_COUNT).map(TestUtils::createEsMsg);
     // When
     var pub = Flux.fromIterable(msgs).concatMap(msg -> repo.pub(topic, partition, msg));
     // Then
@@ -44,7 +42,7 @@ class KafkaESMsgStreamTest {
   @Test
   void subscribe() {
     // Given
-    var msgs = List.range(0, MSG_COUNT).map(i -> TestUtils.createEsMsg(i));
+    var msgs = List.range(0, MSG_COUNT).map(TestUtils::createEsMsg);
     var pub = Flux.fromIterable(msgs).concatMap(msg -> repo.pub(topic, partition, msg));
 
     // When
@@ -52,7 +50,7 @@ class KafkaESMsgStreamTest {
 
     // Given
     StepVerifier.create(pub).expectNextCount(MSG_COUNT).verifyComplete();
-    StepVerifier.create(sub).expectNextCount(MSG_COUNT).expectTimeout(timeout).verify();
-    StepVerifier.create(sub).expectNextSequence(msgs).expectTimeout(timeout).verify();
+    StepVerifier.create(sub).expectNextCount(MSG_COUNT).expectTimeout(TIMEOUT).verify();
+    StepVerifier.create(sub).expectNextSequence(msgs).expectTimeout(TIMEOUT).verify();
   }
 }

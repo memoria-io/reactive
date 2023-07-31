@@ -16,7 +16,8 @@ import reactor.test.StepVerifier;
 
 import java.io.IOException;
 
-import static io.memoria.reactive.nats.TestUtils.natsConfig;
+import static io.memoria.reactive.nats.TestUtils.NATS_CONFIG;
+import static io.memoria.reactive.testsuite.TestsuiteUtils.*;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class NatsESMsgStreamTest {
@@ -26,9 +27,9 @@ class NatsESMsgStreamTest {
   static {
     try {
       String topic = TestsuiteUtils.topicName(NatsESMsgStreamTest.class);
-      NatsUtils.createOrUpdateTopic(natsConfig, topic, 1).map(StreamInfo::toString).forEach(log::info);
-      var repo = new NatsESMsgStream(natsConfig, TestsuiteUtils.SERIALIZABLE_TRANSFORMER, TestsuiteUtils.SCHEDULER);
-      scenario = new ESMsgStreamScenario(TestsuiteUtils.MSG_COUNT, topic, 0, repo);
+      NatsUtils.createOrUpdateTopic(NATS_CONFIG, topic, 1).map(StreamInfo::toString).forEach(log::info);
+      var repo = new NatsESMsgStream(NATS_CONFIG, TRANSFORMER, SCHEDULER);
+      scenario = new ESMsgStreamScenario(MSG_COUNT, topic, 0, repo);
     } catch (IOException | InterruptedException | JetStreamApiException e) {
       throw new RuntimeException(e);
     }
@@ -37,17 +38,14 @@ class NatsESMsgStreamTest {
   @Test
   @Order(0)
   void publish() {
-    StepVerifier.create(scenario.publish()).expectNextCount(TestsuiteUtils.MSG_COUNT).verifyComplete();
-    StepVerifier.create(scenario.last()).expectNext(String.valueOf(TestsuiteUtils.MSG_COUNT - 1)).verifyComplete();
+    StepVerifier.create(scenario.publish()).expectNextCount(MSG_COUNT).verifyComplete();
+    StepVerifier.create(scenario.last()).expectNext(String.valueOf(MSG_COUNT - 1)).verifyComplete();
   }
 
   @Test
   @Order(1)
   void subscribe() {
-    StepVerifier.create(scenario.subscribe())
-                .expectNextCount(TestsuiteUtils.MSG_COUNT)
-                .expectTimeout(TestsuiteUtils.TIMEOUT)
-                .verify();
+    StepVerifier.create(scenario.subscribe()).expectNextCount(MSG_COUNT).expectTimeout(TIMEOUT).verify();
   }
 
   @Test

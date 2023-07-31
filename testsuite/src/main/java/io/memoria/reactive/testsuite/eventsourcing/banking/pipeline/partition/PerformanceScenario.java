@@ -29,6 +29,16 @@ public class PerformanceScenario implements PartitionScenario<Account, AccountCo
   }
 
   @Override
+  public int expectedCommandsCount() {
+    return numOfAccounts * 3;
+  }
+
+  @Override
+  public int expectedEventsCount() {
+    return numOfAccounts * 5;
+  }
+
+  @Override
   public Flux<AccountCommand> publishCommands() {
     var debitedIds = bankingData.createIds(0, numOfAccounts);
     var creditedIds = bankingData.createIds(numOfAccounts, numOfAccounts);

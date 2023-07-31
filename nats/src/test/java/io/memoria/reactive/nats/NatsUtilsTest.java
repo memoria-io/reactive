@@ -9,7 +9,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
-import static io.memoria.reactive.nats.TestUtils.natsConfig;
+import static io.memoria.reactive.nats.TestUtils.NATS_CONFIG;
 
 class NatsUtilsTest {
   private static final Logger log = LoggerFactory.getLogger(NatsUtilsTest.class.getName());
@@ -20,7 +20,7 @@ class NatsUtilsTest {
 
       String topic = "20-events-451";
       int numOfPartitions = 1;
-      NatsUtils.createOrUpdateTopic(natsConfig, topic, numOfPartitions).map(StreamInfo::toString).forEach(log::info);
+      NatsUtils.createOrUpdateTopic(NATS_CONFIG, topic, numOfPartitions).map(StreamInfo::toString).forEach(log::info);
       //      var js = NatsUtils.jetStreamSub(nc.jetStream(), DeliverPolicy.All, topic, partition);
       //      NatsUtils.fetch(js, natsConfig)
       //               .map(Message::getData)

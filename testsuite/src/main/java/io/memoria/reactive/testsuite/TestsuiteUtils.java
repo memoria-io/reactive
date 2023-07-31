@@ -10,15 +10,15 @@ import java.time.Duration;
 public class TestsuiteUtils {
 
   public static final Scheduler SCHEDULER = Schedulers.boundedElastic();
-  public static final int MSG_COUNT = 7773;
+  public static final int MSG_COUNT = 10003;
   public static final Duration TIMEOUT = Duration.ofMillis(500);
-  public static final TextTransformer SERIALIZABLE_TRANSFORMER = new SerializableTransformer();
+  public static final TextTransformer TRANSFORMER = new SerializableTransformer();
 
   public static String topicName(String postfix) {
-    return "topic%d_%s".formatted(System.currentTimeMillis() / 1000, postfix);
+    return "topic%d_%s".formatted(System.currentTimeMillis(), postfix);
   }
 
   public static String topicName(Class<?> tClass) {
-    return "topic%d_%s".formatted(System.currentTimeMillis() / 1000, tClass.getSimpleName());
+    return "topic%d_%s".formatted(System.currentTimeMillis(), tClass.getSimpleName());
   }
 }

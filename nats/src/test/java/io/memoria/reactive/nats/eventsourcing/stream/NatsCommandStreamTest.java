@@ -16,7 +16,10 @@ import reactor.test.StepVerifier;
 
 import java.io.IOException;
 
-import static io.memoria.reactive.nats.TestUtils.natsConfig;
+import static io.memoria.reactive.nats.TestUtils.NATS_CONFIG;
+import static io.memoria.reactive.testsuite.TestsuiteUtils.MSG_COUNT;
+import static io.memoria.reactive.testsuite.TestsuiteUtils.SCHEDULER;
+import static io.memoria.reactive.testsuite.TestsuiteUtils.TRANSFORMER;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class NatsCommandStreamTest {
@@ -27,12 +30,9 @@ class NatsCommandStreamTest {
 
   static {
     try {
-      var repo = new NatsCommandStream<>(natsConfig,
-                                         AccountCommand.class,
-                                         TestsuiteUtils.SERIALIZABLE_TRANSFORMER,
-                                         TestsuiteUtils.SCHEDULER);
-      NatsUtils.createOrUpdateTopic(natsConfig, topic, 1).map(StreamInfo::toString).forEach(log::info);
-      scenario = new CommandStreamScenario(BankingData.ofUUID(), repo, TestsuiteUtils.MSG_COUNT, topic, partition);
+      var repo = new NatsCommandStream<>(NATS_CONFIG, AccountCommand.class, TRANSFORMER, SCHEDULER);
+      NatsUtils.createOrUpdateTopic(NATS_CONFIG, topic, 1).map(StreamInfo::toString).forEach(log::info);
+      scenario = new CommandStreamScenario(BankingData.ofUUID(), repo, MSG_COUNT, topic, partition);
     } catch (IOException | InterruptedException | JetStreamApiException e) {
       throw new RuntimeException(e);
     }
@@ -40,14 +40,11 @@ class NatsCommandStreamTest {
 
   @Test
   void publish() {
-    StepVerifier.create(scenario.publish()).expectNextCount(TestsuiteUtils.MSG_COUNT).verifyComplete();
+    StepVerifier.create(scenario.publish()).expectNextCount(MSG_COUNT).verifyComplete();
   }
 
   @Test
   void subscribe() {
-    StepVerifier.create(scenario.subscribe())
-                .expectNextCount(TestsuiteUtils.MSG_COUNT)
-                .expectTimeout(TestsuiteUtils.TIMEOUT)
-                .verify();
+    StepVerifier.create(scenario.subscribe()).expectNextCount(MSG_COUNT).expectTimeout(TestsuiteUtils.TIMEOUT).verify();
   }
 }
