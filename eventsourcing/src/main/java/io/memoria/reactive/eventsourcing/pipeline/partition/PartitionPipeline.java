@@ -64,8 +64,8 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
     var handleCommands = cmds.concatMap(this::redirectIfNotBelong) // Redirection allows location transparency and auto sharding
                              .concatMap(this::handleCommand) // handle the command
                              .concatMap(this::evolve) // evolve the state
-                             .concatMap(this::pubEvent) // publish the event
-                             .concatMap(this::saga); // publish saga command;
+                             .concatMap(this::saga) // publish saga command;
+                             .concatMap(this::pubEvent); // publish the event
     return init().concatWith(handleCommands);
   }
 
