@@ -1,6 +1,8 @@
 package io.memoria.reactive.eventsourcing.stream;
 
-import io.memoria.atom.core.id.Id;
+import io.memoria.reactive.eventsourcing.CommandId;
+import io.memoria.reactive.eventsourcing.EventId;
+import io.memoria.reactive.eventsourcing.StateId;
 import org.assertj.core.api.Assertions;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;
@@ -13,15 +15,15 @@ import java.util.concurrent.atomic.AtomicInteger;
 class EventStreamTest {
   private static final Duration timeout = Duration.ofSeconds(5);
   private static final int ELEMENTS_SIZE = 1000;
-  private static final Id S0 = Id.of(0);
+  private static final StateId s0 = StateId.of(0L);
   private static final String topic = "commands";
   private static final int totalPartitions = 1;
-  private final EventStream<SomeEvent> stream = EventStream.inMemory();
+  private final EventStream<SomeEvent> stream = EventStream.inMemory(SomeEvent.class);
 
   @Test
   void publishAndSubscribe() {
     // Given
-    var cmds = Flux.range(0, ELEMENTS_SIZE).map(i -> new SomeEvent(Id.of(i), S0, Id.of(i)));
+    var cmds = Flux.range(0, ELEMENTS_SIZE).map(i -> new SomeEvent(EventId.of(i), s0, CommandId.of(i)));
 
     // When
     StepVerifier.create(cmds.flatMap(c -> stream.pub(topic, 0, c))).expectNextCount(ELEMENTS_SIZE).verifyComplete();
@@ -36,7 +38,7 @@ class EventStreamTest {
   }
 
   private static void verify(SomeEvent event) {
-    Assertions.assertThat(event.stateId()).isEqualTo(S0);
+    Assertions.assertThat(event.stateId()).isEqualTo(s0);
     Assertions.assertThat(event.partition(totalPartitions)).isEqualTo(0);
   }
 }

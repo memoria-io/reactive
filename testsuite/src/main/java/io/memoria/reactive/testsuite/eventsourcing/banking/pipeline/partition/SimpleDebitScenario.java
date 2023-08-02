@@ -1,5 +1,6 @@
 package io.memoria.reactive.testsuite.eventsourcing.banking.pipeline.partition;
 
+import io.memoria.reactive.eventsourcing.StateId;
 import io.memoria.reactive.eventsourcing.pipeline.partition.PartitionPipeline;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingData;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.AccountCommand;
@@ -39,8 +40,8 @@ public class SimpleDebitScenario implements PartitionScenario<Account, AccountCo
 
   @Override
   public Flux<AccountCommand> publishCommands() {
-    var debitedIds = bankingData.createIds(0, numOfAccounts);
-    var creditedIds = bankingData.createIds(numOfAccounts, numOfAccounts);
+    var debitedIds = bankingData.createIds(0, numOfAccounts).map(StateId::of);
+    var creditedIds = bankingData.createIds(numOfAccounts, numOfAccounts).map(StateId::of);
     var createDebitedAcc = bankingData.createAccountCmd(debitedIds, initialBalance);
     var createCreditedAcc = bankingData.createAccountCmd(creditedIds, initialBalance);
     var debitTheAccounts = bankingData.debitCmd(debitedIds.zipWith(creditedIds), debitAmount);

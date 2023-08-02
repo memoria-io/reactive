@@ -3,8 +3,8 @@ package io.memoria.reactive.kafka;
 import io.memoria.reactive.eventsourcing.pipeline.partition.CommandRoute;
 import io.memoria.reactive.eventsourcing.pipeline.partition.EventRoute;
 import io.memoria.reactive.eventsourcing.pipeline.partition.PartitionPipeline;
-import io.memoria.reactive.kafka.eventsourcing.stream.KafkaCommandStream;
-import io.memoria.reactive.kafka.eventsourcing.stream.KafkaEventStream;
+import io.memoria.reactive.eventsourcing.stream.CommandStream;
+import io.memoria.reactive.eventsourcing.stream.EventStream;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingData;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingInfra;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.AccountCommand;
@@ -19,8 +19,8 @@ import org.apache.kafka.common.serialization.StringSerializer;
 
 import java.time.Duration;
 
-import static io.memoria.reactive.testsuite.TestsuiteUtils.TRANSFORMER;
-import static io.memoria.reactive.testsuite.TestsuiteUtils.topicName;
+import static io.memoria.reactive.testsuite.TestsuiteDefaults.TRANSFORMER;
+import static io.memoria.reactive.testsuite.TestsuiteDefaults.topicName;
 
 public class TestUtils {
   public static final Duration kafkaTimeout = Duration.ofMillis(500);
@@ -55,15 +55,9 @@ public class TestUtils {
   }
 
   public static PartitionPipeline<Account, AccountCommand, AccountEvent> createPipeline() {
-    var commandStream = new KafkaCommandStream<>(producerConfigs(),
-                                                 consumerConfigs(),
-                                                 AccountCommand.class,
-                                                 TRANSFORMER);
-    var eventStream = new KafkaEventStream<>(producerConfigs(),
-                                             consumerConfigs(),
-                                             AccountEvent.class,
-                                             TRANSFORMER,
-                                             kafkaTimeout);
+    var msgStream = new KafkaMsgStream(producerConfigs(), consumerConfigs(), Duration.ofMillis(500));
+    var commandStream = CommandStream.msgStream(msgStream, AccountCommand.class, TRANSFORMER);
+    var eventStream = EventStream.msgStream(msgStream, AccountEvent.class, TRANSFORMER);
     var commandRoute = new CommandRoute(topicName("commands"), 0);
     var eventRoute = new EventRoute(topicName("events"), 0);
     return BankingInfra.createPipeline(DATA.idSupplier,

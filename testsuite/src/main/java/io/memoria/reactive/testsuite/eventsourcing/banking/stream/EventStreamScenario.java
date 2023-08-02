@@ -1,5 +1,6 @@
 package io.memoria.reactive.testsuite.eventsourcing.banking.stream;
 
+import io.memoria.reactive.eventsourcing.StateId;
 import io.memoria.reactive.eventsourcing.stream.EventStream;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingData;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.event.AccountEvent;
@@ -30,7 +31,7 @@ public class EventStreamScenario {
   }
 
   public Flux<AccountEvent> publish() {
-    var debitedIds = bankingData.createIds(0, numOfAccounts);
+    var debitedIds = bankingData.createIds(0, numOfAccounts).map(StateId::of);
     var createDebitedAcc = bankingData.createAccountEvent(debitedIds, initialBalance);
     return createDebitedAcc.flatMap(msg -> repo.pub(topic, partition, msg));
   }

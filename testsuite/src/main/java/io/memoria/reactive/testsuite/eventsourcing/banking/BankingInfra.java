@@ -21,9 +21,13 @@ public class BankingInfra {
   public static PartitionPipeline<Account, AccountCommand, AccountEvent> createMemoryPipeline(Supplier<Id> idSupplier,
                                                                                               Supplier<Long> timeSupplier) {
     var domain = stateDomain(idSupplier, timeSupplier);
+
     var commandRoute = new CommandRoute("commands", 0);
     var eventRoute = new EventRoute("events", 0);
-    return new PartitionPipeline<>(domain, CommandStream.inMemory(), commandRoute, EventStream.inMemory(), eventRoute);
+
+    var commandStream = CommandStream.inMemory(AccountCommand.class);
+    var eventStream = EventStream.inMemory(AccountEvent.class);
+    return new PartitionPipeline<>(domain, commandStream, commandRoute, eventStream, eventRoute);
   }
 
   public static PartitionPipeline<Account, AccountCommand, AccountEvent> createMemoryPipeline(Supplier<Id> idSupplier,
@@ -31,7 +35,9 @@ public class BankingInfra {
                                                                                               CommandRoute commandRoute,
                                                                                               EventRoute eventRoute) {
     var domain = stateDomain(idSupplier, timeSupplier);
-    return new PartitionPipeline<>(domain, CommandStream.inMemory(), commandRoute, EventStream.inMemory(), eventRoute);
+    var commandStream = CommandStream.inMemory(AccountCommand.class);
+    var eventStream = EventStream.inMemory(AccountEvent.class);
+    return new PartitionPipeline<>(domain, commandStream, commandRoute, eventStream, eventRoute);
   }
 
   public static PartitionPipeline<Account, AccountCommand, AccountEvent> createPipeline(Supplier<Id> idSupplier,

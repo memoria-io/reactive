@@ -1,8 +1,8 @@
 package io.memoria.reactive.eventsourcing.rule;
 
-import io.memoria.atom.core.id.Id;
 import io.memoria.reactive.eventsourcing.Event;
 import io.memoria.reactive.eventsourcing.State;
+import io.memoria.reactive.eventsourcing.StateId;
 import io.vavr.Function2;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.Map;
@@ -19,8 +19,8 @@ public interface Evolver<S extends State, E extends Event> extends Function2<S, 
   /**
    * Use this method only when the events flux is known to terminate at certain point
    */
-  default Mono<Map<Id, S>> reduce(Flux<E> events) {
-    java.util.Map<Id, S> initial = new ConcurrentHashMap<>();
+  default Mono<Map<StateId, S>> reduce(Flux<E> events) {
+    java.util.Map<StateId, S> initial = new ConcurrentHashMap<>();
     var result = events.reduce(initial, (map, event) -> {
       map.computeIfPresent(event.stateId(), (k, st) -> apply(st, event));
       map.computeIfAbsent(event.stateId(), k -> apply(event));
@@ -32,7 +32,7 @@ public interface Evolver<S extends State, E extends Event> extends Function2<S, 
   /**
    * Use this method only when the events flux is known to terminate at certain point
    */
-  default Mono<S> reduce(Id stateId, Flux<E> events) {
+  default Mono<S> reduce(StateId stateId, Flux<E> events) {
     return events.filter(e -> e.stateId().equals(stateId))
                  .reduce(Option.none(), this::applyOpt)
                  .filter(Option::isDefined)
@@ -43,7 +43,7 @@ public interface Evolver<S extends State, E extends Event> extends Function2<S, 
    * Filters the events for certain state(stateId) and reducing them into one state after taking (take) number of
    * events
    */
-  default Mono<S> reduce(Id stateId, Flux<E> events, int take) {
+  default Mono<S> reduce(StateId stateId, Flux<E> events, int take) {
     return events.filter(e -> e.stateId().equals(stateId))
                  .take(take)
                  .reduce(Option.none(), this::applyOpt)
@@ -51,7 +51,7 @@ public interface Evolver<S extends State, E extends Event> extends Function2<S, 
                  .map(Option::get);
   }
 
-  default Flux<S> allStates(Id stateId, Flux<E> events) {
+  default Flux<S> allStates(StateId stateId, Flux<E> events) {
     var atomicReference = new AtomicReference<S>();
     return events.filter(e -> e.stateId().equals(stateId)).map(event -> {
       if (atomicReference.get() == null) {

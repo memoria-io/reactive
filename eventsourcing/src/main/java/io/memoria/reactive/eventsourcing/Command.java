@@ -1,11 +1,15 @@
 package io.memoria.reactive.eventsourcing;
 
-import io.memoria.atom.core.id.Id;
+import io.vavr.control.Option;
 
 import java.io.Serializable;
 
 public interface Command extends Shardable, Serializable {
-  Id commandId();
+  default Option<EventId> sagaEventId() {
+    return Option.none();
+  }
+
+  CommandId commandId();
 
   long timestamp();
 }
