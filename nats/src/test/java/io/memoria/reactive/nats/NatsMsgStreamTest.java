@@ -2,7 +2,7 @@ package io.memoria.reactive.nats;
 
 import io.memoria.reactive.core.msg.stream.Msg;
 import io.memoria.reactive.testsuite.MsgStreamScenario;
-import io.memoria.reactive.testsuite.TestsuiteDefaults;
+import io.memoria.reactive.testsuite.TestsuiteUtils;
 import io.nats.client.JetStreamApiException;
 import io.nats.client.api.StreamInfo;
 import org.junit.jupiter.api.Assertions;
@@ -17,9 +17,9 @@ import reactor.test.StepVerifier;
 import java.io.IOException;
 
 import static io.memoria.reactive.nats.TestUtils.NATS_CONFIG;
-import static io.memoria.reactive.testsuite.TestsuiteDefaults.MSG_COUNT;
-import static io.memoria.reactive.testsuite.TestsuiteDefaults.SCHEDULER;
-import static io.memoria.reactive.testsuite.TestsuiteDefaults.TIMEOUT;
+import static io.memoria.reactive.testsuite.TestsuiteUtils.MSG_COUNT;
+import static io.memoria.reactive.testsuite.TestsuiteUtils.SCHEDULER;
+import static io.memoria.reactive.testsuite.TestsuiteUtils.TIMEOUT;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class NatsMsgStreamTest {
@@ -28,7 +28,7 @@ class NatsMsgStreamTest {
 
   static {
     try {
-      String topic = TestsuiteDefaults.topicName(NatsMsgStreamTest.class);
+      String topic = TestsuiteUtils.topicName(NatsMsgStreamTest.class);
       NatsUtils.createOrUpdateTopic(NATS_CONFIG, topic, 1).map(StreamInfo::toString).forEach(log::info);
       var repo = new NatsMsgStream(NATS_CONFIG, SCHEDULER);
       scenario = new MsgStreamScenario(MSG_COUNT, topic, 0, repo);
@@ -42,7 +42,7 @@ class NatsMsgStreamTest {
   void publish() {
     var now = System.currentTimeMillis();
     StepVerifier.create(scenario.publish()).expectNextCount(MSG_COUNT).verifyComplete();
-    TestsuiteDefaults.printRates("publish",now);
+    TestsuiteUtils.printRates("publish", now);
     //    StepVerifier.create(scenario.last().map(Msg::key)).expectNext(String.valueOf(MSG_COUNT - 1)).verifyComplete();
   }
 
@@ -51,7 +51,7 @@ class NatsMsgStreamTest {
   void subscribe() {
     var now = System.currentTimeMillis();
     StepVerifier.create(scenario.subscribe()).expectNextCount(MSG_COUNT).expectTimeout(TIMEOUT).verify();
-    TestsuiteDefaults.printRates("subscribe",now);
+    TestsuiteUtils.printRates("subscribe", now);
   }
 
   @Test

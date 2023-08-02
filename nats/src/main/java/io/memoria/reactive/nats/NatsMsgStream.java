@@ -59,6 +59,7 @@ public class NatsMsgStream implements MsgStream {
 
   @Override
   public void close() throws Exception {
+    log.info("Closing connection:%s".formatted(connection.getServerInfo()));
     connection.close();
   }
 

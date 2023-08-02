@@ -2,7 +2,7 @@ package io.memoria.reactive.kafka;
 
 import io.memoria.reactive.core.msg.stream.Msg;
 import io.memoria.reactive.testsuite.MsgStreamScenario;
-import io.memoria.reactive.testsuite.TestsuiteDefaults;
+import io.memoria.reactive.testsuite.TestsuiteUtils;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -11,12 +11,12 @@ import reactor.test.StepVerifier;
 
 import java.time.Duration;
 
-import static io.memoria.reactive.testsuite.TestsuiteDefaults.MSG_COUNT;
-import static io.memoria.reactive.testsuite.TestsuiteDefaults.TIMEOUT;
+import static io.memoria.reactive.testsuite.TestsuiteUtils.MSG_COUNT;
+import static io.memoria.reactive.testsuite.TestsuiteUtils.TIMEOUT;
 
 @TestMethodOrder(OrderAnnotation.class)
 class KafkaMsgStreamTest {
-  private static final String topic = TestsuiteDefaults.topicName("messages");
+  private static final String topic = TestsuiteUtils.topicName("messages");
   private static final MsgStreamScenario scenario;
 
   static {
@@ -29,7 +29,7 @@ class KafkaMsgStreamTest {
   void publish() {
     var now = System.currentTimeMillis();
     StepVerifier.create(scenario.publish()).expectNextCount(MSG_COUNT).verifyComplete();
-    TestsuiteDefaults.printRates("publish", now);
+    TestsuiteUtils.printRates("publish", now);
   }
 
   @Test
@@ -37,7 +37,7 @@ class KafkaMsgStreamTest {
   void subscribe() {
     var now = System.currentTimeMillis();
     StepVerifier.create(scenario.subscribe()).expectNextCount(MSG_COUNT).expectTimeout(TIMEOUT).verify();
-    TestsuiteDefaults.printRates("subscribe", now);
+    TestsuiteUtils.printRates("subscribe", now);
   }
 
   @Test

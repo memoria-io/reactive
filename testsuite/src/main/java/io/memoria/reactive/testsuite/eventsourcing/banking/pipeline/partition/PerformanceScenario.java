@@ -1,6 +1,6 @@
 package io.memoria.reactive.testsuite.eventsourcing.banking.pipeline.partition;
 
-import io.memoria.reactive.eventsourcing.StateId;
+import io.memoria.atom.eventsourcing.StateId;
 import io.memoria.reactive.eventsourcing.pipeline.partition.PartitionPipeline;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingData;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.AccountCommand;
@@ -13,7 +13,7 @@ import io.memoria.reactive.testsuite.eventsourcing.banking.domain.state.Account;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public class PerformanceScenario implements PartitionScenario<Account, AccountCommand, AccountEvent> {
+public class PerformanceScenario implements PartitionScenario<AccountCommand, AccountEvent> {
   private static final int initialBalance = 500;
   private static final int debitAmount = 300;
 
@@ -60,10 +60,6 @@ public class PerformanceScenario implements PartitionScenario<Account, AccountCo
   public Mono<Boolean> verify() {
     var startTime = System.currentTimeMillis();
     return null;
-  }
-
-  private static void printf(long start, Long i) {
-    System.out.printf("Processed %d events in  %d millis %n", i, System.currentTimeMillis() - start);
   }
 
   private static boolean isTypeOf(AccountEvent acc) {

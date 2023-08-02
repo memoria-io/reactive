@@ -40,7 +40,7 @@ public final class MemMsgStream implements MsgStream {
 
   @Override
   public void close() {
-
+    // Silence is golden
   }
 
   private int addPartitionSink(String topic, int partition) {

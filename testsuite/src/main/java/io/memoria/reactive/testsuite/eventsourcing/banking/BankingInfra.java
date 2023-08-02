@@ -1,7 +1,7 @@
 package io.memoria.reactive.testsuite.eventsourcing.banking;
 
 import io.memoria.atom.core.id.Id;
-import io.memoria.reactive.eventsourcing.Domain;
+import io.memoria.atom.eventsourcing.Domain;
 import io.memoria.reactive.eventsourcing.pipeline.partition.CommandRoute;
 import io.memoria.reactive.eventsourcing.pipeline.partition.EventRoute;
 import io.memoria.reactive.eventsourcing.pipeline.partition.PartitionPipeline;

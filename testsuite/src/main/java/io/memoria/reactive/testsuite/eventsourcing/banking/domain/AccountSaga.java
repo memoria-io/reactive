@@ -1,8 +1,8 @@
 package io.memoria.reactive.testsuite.eventsourcing.banking.domain;
 
 import io.memoria.atom.core.id.Id;
-import io.memoria.reactive.eventsourcing.CommandId;
-import io.memoria.reactive.eventsourcing.rule.Saga;
+import io.memoria.atom.eventsourcing.CommandId;
+import io.memoria.atom.eventsourcing.rule.Saga;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.AccountCommand;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.ConfirmDebit;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.Credit;

@@ -1,9 +1,9 @@
 package io.memoria.reactive.testsuite.eventsourcing.banking;
 
 import io.memoria.atom.core.id.Id;
-import io.memoria.reactive.eventsourcing.CommandId;
-import io.memoria.reactive.eventsourcing.EventId;
-import io.memoria.reactive.eventsourcing.StateId;
+import io.memoria.atom.eventsourcing.CommandId;
+import io.memoria.atom.eventsourcing.EventId;
+import io.memoria.atom.eventsourcing.StateId;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.AccountCommand;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.ChangeName;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.CloseAccount;
