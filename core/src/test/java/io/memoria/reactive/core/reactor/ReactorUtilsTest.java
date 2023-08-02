@@ -111,13 +111,10 @@ class ReactorUtilsTest {
   }
 
   private int getRandom() {
-    var k = r.nextInt(1000);
-    System.out.println("Random is called:" + k);
-    return k;
+    return r.nextInt(1000);
   }
 
   private Mono<Integer> hi(int i) {
-    System.out.println("hi is called");
     if (i < 2) {
       return Mono.empty();
     } else {

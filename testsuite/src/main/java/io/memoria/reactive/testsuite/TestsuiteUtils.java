@@ -27,8 +27,11 @@ public class TestsuiteUtils {
   public static void printRates(String methodName, long now) {
     long totalElapsed = System.currentTimeMillis() - now;
     log.info("%s: Finished processing %d events, in %d millis %n".formatted(methodName, MSG_COUNT, totalElapsed));
-    long eventsPerSec = Double.valueOf(MSG_COUNT / (totalElapsed / 1000d)).longValue();
-    log.info("%s: Average %d events per second %n".formatted(methodName, eventsPerSec));
+    log.info("%s: Average %d events per second %n".formatted(methodName, (long) eventsPerSec(totalElapsed)));
+  }
+
+  private static double eventsPerSec(long totalElapsed) {
+    return (double) MSG_COUNT / (totalElapsed / 1000d);
   }
 
   private TestsuiteUtils() {}

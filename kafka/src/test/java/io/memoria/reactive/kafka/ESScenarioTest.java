@@ -41,12 +41,10 @@ class ESScenarioTest {
 
     // Then
     var now = System.currentTimeMillis();
-
     StepVerifier.create(scenario.handleCommands())
                 .expectNextCount(scenario.expectedEventsCount())
                 .expectTimeout(TIMEOUT)
                 .verify();
-    System.out.println(System.currentTimeMillis() - now);
-
+    TestsuiteUtils.printRates("Performance scenario", now);
   }
 }

@@ -79,10 +79,8 @@ public class SimpleDebitScenario implements PartitionScenario<AccountCommand, Ac
 
   private static boolean hasExpectedBalance(OpenAccount acc, int expected) {
     if (acc.balance() == expected) {
-      //      System.out.println("success:" + acc);
       return true;
     } else {
-      //      System.out.println("fail:" + acc);
       var msg = "Account %s balance is %d not %d".formatted(acc.accountId(), acc.balance(), expected);
       throw new IllegalStateException(msg);
     }

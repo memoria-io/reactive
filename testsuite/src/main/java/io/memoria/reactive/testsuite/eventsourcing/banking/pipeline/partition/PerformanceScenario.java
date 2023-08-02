@@ -62,10 +62,6 @@ public class PerformanceScenario implements PartitionScenario<AccountCommand, Ac
     return null;
   }
 
-  private static void printf(long start, Long i) {
-    System.out.printf("Processed %d events in  %d millis %n", i, System.currentTimeMillis() - start);
-  }
-
   private static boolean isTypeOf(AccountEvent acc) {
     if (acc instanceof AccountCreated
         || acc instanceof Debited

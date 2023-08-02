@@ -37,8 +37,8 @@ public class TestUtils {
       var eventStream = EventStream.msgStream(msgStream, AccountEvent.class, TRANSFORMER);
       var commandRoute = new CommandRoute(TestsuiteUtils.topicName("commands"), 0);
       var eventRoute = new EventRoute(TestsuiteUtils.topicName("events"), 0);
-      System.out.printf("Creating %s %n", commandRoute);
-      System.out.printf("Creating %s %n", eventRoute);
+      //      System.out.printf("Creating %s %n", commandRoute);
+      //      System.out.printf("Creating %s %n", eventRoute);
       NatsUtils.createOrUpdateTopic(NATS_CONFIG, commandRoute.topicName(), commandRoute.totalPartitions());
       NatsUtils.createOrUpdateTopic(NATS_CONFIG, eventRoute.topicName(), eventRoute.totalPartitions());
       return BankingInfra.createPipeline(DATA.idSupplier,

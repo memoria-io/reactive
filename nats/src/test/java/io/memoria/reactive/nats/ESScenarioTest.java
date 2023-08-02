@@ -22,12 +22,10 @@ class ESScenarioTest {
   void simpleDebitScenario(int numOfAccounts) {
     // When
     var scenario = new SimpleDebitScenario(DATA, createPipeline(), numOfAccounts);
-    var now = System.currentTimeMillis();
     StepVerifier.create(scenario.publishCommands()).expectNextCount(scenario.expectedCommandsCount()).verifyComplete();
-    System.out.println(System.currentTimeMillis() - now);
 
     // Then
-    now = System.currentTimeMillis();
+    var now = System.currentTimeMillis();
     StepVerifier.create(scenario.handleCommands())
                 .expectNextCount(scenario.expectedEventsCount())
                 .expectTimeout(TIMEOUT)
@@ -51,6 +49,6 @@ class ESScenarioTest {
     // Then
     var now = System.currentTimeMillis();
     StepVerifier.create(scenario.handleCommands()).expectNextCount(numOfAccounts * 5L).expectTimeout(TIMEOUT).verify();
-    System.out.println(System.currentTimeMillis() - now);
+    TestsuiteUtils.printRates("performance scenario", now);
   }
 }
