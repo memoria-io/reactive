@@ -26,4 +26,11 @@ public class TestsuiteDefaults {
   public static Msg createEsMsg(int i) {
     return new Msg(String.valueOf(i), "hello" + i);
   }
+
+  public static void printRates(String methodName, long now) {
+    long totalElapsed = System.currentTimeMillis() - now;
+    System.out.printf("%s: Finished processing %d events, in %d millis %n", methodName, MSG_COUNT, totalElapsed);
+    long eventsPerSec = Double.valueOf(MSG_COUNT / (totalElapsed / 1000d)).longValue();
+    System.out.printf("%s: Average %d events per second %n", methodName, eventsPerSec);
+  }
 }
