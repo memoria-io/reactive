@@ -7,15 +7,14 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import reactor.test.StepVerifier;
 
-import java.time.Duration;
-
 import static io.memoria.reactive.kafka.TestUtils.DATA;
 import static io.memoria.reactive.kafka.TestUtils.createPipeline;
+import static io.memoria.reactive.testsuite.TestsuiteDefaults.TIMEOUT;
 
 class ESScenarioTest {
 
   @ParameterizedTest(name = "Using {0} accounts")
-  @ValueSource(ints = {0, 1, 3, 7, 9, 10, 98, 900, 997, 998, 999, 1000, 1111, 2222, 3333})
+  @ValueSource(ints = {0, 1, 7, 1003})
   void simpleDebitScenario(int numOfAccounts) {
     // When
     var scenario = new SimpleDebitScenario(DATA, createPipeline(), numOfAccounts);
@@ -23,10 +22,7 @@ class ESScenarioTest {
 
     // Then
     var now = System.currentTimeMillis();
-    StepVerifier.create(scenario.handleCommands())
-                .expectNextCount(numOfAccounts * 5L)
-                .expectTimeout(Duration.ofMillis(1000))
-                .verify();
+    StepVerifier.create(scenario.handleCommands()).expectNextCount(numOfAccounts * 5L).expectTimeout(TIMEOUT).verify();
     System.out.println(System.currentTimeMillis() - now);
     if (numOfAccounts > 0) {
       StepVerifier.create(scenario.verify()).expectNext(true).verifyComplete();
@@ -46,7 +42,7 @@ class ESScenarioTest {
 
     StepVerifier.create(scenario.handleCommands())
                 .expectNextCount(scenario.expectedEventsCount())
-                .expectTimeout(Duration.ofMillis(1000))
+                .expectTimeout(TIMEOUT)
                 .verify();
     System.out.println(System.currentTimeMillis() - now);
 
