@@ -14,8 +14,8 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public class PerformanceScenario implements PartitionScenario<AccountCommand, AccountEvent> {
-  private static final int initialBalance = 500;
-  private static final int debitAmount = 300;
+  private static final int INITIAL_BALANCE = 500;
+  private static final int DEBIT_AMOUNT = 300;
 
   private final BankingData bankingData;
   private final PartitionPipeline<Account, AccountCommand, AccountEvent> pipeline;
@@ -43,9 +43,9 @@ public class PerformanceScenario implements PartitionScenario<AccountCommand, Ac
   public Flux<AccountCommand> publishCommands() {
     var debitedIds = bankingData.createIds(0, numOfAccounts).map(StateId::of);
     var creditedIds = bankingData.createIds(numOfAccounts, numOfAccounts).map(StateId::of);
-    var createDebitedAcc = bankingData.createAccountCmd(debitedIds, initialBalance);
-    var createCreditedAcc = bankingData.createAccountCmd(creditedIds, initialBalance);
-    var debitTheAccounts = bankingData.debitCmd(debitedIds.zipWith(creditedIds), debitAmount);
+    var createDebitedAcc = bankingData.createAccountCmd(debitedIds, INITIAL_BALANCE);
+    var createCreditedAcc = bankingData.createAccountCmd(creditedIds, INITIAL_BALANCE);
+    var debitTheAccounts = bankingData.debitCmd(debitedIds.zipWith(creditedIds), DEBIT_AMOUNT);
     var commands = createDebitedAcc.concatWith(createCreditedAcc).concatWith(debitTheAccounts);
 
     return commands.concatMap(pipeline::pubCommand);
@@ -58,8 +58,9 @@ public class PerformanceScenario implements PartitionScenario<AccountCommand, Ac
 
   @Override
   public Mono<Boolean> verify() {
-    var startTime = System.currentTimeMillis();
-    return null;
+    return pipeline.eventStream.sub(pipeline.eventRoute.topicName(), pipeline.eventRoute.partition())
+                               .map(PerformanceScenario::isTypeOf)
+                               .all(b -> b);
   }
 
   private static boolean isTypeOf(AccountEvent acc) {

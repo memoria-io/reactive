@@ -12,7 +12,7 @@ import java.util.function.Supplier;
 
 public class MicrometerController implements Function2<HttpServerRequest, HttpServerResponse, Mono<Void>> {
   private static final Logger log = LoggerFactory.getLogger(MicrometerController.class.getName());
-  private transient final Supplier<String> response;
+  private final transient Supplier<String> response;
 
   public MicrometerController(Supplier<String> response) {
     this.response = response;

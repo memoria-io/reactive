@@ -62,27 +62,18 @@ public class SimpleDebitScenario implements PartitionScenario<AccountCommand, Ac
     return PipelineUtils.reduce(pipeline.domain.evolver(), events.take(expectedEventsCount()))
                         .map(Map::values)
                         .flatMapMany(Flux::fromIterable)
-                        .map(acc -> (OpenAccount) acc)
+                        .map(OpenAccount.class::cast)
                         .map(this::verify)
                         .reduce((a, b) -> a && b);
   }
 
   boolean verify(OpenAccount acc) {
     if (acc.debitCount() > 0) {
-      return hasExpectedBalance(acc, INITIAL_BALANCE - DEBIT_AMOUNT);
+      return acc.balance() == INITIAL_BALANCE - DEBIT_AMOUNT;
     } else if (acc.creditCount() > 0) {
-      return hasExpectedBalance(acc, INITIAL_BALANCE + DEBIT_AMOUNT);
+      return acc.balance() == INITIAL_BALANCE + DEBIT_AMOUNT;
     } else {
-      return hasExpectedBalance(acc, INITIAL_BALANCE);
-    }
-  }
-
-  private static boolean hasExpectedBalance(OpenAccount acc, int expected) {
-    if (acc.balance() == expected) {
-      return true;
-    } else {
-      var msg = "Account %s balance is %d not %d".formatted(acc.accountId(), acc.balance(), expected);
-      throw new IllegalStateException(msg);
+      return acc.balance() == INITIAL_BALANCE;
     }
   }
 }

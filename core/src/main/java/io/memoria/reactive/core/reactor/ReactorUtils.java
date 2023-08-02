@@ -38,12 +38,12 @@ public final class ReactorUtils {
   //---------------------------------------------------------------------------------------------------------
   // Boolean To Mono
   //---------------------------------------------------------------------------------------------------------
-  public static <T> Mono<T> booleanToMono(boolean bool, Mono<T> positive, Mono<T> negative) {
-    return Mono.fromCallable(() -> bool).flatMap(check -> (check) ? positive : negative);
+  public static <T> Mono<T> booleanToMono(boolean check, Mono<T> positive, Mono<T> negative) {
+    return Mono.fromCallable(() -> check).flatMap(b -> TRUE.equals(b) ? positive : negative);
   }
 
-  public static <T> Mono<T> booleanToMono(boolean bool, Mono<T> positive) {
-    return Mono.fromCallable(() -> bool).flatMap(check -> (check) ? positive : Mono.empty());
+  public static <T> Mono<T> booleanToMono(boolean check, Mono<T> positive) {
+    return Mono.fromCallable(() -> check).flatMap(b -> TRUE.equals(b) ? positive : Mono.empty());
   }
 
   //---------------------------------------------------------------------------------------------------------

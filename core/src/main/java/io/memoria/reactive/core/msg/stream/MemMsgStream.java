@@ -29,13 +29,13 @@ public final class MemMsgStream implements MsgStream {
   @Override
   public Mono<Msg> pub(String topic, int partition, Msg msg) {
     return Mono.fromCallable(() -> addPartitionSink(topic, partition))
-               .flatMap(__ -> Mono.fromCallable(() -> this.publishFn(topic, partition, msg)));
+               .flatMap(i -> Mono.fromCallable(() -> this.publishFn(topic, partition, msg)));
   }
 
   @Override
   public Flux<Msg> sub(String topic, int partition) {
     return Mono.fromCallable(() -> addPartitionSink(topic, partition))
-               .flatMapMany(__ -> this.topics.get(topic).get(partition).asFlux());
+               .flatMapMany(i -> this.topics.get(topic).get(partition).asFlux());
   }
 
   @Override
@@ -45,7 +45,7 @@ public final class MemMsgStream implements MsgStream {
 
   private int addPartitionSink(String topic, int partition) {
     this.topics.computeIfAbsent(topic, x -> new ConcurrentHashMap<>());
-    this.topics.computeIfPresent(topic, (__, partitions) -> {
+    this.topics.computeIfPresent(topic, (i, partitions) -> {
       var sink = Sinks.many().replay().<Msg>limit(historySize);
       partitions.computeIfAbsent(partition, x -> sink);
       return partitions;

@@ -39,6 +39,6 @@ class CommandStreamTest {
 
   private static void verify(SomeCommand cmd) {
     Assertions.assertThat(cmd.stateId()).isEqualTo(s0);
-    Assertions.assertThat(cmd.partition(totalPartitions)).isEqualTo(0);
+    Assertions.assertThat(cmd.partition(totalPartitions)).isZero();
   }
 }
