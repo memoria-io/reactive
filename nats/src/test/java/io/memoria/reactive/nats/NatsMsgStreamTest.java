@@ -42,7 +42,7 @@ class NatsMsgStreamTest {
   void publish() {
     var now = System.currentTimeMillis();
     StepVerifier.create(scenario.publish()).expectNextCount(MSG_COUNT).verifyComplete();
-    TestsuiteDefaults.printRates("publish",now);
+    TestsuiteDefaults.printRates("publish", now);
     //    StepVerifier.create(scenario.last().map(Msg::key)).expectNext(String.valueOf(MSG_COUNT - 1)).verifyComplete();
   }
 
@@ -51,7 +51,7 @@ class NatsMsgStreamTest {
   void subscribe() {
     var now = System.currentTimeMillis();
     StepVerifier.create(scenario.subscribe()).expectNextCount(MSG_COUNT).expectTimeout(TIMEOUT).verify();
-    TestsuiteDefaults.printRates("subscribe",now);
+    TestsuiteDefaults.printRates("subscribe", now);
   }
 
   @Test
