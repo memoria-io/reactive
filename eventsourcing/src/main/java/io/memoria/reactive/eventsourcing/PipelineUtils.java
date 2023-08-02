@@ -77,4 +77,6 @@ public class PipelineUtils {
                                                                       E event) {
     return optState.map(s -> evolver.apply(s, event)).orElse(() -> Option.some(evolver.apply(event)));
   }
+
+  private PipelineUtils() {}
 }
