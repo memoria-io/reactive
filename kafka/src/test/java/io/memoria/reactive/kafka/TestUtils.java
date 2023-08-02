@@ -5,7 +5,6 @@ import io.memoria.reactive.eventsourcing.pipeline.partition.EventRoute;
 import io.memoria.reactive.eventsourcing.pipeline.partition.PartitionPipeline;
 import io.memoria.reactive.eventsourcing.stream.CommandStream;
 import io.memoria.reactive.eventsourcing.stream.EventStream;
-import io.memoria.reactive.kafka.msg.stream.KafkaMsgStream;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingData;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingInfra;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.AccountCommand;
@@ -56,7 +55,7 @@ public class TestUtils {
   }
 
   public static PartitionPipeline<Account, AccountCommand, AccountEvent> createPipeline() {
-    var msgStream = new KafkaMsgStream(producerConfigs(), consumerConfigs());
+    var msgStream = new KafkaMsgStream(producerConfigs(), consumerConfigs(), Duration.ofMillis(500));
     var commandStream = CommandStream.msgStream(msgStream, AccountCommand.class, TRANSFORMER);
     var eventStream = EventStream.msgStream(msgStream, AccountEvent.class, TRANSFORMER);
     var commandRoute = new CommandRoute(topicName("commands"), 0);

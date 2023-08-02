@@ -1,9 +1,8 @@
-package io.memoria.reactive.nats.msg.stream;
+package io.memoria.reactive.nats;
 
 import io.memoria.reactive.core.msg.stream.Msg;
-import io.memoria.reactive.nats.NatsUtils;
+import io.memoria.reactive.testsuite.MsgStreamScenario;
 import io.memoria.reactive.testsuite.TestsuiteDefaults;
-import io.memoria.reactive.testsuite.message.stream.ESMsgStreamScenario;
 import io.nats.client.JetStreamApiException;
 import io.nats.client.api.StreamInfo;
 import org.junit.jupiter.api.Assertions;
@@ -25,14 +24,14 @@ import static io.memoria.reactive.testsuite.TestsuiteDefaults.TIMEOUT;
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class NatsMsgStreamTest {
   private static final Logger log = LoggerFactory.getLogger(NatsMsgStreamTest.class.getName());
-  private static final ESMsgStreamScenario scenario;
+  private static final MsgStreamScenario scenario;
 
   static {
     try {
       String topic = TestsuiteDefaults.topicName(NatsMsgStreamTest.class);
       NatsUtils.createOrUpdateTopic(NATS_CONFIG, topic, 1).map(StreamInfo::toString).forEach(log::info);
       var repo = new NatsMsgStream(NATS_CONFIG, SCHEDULER);
-      scenario = new ESMsgStreamScenario(MSG_COUNT, topic, 0, repo);
+      scenario = new MsgStreamScenario(MSG_COUNT, topic, 0, repo);
     } catch (IOException | InterruptedException | JetStreamApiException e) {
       throw new RuntimeException(e);
     }

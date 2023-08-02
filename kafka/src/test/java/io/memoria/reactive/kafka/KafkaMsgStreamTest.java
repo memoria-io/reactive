@@ -1,7 +1,6 @@
-package io.memoria.reactive.kafka.msg.stream;
+package io.memoria.reactive.kafka;
 
 import io.memoria.reactive.core.msg.stream.MsgStream;
-import io.memoria.reactive.kafka.TestUtils;
 import io.memoria.reactive.testsuite.TestsuiteDefaults;
 import io.vavr.collection.List;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
@@ -9,6 +8,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
+
+import java.time.Duration;
 
 import static io.memoria.reactive.testsuite.TestsuiteDefaults.MSG_COUNT;
 import static io.memoria.reactive.testsuite.TestsuiteDefaults.TIMEOUT;
@@ -20,7 +21,7 @@ class KafkaMsgStreamTest {
   private final MsgStream repo;
 
   KafkaMsgStreamTest() {
-    repo = new KafkaMsgStream(TestUtils.producerConfigs(), TestUtils.consumerConfigs());
+    repo = new KafkaMsgStream(TestUtils.producerConfigs(), TestUtils.consumerConfigs(), Duration.ofMillis(500));
   }
 
   @Test

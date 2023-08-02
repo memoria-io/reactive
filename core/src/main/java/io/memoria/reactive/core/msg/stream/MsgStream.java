@@ -3,7 +3,7 @@ package io.memoria.reactive.core.msg.stream;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public interface MsgStream {
+public interface MsgStream extends AutoCloseable {
 
   /**
    * @return known key

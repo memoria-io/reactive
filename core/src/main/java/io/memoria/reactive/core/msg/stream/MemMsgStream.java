@@ -38,6 +38,11 @@ public final class MemMsgStream implements MsgStream {
                .flatMapMany(__ -> this.topics.get(topic).get(partition).asFlux());
   }
 
+  @Override
+  public void close() {
+
+  }
+
   private int addPartitionSink(String topic, int partition) {
     this.topics.computeIfAbsent(topic, x -> new ConcurrentHashMap<>());
     this.topics.computeIfPresent(topic, (__, partitions) -> {

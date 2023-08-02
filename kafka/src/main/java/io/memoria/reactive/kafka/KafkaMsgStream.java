@@ -1,9 +1,8 @@
-package io.memoria.reactive.kafka.msg.stream;
+package io.memoria.reactive.kafka;
 
 import io.memoria.reactive.core.msg.stream.Msg;
 import io.memoria.reactive.core.msg.stream.MsgStream;
 import io.memoria.reactive.core.reactor.ReactorUtils;
-import io.memoria.reactive.kafka.KafkaUtils;
 import io.vavr.collection.Map;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.TopicPartition;
@@ -24,25 +23,21 @@ public class KafkaMsgStream implements MsgStream {
   public final Map<String, Object> producerConfig;
   public final Map<String, Object> consumerConfig;
   private final Duration timeout;
-
-  public KafkaMsgStream(Map<String, Object> producerConfig, Map<String, Object> consumerConfig) {
-    this(producerConfig, consumerConfig, Duration.ofMillis(500));
-  }
+  private final KafkaSender<String, String> sender;
 
   public KafkaMsgStream(Map<String, Object> producerConfig, Map<String, Object> consumerConfig, Duration timeout) {
     this.producerConfig = producerConfig;
     this.consumerConfig = consumerConfig;
     this.timeout = timeout;
+    var senderOptions = SenderOptions.<String, String>create(producerConfig.toJavaMap());
+    this.sender = KafkaSender.create(senderOptions);
   }
 
   @Override
   public Mono<Msg> pub(String topic, int partition, Msg msg) {
-    var senderOptions = SenderOptions.<String, String>create(producerConfig.toJavaMap());
-    var sender = KafkaSender.create(senderOptions);
     return sender.send(Mono.fromCallable(() -> toRecord(topic, partition, msg)))
                  .map(SenderResult::correlationMetadata)
-                 .single()
-                 .doOnTerminate(sender::close);
+                 .single();
   }
 
   @Override
@@ -61,6 +56,11 @@ public class KafkaMsgStream implements MsgStream {
     return Mono.fromCallable(() -> KafkaUtils.lastKey(topic, partition, timeout, consumerConfig))
                .flatMap(ReactorUtils::optionToMono)
                .map(KafkaMsgStream::toMsg);
+  }
+
+  @Override
+  public void close() {
+    this.sender.close();
   }
 
   static SenderRecord<String, String, Msg> toRecord(String topic, int partition, Msg msg) {

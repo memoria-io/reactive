@@ -16,8 +16,6 @@ import io.nats.client.api.DeliverPolicy;
 import io.nats.client.api.ReplayPolicy;
 import io.nats.client.api.StreamConfiguration;
 import io.nats.client.api.StreamInfo;
-import io.vavr.Tuple;
-import io.vavr.Tuple2;
 import io.vavr.collection.List;
 import io.vavr.collection.Traversable;
 import io.vavr.control.Try;
@@ -43,14 +41,6 @@ public class NatsUtils {
 
   public static String subjectName(String topic, int partition) {
     return streamName(topic, partition) + SUBJECT_EXT;
-  }
-
-  public static Tuple2<String, Integer> topicPartition(String subject) {
-    var idx = subject.indexOf(SUBJECT_EXT);
-    var s = subject.substring(0, idx).split(SPLIT_TOKEN);
-    var topic = s[0];
-    var partition = Integer.parseInt(s[1]);
-    return Tuple.of(topic, partition);
   }
 
   public static Connection createConnection(NatsConfig natsConfig) throws IOException, InterruptedException {
@@ -90,45 +80,21 @@ public class NatsUtils {
     }
   }
 
-  public static Flux<Message> fetchAllMessagesForCmds(JetStream js,
-                                                      NatsConfig natsConfig,
-                                                      String topic,
-                                                      int partition) {
-    return Mono.fromCallable(() -> {
-      System.out.printf("subscribing to %s %d%n", topic, partition);
-      return createSubscription(js, DeliverPolicy.All, topic, partition);
-    }).flatMapMany(sub -> fetchMessagesForCmds(sub, natsConfig.fetchBatchSize(), natsConfig.fetchMaxWait()));
+  public static Flux<Message> fetchAllMessages(JetStream js, NatsConfig natsConfig, String topic, int partition) {
+    return Mono.fromCallable(() -> createSubscription(js, DeliverPolicy.All, topic, partition))
+               .flatMapMany(sub -> fetchMessages(sub, natsConfig.fetchBatchSize(), natsConfig.fetchMaxWait()));
   }
 
-  static Flux<Message> fetchMessagesForCmds(JetStreamSubscription sub, int fetchBatchSize, Duration fetchMaxWait) {
+  static Flux<Message> fetchMessages(JetStreamSubscription sub, int fetchBatchSize, Duration fetchMaxWait) {
     return Flux.generate((SynchronousSink<Flux<Message>> sink) -> {
       var tr = Try.of(() -> sub.fetch(fetchBatchSize, fetchMaxWait));
       if (tr.isSuccess()) {
         List<Message> messages = List.ofAll(tr.get()).dropWhile(Message::isStatusMessage);
-        messages.forEach(System.out::println);
-        System.out.println("fetchMessageForCmds is called size=" + messages.size());
         sink.next(Flux.fromIterable(messages));
       } else {
         sink.error(tr.getCause());
       }
     }).concatMap(Function.identity()).subscribeOn(Schedulers.boundedElastic());
-  }
-
-  public static Flux<Message> fetchAllMessages(JetStream js, NatsConfig natsConfig, String topic, int partition) {
-    return Mono.fromCallable(() -> {
-      System.out.printf("subscribing to %s %d%n", topic, partition);
-      return createSubscription(js, DeliverPolicy.All, topic, partition);
-    }).flatMapMany(sub -> fetchMessages(sub, natsConfig.fetchBatchSize(), natsConfig.fetchMaxWait()));
-  }
-
-  static Flux<Message> fetchMessages(JetStreamSubscription sub, int fetchBatchSize, Duration fetchMaxWait) {
-    return Mono.fromCallable(() -> Flux.fromIterable(sub.fetch(fetchBatchSize, fetchMaxWait)))
-               .repeat()
-               .flatMap(Function.identity())
-               .map(message -> {
-                 message.ack();
-                 return message;
-               });
   }
 
   public static Mono<Message> fetchLastMessage(JetStreamSubscription sub, NatsConfig config) {

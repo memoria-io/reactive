@@ -1,4 +1,4 @@
-package io.memoria.reactive.testsuite.message.stream;
+package io.memoria.reactive.testsuite;
 
 import io.memoria.reactive.core.msg.stream.Msg;
 import io.memoria.reactive.core.msg.stream.MsgStream;
@@ -7,14 +7,14 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public class ESMsgStreamScenario {
-  private static final Logger log = LoggerFactory.getLogger(ESMsgStreamScenario.class.getName());
+public class MsgStreamScenario {
+  private static final Logger log = LoggerFactory.getLogger(MsgStreamScenario.class.getName());
   private final int msgCount;
   private final String topic;
   private final int partition;
   private final MsgStream repo;
 
-  public ESMsgStreamScenario(int msgCount, String topic, int partition, MsgStream repo) {
+  public MsgStreamScenario(int msgCount, String topic, int partition, MsgStream repo) {
     this.msgCount = msgCount;
     this.topic = topic;
     this.partition = partition;
@@ -23,7 +23,7 @@ public class ESMsgStreamScenario {
 
   public Flux<Msg> publish() {
     var msgs = Flux.range(0, msgCount).map(i -> new Msg(String.valueOf(i), "hello world"));
-    return msgs.flatMap(msg -> repo.pub(topic, partition, msg));
+    return msgs.concatMap(msg -> repo.pub(topic, partition, msg));
   }
 
   public Flux<Msg> subscribe() {
