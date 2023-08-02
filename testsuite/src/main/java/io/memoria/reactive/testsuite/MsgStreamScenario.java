@@ -2,13 +2,10 @@ package io.memoria.reactive.testsuite;
 
 import io.memoria.reactive.core.msg.stream.Msg;
 import io.memoria.reactive.core.msg.stream.MsgStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public class MsgStreamScenario {
-  private static final Logger log = LoggerFactory.getLogger(MsgStreamScenario.class.getName());
   private final int msgCount;
   private final String topic;
   private final int partition;

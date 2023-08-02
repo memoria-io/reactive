@@ -1,6 +1,6 @@
 package io.memoria.reactive.nats;
 
-import io.memoria.reactive.testsuite.TestsuiteDefaults;
+import io.memoria.reactive.testsuite.TestsuiteUtils;
 import io.memoria.reactive.testsuite.eventsourcing.banking.pipeline.partition.PerformanceScenario;
 import io.memoria.reactive.testsuite.eventsourcing.banking.pipeline.partition.SimpleDebitScenario;
 import org.junit.jupiter.api.Disabled;
@@ -10,8 +10,8 @@ import reactor.test.StepVerifier;
 
 import static io.memoria.reactive.nats.TestUtils.DATA;
 import static io.memoria.reactive.nats.TestUtils.createPipeline;
-import static io.memoria.reactive.testsuite.TestsuiteDefaults.MSG_COUNT;
-import static io.memoria.reactive.testsuite.TestsuiteDefaults.TIMEOUT;
+import static io.memoria.reactive.testsuite.TestsuiteUtils.MSG_COUNT;
+import static io.memoria.reactive.testsuite.TestsuiteUtils.TIMEOUT;
 
 class ESScenarioTest {
 
@@ -32,7 +32,7 @@ class ESScenarioTest {
                 .expectNextCount(scenario.expectedEventsCount())
                 .expectTimeout(TIMEOUT)
                 .verify();
-    TestsuiteDefaults.printRates("scenario", now);
+    TestsuiteUtils.printRates("scenario", now);
     //    if (numOfAccounts > 0) {
     //      StepVerifier.create(scenario.verify()).expectNext(true).verifyComplete();
     //    }

@@ -13,7 +13,7 @@ import io.memoria.reactive.testsuite.eventsourcing.banking.domain.state.Account;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public class PerformanceScenario implements PartitionScenario<Account, AccountCommand, AccountEvent> {
+public class PerformanceScenario implements PartitionScenario<AccountCommand, AccountEvent> {
   private static final int initialBalance = 500;
   private static final int debitAmount = 300;
 

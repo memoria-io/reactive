@@ -65,11 +65,11 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
   }
 
   public Flux<E> handle(Flux<C> cmds) {
-    var handleCommands = cmds.concatMap(this::redirectIfNotBelong) // Redirection allows location transparency and auto sharding
-                             .concatMap(this::handleCommand) // handle the command
-                             .concatMap(this::evolve) // evolve the state
-                             .concatMap(this::saga) // publish saga command;
-                             .concatMap(this::pubEvent); // publish the event
+    var handleCommands = cmds.concatMap(this::redirectIfNotBelong)
+                             .concatMap(this::handleCommand)
+                             .concatMap(this::evolve)
+                             .concatMap(this::saga)
+                             .concatMap(this::pubEvent);
     return init().concatWith(handleCommands);
   }
 
@@ -104,6 +104,9 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
                            .concatMap(this::evolve);
   }
 
+  /**
+   * Redirection allows location transparency and auto sharding
+   */
   Mono<C> redirectIfNotBelong(C cmd) {
     if (cmd.isInPartition(commandRoute.partition(), commandRoute.totalPartitions())) {
       return Mono.just(cmd);
