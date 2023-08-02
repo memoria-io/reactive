@@ -1,14 +1,12 @@
 package io.memoria.reactive.kafka;
 
+import io.memoria.reactive.testsuite.TestsuiteDefaults;
 import io.memoria.reactive.testsuite.eventsourcing.banking.pipeline.partition.PerformanceScenario;
 import io.memoria.reactive.testsuite.eventsourcing.banking.pipeline.partition.SimpleDebitScenario;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import reactor.core.publisher.Timed;
 import reactor.test.StepVerifier;
-
-import java.time.Duration;
 
 import static io.memoria.reactive.kafka.TestUtils.DATA;
 import static io.memoria.reactive.kafka.TestUtils.createPipeline;
@@ -25,14 +23,9 @@ class ESScenarioTest {
 
     // Then
     var now = System.currentTimeMillis();
-    StepVerifier.create(scenario.handleCommands())
-                .expectNextCount(numOfAccounts * 5L)
-                .expectTimeout(TIMEOUT)
-                .verify();
-    long totalElapsed = System.currentTimeMillis() - now;
+    StepVerifier.create(scenario.handleCommands()).expectNextCount(numOfAccounts * 5L).expectTimeout(TIMEOUT).verify();
+    TestsuiteDefaults.printRates("scenario", now);
     if (numOfAccounts > 0) {
-      System.out.printf("Finished processing %d events, in %d millis %n", scenario.expectedEventsCount(), totalElapsed);
-      System.out.printf("Average %d events per second %n", scenario.expectedEventsCount() / (totalElapsed / 1000));
       //      StepVerifier.create(scenario.verify()).expectNext(true).verifyComplete();
     }
   }

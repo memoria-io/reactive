@@ -109,11 +109,11 @@ Format Example: `JDK_Version.major.minor`
 * `20.25.0`(not released yet)
     * PartitionPipeline
         * Kafka
-            * Finished processing 50015 events, in 15722 millis
-            * Average 3334 events per second
+            * Finished processing 50015 events, in 16146 millis
+              Average 3125 events per second
         * Nats
-            * Finished processing 50015 events, in 11071 millis
-            * Average 4546 events per second
+            * Finished processing 50015 events, in 11337 millis
+              Average 4546 events per second
     * MsgStream
         * Kafka
             * publish: Finished processing 50000 events, in 8734 millis
