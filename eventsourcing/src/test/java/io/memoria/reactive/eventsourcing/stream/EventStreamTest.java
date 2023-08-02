@@ -18,7 +18,7 @@ class EventStreamTest {
   private static final StateId s0 = StateId.of(0L);
   private static final String topic = "commands";
   private static final int totalPartitions = 1;
-  private final EventStream<SomeEvent> stream = EventStream.inMemory();
+  private final EventStream<SomeEvent> stream = EventStream.inMemory(SomeEvent.class);
 
   @Test
   void publishAndSubscribe() {

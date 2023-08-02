@@ -1,7 +1,7 @@
 package io.memoria.reactive.testsuite.message.stream;
 
-import io.memoria.reactive.core.message.stream.ESMsg;
-import io.memoria.reactive.core.message.stream.ESMsgStream;
+import io.memoria.reactive.core.msg.stream.Msg;
+import io.memoria.reactive.core.msg.stream.MsgStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -12,25 +12,25 @@ public class ESMsgStreamScenario {
   private final int msgCount;
   private final String topic;
   private final int partition;
-  private final ESMsgStream repo;
+  private final MsgStream repo;
 
-  public ESMsgStreamScenario(int msgCount, String topic, int partition, ESMsgStream repo) {
+  public ESMsgStreamScenario(int msgCount, String topic, int partition, MsgStream repo) {
     this.msgCount = msgCount;
     this.topic = topic;
     this.partition = partition;
     this.repo = repo;
   }
 
-  public Flux<ESMsg> publish() {
-    var msgs = Flux.range(0, msgCount).map(i -> new ESMsg(String.valueOf(i), "hello world"));
+  public Flux<Msg> publish() {
+    var msgs = Flux.range(0, msgCount).map(i -> new Msg(String.valueOf(i), "hello world"));
     return msgs.flatMap(msg -> repo.pub(topic, partition, msg));
   }
 
-  public Flux<ESMsg> subscribe() {
+  public Flux<Msg> subscribe() {
     return repo.sub(topic, partition);
   }
 
-  public Mono<String> last() {
+  public Mono<Msg> last() {
     return repo.last(topic, partition);
   }
 }

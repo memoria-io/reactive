@@ -53,14 +53,14 @@ public class NatsUtils {
     return Tuple.of(topic, partition);
   }
 
-  public static Connection natsConnection(NatsConfig natsConfig) throws IOException, InterruptedException {
+  public static Connection createConnection(NatsConfig natsConfig) throws IOException, InterruptedException {
     return Nats.connect(Options.builder().server(natsConfig.url()).errorListener(errorListener()).build());
   }
 
   public static List<StreamInfo> createOrUpdateTopic(NatsConfig natsConfig, String topic, int numOfPartitions)
           throws IOException, InterruptedException, JetStreamApiException {
     var result = List.<StreamInfo>empty();
-    try (var nc = NatsUtils.natsConnection(natsConfig)) {
+    try (var nc = NatsUtils.createConnection(natsConfig)) {
       var streamConfigs = List.range(0, numOfPartitions)
                               .map(partition -> streamConfiguration(natsConfig, topic, partition));
       for (StreamConfiguration config : streamConfigs) {
@@ -71,84 +71,10 @@ public class NatsUtils {
     return result;
   }
 
-  public static Flux<Message> fetchAllMessagesForCmds(JetStream js,
-                                                      NatsConfig natsConfig,
-                                                      String topic,
-                                                      int partition) {
-    return Mono.fromCallable(() -> {
-      System.out.printf("subscribing to %s %d%n", topic, partition);
-      return jetStreamSub(js, DeliverPolicy.All, topic, partition);
-    }).flatMapMany(sub -> fetchMessagesForCmds(sub, natsConfig.fetchBatchSize(), natsConfig.fetchMaxWait()));
-  }
-
-  public static Flux<Message> fetchAllMessages(JetStream js, NatsConfig natsConfig, String topic, int partition) {
-    return Mono.fromCallable(() -> {
-      System.out.printf("subscribing to %s %d%n", topic, partition);
-      return jetStreamSub(js, DeliverPolicy.All, topic, partition);
-    }).flatMapMany(sub -> fetchMessages(sub, natsConfig.fetchBatchSize(), natsConfig.fetchMaxWait()));
-  }
-
-  public static Mono<Message> fetchLastMessage(JetStream js, NatsConfig config, String topic, int partition) {
-    return Mono.fromCallable(() -> jetStreamSub(js, DeliverPolicy.Last, topic, partition))
-               .map(sub -> List.ofAll(sub.fetch(config.fetchBatchSize(), config.fetchMaxWait())))
-               .map(Traversable::lastOption)
-               .flatMap(ReactorUtils::optionToMono);
-  }
-
-  //  static Flux<List<Message>> fetchMessages(JetStreamSubscription sub, int fetchBatchSize, Duration fetchMaxWait) {
-  //    return Flux.generate((SynchronousSink<List<Message>> sink) -> {
-  //      var tr = Try.of(() -> sub.fetch(fetchBatchSize, fetchMaxWait));
-  //      if (tr.isSuccess()) {
-  //        List<Message> messages = List.ofAll(tr.get()).dropWhile(Message::isStatusMessage);
-  //        messages.forEach(System.out::println);
-  //        sink.next(messages);
-  //      } else {
-  //        sink.error(tr.getCause());
-  //      }
-  //    });
-  //  }
-  static Flux<Message> fetchMessagesForCmds(JetStreamSubscription sub, int fetchBatchSize, Duration fetchMaxWait) {
-    //    return Mono.fromCallable(() -> Flux.fromIterable(sub.fetch(fetchBatchSize, fetchMaxWait)))
-    //               .repeat()
-    //               .flatMap(Function.identity())
-    //               .map(message -> {
-    //                 message.ack();
-    //                 return message;
-    //               });
-    return Flux.generate((SynchronousSink<Flux<Message>> sink) -> {
-      var tr = Try.of(() -> sub.fetch(fetchBatchSize, fetchMaxWait));
-      if (tr.isSuccess()) {
-        List<Message> messages = List.ofAll(tr.get()).dropWhile(Message::isStatusMessage);
-        messages.forEach(System.out::println);
-        System.out.println("fetchMessageForCmds is called size=" + messages.size());
-        sink.next(Flux.fromIterable(messages));
-      } else {
-        sink.error(tr.getCause());
-      }
-    }).concatMap(Function.identity()).subscribeOn(Schedulers.boundedElastic());
-  }
-
-  static Flux<Message> fetchMessages(JetStreamSubscription sub, int fetchBatchSize, Duration fetchMaxWait) {
-    return Mono.fromCallable(() -> Flux.fromIterable(sub.fetch(fetchBatchSize, fetchMaxWait)))
-               .repeat()
-               .flatMap(Function.identity())
-               .map(message -> {
-                 message.ack();
-                 return message;
-               });
-    //    return Flux.generate((SynchronousSink<Flux<Message>> sink) -> {
-    //      var tr = Try.of(() -> sub.fetch(fetchBatchSize, fetchMaxWait));
-    //      if (tr.isSuccess()) {
-    //        List<Message> messages = List.ofAll(tr.get()).dropWhile(Message::isStatusMessage);
-    //        messages.forEach(System.out::println);
-    //        sink.next(Flux.fromIterable(messages));
-    //      } else {
-    //        sink.error(tr.getCause());
-    //      }
-    //    }).concatMap(Function.identity());
-  }
-
-  static JetStreamSubscription jetStreamSub(JetStream js, DeliverPolicy deliverPolicy, String topic, int partition) {
+  public static JetStreamSubscription createSubscription(JetStream js,
+                                                         DeliverPolicy deliverPolicy,
+                                                         String topic,
+                                                         int partition) {
     var config = ConsumerConfiguration.builder()
                                       .ackPolicy(AckPolicy.Explicit)
                                       .deliverPolicy(deliverPolicy)
@@ -162,6 +88,54 @@ public class NatsUtils {
     } catch (IOException | JetStreamApiException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  public static Flux<Message> fetchAllMessagesForCmds(JetStream js,
+                                                      NatsConfig natsConfig,
+                                                      String topic,
+                                                      int partition) {
+    return Mono.fromCallable(() -> {
+      System.out.printf("subscribing to %s %d%n", topic, partition);
+      return createSubscription(js, DeliverPolicy.All, topic, partition);
+    }).flatMapMany(sub -> fetchMessagesForCmds(sub, natsConfig.fetchBatchSize(), natsConfig.fetchMaxWait()));
+  }
+
+  static Flux<Message> fetchMessagesForCmds(JetStreamSubscription sub, int fetchBatchSize, Duration fetchMaxWait) {
+    return Flux.generate((SynchronousSink<Flux<Message>> sink) -> {
+      var tr = Try.of(() -> sub.fetch(fetchBatchSize, fetchMaxWait));
+      if (tr.isSuccess()) {
+        List<Message> messages = List.ofAll(tr.get()).dropWhile(Message::isStatusMessage);
+        messages.forEach(System.out::println);
+        System.out.println("fetchMessageForCmds is called size=" + messages.size());
+        sink.next(Flux.fromIterable(messages));
+      } else {
+        sink.error(tr.getCause());
+      }
+    }).concatMap(Function.identity()).subscribeOn(Schedulers.boundedElastic());
+  }
+
+  public static Flux<Message> fetchAllMessages(JetStream js, NatsConfig natsConfig, String topic, int partition) {
+    return Mono.fromCallable(() -> {
+      System.out.printf("subscribing to %s %d%n", topic, partition);
+      return createSubscription(js, DeliverPolicy.All, topic, partition);
+    }).flatMapMany(sub -> fetchMessages(sub, natsConfig.fetchBatchSize(), natsConfig.fetchMaxWait()));
+  }
+
+  static Flux<Message> fetchMessages(JetStreamSubscription sub, int fetchBatchSize, Duration fetchMaxWait) {
+    return Mono.fromCallable(() -> Flux.fromIterable(sub.fetch(fetchBatchSize, fetchMaxWait)))
+               .repeat()
+               .flatMap(Function.identity())
+               .map(message -> {
+                 message.ack();
+                 return message;
+               });
+  }
+
+  public static Mono<Message> fetchLastMessage(JetStreamSubscription sub, NatsConfig config) {
+    return Mono.fromCallable(() -> sub.fetch(config.fetchBatchSize(), config.fetchMaxWait()))
+               .map(List::ofAll)
+               .map(Traversable::lastOption)
+               .flatMap(ReactorUtils::optionToMono);
   }
 
   static StreamConfiguration streamConfiguration(NatsConfig natsConfig, String topic, int partition) {

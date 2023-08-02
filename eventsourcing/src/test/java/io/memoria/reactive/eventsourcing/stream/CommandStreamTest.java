@@ -18,7 +18,7 @@ class CommandStreamTest {
   private static final StateId s0 = StateId.of(0);
   private static final String topic = "commands";
   private static final int totalPartitions = 1;
-  private final CommandStream<SomeCommand> stream = CommandStream.inMemory();
+  private final CommandStream<SomeCommand> stream = CommandStream.inMemory(SomeCommand.class);
 
   @Test
   void publishAndSubscribe() {

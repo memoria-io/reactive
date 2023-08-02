@@ -99,6 +99,7 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
    */
   Flux<E> init() {
     return this.eventStream.last(eventRoute.topicName(), eventRoute.partition())
+                           .map(E::eventId)
                            .flatMapMany(this::subUntil)
                            .concatMap(this::evolve);
   }

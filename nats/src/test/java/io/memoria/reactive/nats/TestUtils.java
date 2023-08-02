@@ -3,8 +3,9 @@ package io.memoria.reactive.nats;
 import io.memoria.reactive.eventsourcing.pipeline.partition.CommandRoute;
 import io.memoria.reactive.eventsourcing.pipeline.partition.EventRoute;
 import io.memoria.reactive.eventsourcing.pipeline.partition.PartitionPipeline;
-import io.memoria.reactive.nats.eventsourcing.stream.NatsCommandStream;
-import io.memoria.reactive.nats.eventsourcing.stream.NatsEventStream;
+import io.memoria.reactive.eventsourcing.stream.CommandStream;
+import io.memoria.reactive.eventsourcing.stream.EventStream;
+import io.memoria.reactive.nats.msg.stream.NatsMsgStream;
 import io.memoria.reactive.testsuite.TestsuiteDefaults;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingData;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingInfra;
@@ -32,8 +33,9 @@ public class TestUtils {
 
   public static PartitionPipeline<Account, AccountCommand, AccountEvent> createPipeline() {
     try {
-      var commandStream = new NatsCommandStream<>(NATS_CONFIG, AccountCommand.class, TRANSFORMER, SCHEDULER);
-      var eventStream = new NatsEventStream<>(NATS_CONFIG, AccountEvent.class, TRANSFORMER, SCHEDULER);
+      var msgStream = new NatsMsgStream(NATS_CONFIG, SCHEDULER);
+      var commandStream = CommandStream.msgStream(msgStream, AccountCommand.class, TRANSFORMER);
+      var eventStream = EventStream.msgStream(msgStream, AccountEvent.class, TRANSFORMER);
       var commandRoute = new CommandRoute(TestsuiteDefaults.topicName("commands"), 0);
       var eventRoute = new EventRoute(TestsuiteDefaults.topicName("events"), 0);
       System.out.printf("Creating %s %n", commandRoute);

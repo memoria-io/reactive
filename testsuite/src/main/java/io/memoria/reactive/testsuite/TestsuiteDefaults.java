@@ -2,7 +2,7 @@ package io.memoria.reactive.testsuite;
 
 import io.memoria.atom.core.text.SerializableTransformer;
 import io.memoria.atom.core.text.TextTransformer;
-import io.memoria.reactive.core.message.stream.ESMsg;
+import io.memoria.reactive.core.msg.stream.Msg;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
@@ -23,7 +23,7 @@ public class TestsuiteDefaults {
     return "topic%d_%s".formatted(System.currentTimeMillis(), tClass.getSimpleName());
   }
 
-  public static ESMsg createEsMsg(int i) {
-    return new ESMsg(String.valueOf(i), "hello" + i);
+  public static Msg createEsMsg(int i) {
+    return new Msg(String.valueOf(i), "hello" + i);
   }
 }
