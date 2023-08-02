@@ -16,7 +16,7 @@ class ESScenarioTest {
   @ParameterizedTest(name = "Using {0} accounts")
   //  @ValueSource(ints = {0, 1,4, 5, 7, 10, 20, 30, 101, 202, 500, 501, 700, 800, 900, 997, 998, 999, 1000, 1111, 2222, 3333})
 //  @ValueSource(ints = {0, 1, 4, 5, 7, 9, 10, 11, 10001})
-  @ValueSource(ints = 1003)
+  @ValueSource(ints = 10003)
   void simpleDebitScenario(int numOfAccounts) {
     // When
     var scenario = new SimpleDebitScenario(DATA, createPipeline(), numOfAccounts);
@@ -30,7 +30,9 @@ class ESScenarioTest {
                 .expectNextCount(scenario.expectedEventsCount())
                 .expectTimeout(TIMEOUT)
                 .verify();
-    System.out.println(System.currentTimeMillis() - now);
+    long totalElapsed = System.currentTimeMillis() - now;
+    System.out.printf("Finished processing %d events, in %d millis %n", scenario.expectedEventsCount(), totalElapsed);
+    System.out.printf("Average %d events per second %n", scenario.expectedEventsCount() / (totalElapsed / 1000));
     //    if (numOfAccounts > 0) {
     //      StepVerifier.create(scenario.verify()).expectNext(true).verifyComplete();
     //    }

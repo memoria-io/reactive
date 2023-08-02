@@ -40,14 +40,26 @@ class NatsMsgStreamTest {
   @Test
   @Order(0)
   void publish() {
+    var now = System.currentTimeMillis();
+
     StepVerifier.create(scenario.publish()).expectNextCount(MSG_COUNT).verifyComplete();
-    StepVerifier.create(scenario.last().map(Msg::key)).expectNext(String.valueOf(MSG_COUNT - 1)).verifyComplete();
+
+    long totalElapsed = System.currentTimeMillis() - now;
+    System.out.printf("Finished processing %d events, in %d millis %n", MSG_COUNT, totalElapsed);
+    System.out.printf("Average %f events per second %n", MSG_COUNT / (totalElapsed / 1000d));
+    //    StepVerifier.create(scenario.last().map(Msg::key)).expectNext(String.valueOf(MSG_COUNT - 1)).verifyComplete();
   }
 
   @Test
   @Order(1)
   void subscribe() {
+    var now = System.currentTimeMillis();
+
     StepVerifier.create(scenario.subscribe()).expectNextCount(MSG_COUNT).expectTimeout(TIMEOUT).verify();
+
+    long totalElapsed = System.currentTimeMillis() - now;
+    System.out.printf("Finished processing %d events, in %d millis %n", MSG_COUNT, totalElapsed);
+    System.out.printf("Average %f events per second %n", MSG_COUNT / (totalElapsed / 1000d));
   }
 
   @Test

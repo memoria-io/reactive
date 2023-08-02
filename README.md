@@ -106,6 +106,29 @@ Format Example: `JDK_Version.major.minor`
 
 ## Release notes
 
+* `20.25.0`(not released yet) 
+    * PartitionPipeline 
+      * Kafka
+          * Finished processing 50015 events, in 15722 millis
+          * Average 3334 events per second
+      * Nats
+          * Finished processing 50015 events, in 11071 millis
+          * Average 4546 events per second
+    * MsgStream
+      * Kafka
+        * pub
+          * Finished processing 50000 events, in 8319 millis
+          * Average 6010.337781 events per second
+        * sub 
+          * Finished processing 50000 events, in 946 millis
+          * Average 52854.122622 events per second
+      * Nats
+        * pub
+          * Finished processing 50000 events, in 5504 millis
+          * Average 9084.302326 events per second
+        * sub
+          * Finished processing 50000 events, in 2572 millis
+          * Average 19440.124417 events per second
 * `20.23.0`
     * In Memory PartitionPipeline performance one thread:
 
