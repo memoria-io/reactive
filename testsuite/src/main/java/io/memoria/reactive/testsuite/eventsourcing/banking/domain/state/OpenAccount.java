@@ -1,6 +1,6 @@
 package io.memoria.reactive.testsuite.eventsourcing.banking.domain.state;
 
-import io.memoria.reactive.eventsourcing.StateId;
+import io.memoria.atom.eventsourcing.StateId;
 
 public record OpenAccount(StateId accountId,
                           String name,

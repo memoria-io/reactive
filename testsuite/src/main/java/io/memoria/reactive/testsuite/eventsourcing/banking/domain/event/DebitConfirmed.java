@@ -1,8 +1,8 @@
 package io.memoria.reactive.testsuite.eventsourcing.banking.domain.event;
 
-import io.memoria.reactive.eventsourcing.CommandId;
-import io.memoria.reactive.eventsourcing.EventId;
-import io.memoria.reactive.eventsourcing.StateId;
+import io.memoria.atom.eventsourcing.CommandId;
+import io.memoria.atom.eventsourcing.EventId;
+import io.memoria.atom.eventsourcing.StateId;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.ConfirmDebit;
 
 public record DebitConfirmed(EventId eventId, CommandId commandId, StateId debitedAcc, long timestamp)

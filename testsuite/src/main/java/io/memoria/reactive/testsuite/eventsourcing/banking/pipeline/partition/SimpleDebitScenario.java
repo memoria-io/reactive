@@ -1,6 +1,7 @@
 package io.memoria.reactive.testsuite.eventsourcing.banking.pipeline.partition;
 
-import io.memoria.reactive.eventsourcing.StateId;
+import io.memoria.reactive.eventsourcing.PipelineUtils;
+import io.memoria.atom.eventsourcing.StateId;
 import io.memoria.reactive.eventsourcing.pipeline.partition.PartitionPipeline;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingData;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.AccountCommand;
@@ -58,13 +59,12 @@ public class SimpleDebitScenario implements PartitionScenario<Account, AccountCo
   @Override
   public Mono<Boolean> verify() {
     var events = pipeline.eventStream.sub(pipeline.eventRoute.topicName(), pipeline.eventRoute.partition());
-    return pipeline.domain.evolver()
-                          .reduce(events.take(expectedEventsCount()))
-                          .map(Map::values)
-                          .flatMapMany(Flux::fromIterable)
-                          .map(acc -> (OpenAccount) acc)
-                          .map(this::verify)
-                          .reduce((a, b) -> a && b);
+    return PipelineUtils.reduce(pipeline.domain.evolver(), events.take(expectedEventsCount()))
+                        .map(Map::values)
+                        .flatMapMany(Flux::fromIterable)
+                        .map(acc -> (OpenAccount) acc)
+                        .map(this::verify)
+                        .reduce((a, b) -> a && b);
   }
 
   boolean verify(OpenAccount acc) {

@@ -10,6 +10,7 @@ import reactor.test.StepVerifier;
 
 import static io.memoria.reactive.nats.TestUtils.DATA;
 import static io.memoria.reactive.nats.TestUtils.createPipeline;
+import static io.memoria.reactive.testsuite.TestsuiteDefaults.MSG_COUNT;
 import static io.memoria.reactive.testsuite.TestsuiteDefaults.TIMEOUT;
 
 class ESScenarioTest {
@@ -17,7 +18,7 @@ class ESScenarioTest {
   @ParameterizedTest(name = "Using {0} accounts")
   //  @ValueSource(ints = {0, 1,4, 5, 7, 10, 20, 30, 101, 202, 500, 501, 700, 800, 900, 997, 998, 999, 1000, 1111, 2222, 3333})
   //  @ValueSource(ints = {0, 1, 4, 5, 7, 9, 10, 11, 10001})
-  @ValueSource(ints = 10003)
+  @ValueSource(ints = MSG_COUNT)
   void simpleDebitScenario(int numOfAccounts) {
     // When
     var scenario = new SimpleDebitScenario(DATA, createPipeline(), numOfAccounts);

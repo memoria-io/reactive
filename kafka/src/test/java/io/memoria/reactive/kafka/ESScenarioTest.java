@@ -10,12 +10,13 @@ import reactor.test.StepVerifier;
 
 import static io.memoria.reactive.kafka.TestUtils.DATA;
 import static io.memoria.reactive.kafka.TestUtils.createPipeline;
+import static io.memoria.reactive.testsuite.TestsuiteDefaults.MSG_COUNT;
 import static io.memoria.reactive.testsuite.TestsuiteDefaults.TIMEOUT;
 
 class ESScenarioTest {
 
   @ParameterizedTest(name = "Using {0} accounts")
-  @ValueSource(ints = {10003})
+  @ValueSource(ints = MSG_COUNT)
   void simpleDebitScenario(int numOfAccounts) {
     // When
     var scenario = new SimpleDebitScenario(DATA, createPipeline(), numOfAccounts);

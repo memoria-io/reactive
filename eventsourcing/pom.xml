@@ -20,6 +20,10 @@
             <artifactId>core</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.memoria.atom</groupId>
+            <artifactId>eventsourcing</artifactId>
+        </dependency>
     </dependencies>
 </project>
 

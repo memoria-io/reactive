@@ -1,8 +1,8 @@
 package io.memoria.reactive.testsuite.eventsourcing.banking.domain;
 
 import io.memoria.atom.core.id.Id;
-import io.memoria.reactive.eventsourcing.exception.ESException.InvalidEvent;
-import io.memoria.reactive.eventsourcing.rule.Evolver;
+import io.memoria.atom.eventsourcing.ESException.InvalidEvent;
+import io.memoria.atom.eventsourcing.rule.Evolver;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.event.AccountClosed;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.event.AccountCreated;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.event.AccountEvent;

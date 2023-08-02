@@ -1,6 +1,6 @@
 package io.memoria.reactive.testsuite.eventsourcing.banking.stream;
 
-import io.memoria.reactive.eventsourcing.StateId;
+import io.memoria.atom.eventsourcing.StateId;
 import io.memoria.reactive.eventsourcing.stream.EventStream;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingData;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.event.AccountEvent;

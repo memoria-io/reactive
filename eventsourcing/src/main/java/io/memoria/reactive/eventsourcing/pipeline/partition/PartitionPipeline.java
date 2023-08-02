@@ -1,13 +1,13 @@
 package io.memoria.reactive.eventsourcing.pipeline.partition;
 
 import io.memoria.reactive.core.reactor.ReactorUtils;
-import io.memoria.reactive.eventsourcing.Command;
-import io.memoria.reactive.eventsourcing.CommandId;
-import io.memoria.reactive.eventsourcing.Domain;
-import io.memoria.reactive.eventsourcing.Event;
-import io.memoria.reactive.eventsourcing.EventId;
-import io.memoria.reactive.eventsourcing.State;
-import io.memoria.reactive.eventsourcing.StateId;
+import io.memoria.atom.eventsourcing.Command;
+import io.memoria.atom.eventsourcing.CommandId;
+import io.memoria.atom.eventsourcing.Domain;
+import io.memoria.atom.eventsourcing.Event;
+import io.memoria.atom.eventsourcing.EventId;
+import io.memoria.atom.eventsourcing.State;
+import io.memoria.atom.eventsourcing.StateId;
 import io.memoria.reactive.eventsourcing.stream.CommandStream;
 import io.memoria.reactive.eventsourcing.stream.EventStream;
 import reactor.core.publisher.Flux;

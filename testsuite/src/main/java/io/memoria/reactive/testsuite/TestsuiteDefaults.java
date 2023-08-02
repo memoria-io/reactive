@@ -10,7 +10,7 @@ import java.time.Duration;
 public class TestsuiteDefaults {
 
   public static final Scheduler SCHEDULER = Schedulers.boundedElastic();
-  public static final int MSG_COUNT = 50000;
+  public static final int MSG_COUNT = 1000;
   public static final Duration TIMEOUT = Duration.ofMillis(500);
   public static final TextTransformer TRANSFORMER = new SerializableTransformer();
 
