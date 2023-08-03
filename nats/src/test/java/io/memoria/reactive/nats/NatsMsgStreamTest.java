@@ -1,6 +1,6 @@
 package io.memoria.reactive.nats;
 
-import io.memoria.reactive.core.msg.stream.Msg;
+import io.memoria.reactive.core.stream.Msg;
 import io.memoria.reactive.testsuite.MsgStreamScenario;
 import io.memoria.reactive.testsuite.TestsuiteUtils;
 import io.nats.client.JetStreamApiException;

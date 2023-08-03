@@ -1,3 +1,3 @@
-package io.memoria.reactive.core.msg.stream;
+package io.memoria.reactive.core.stream;
 
 public record Msg(String key, String value) {}

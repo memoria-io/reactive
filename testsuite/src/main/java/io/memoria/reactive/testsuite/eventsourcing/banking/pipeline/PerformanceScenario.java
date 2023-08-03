@@ -1,7 +1,7 @@
-package io.memoria.reactive.testsuite.eventsourcing.banking.pipeline.partition;
+package io.memoria.reactive.testsuite.eventsourcing.banking.pipeline;
 
 import io.memoria.atom.eventsourcing.StateId;
-import io.memoria.reactive.eventsourcing.pipeline.partition.PartitionPipeline;
+import io.memoria.reactive.eventsourcing.pipeline.PartitionPipeline;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingData;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.AccountCommand;
 import io.memoria.reactive.testsuite.eventsourcing.banking.domain.event.AccountCreated;

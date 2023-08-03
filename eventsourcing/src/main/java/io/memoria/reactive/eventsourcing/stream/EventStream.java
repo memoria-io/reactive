@@ -4,7 +4,7 @@ import io.memoria.atom.core.text.SerializableTransformer;
 import io.memoria.atom.core.text.TextTransformer;
 import io.memoria.atom.eventsourcing.Event;
 import io.memoria.atom.eventsourcing.EventId;
-import io.memoria.reactive.core.msg.stream.MsgStream;
+import io.memoria.reactive.core.stream.MsgStream;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

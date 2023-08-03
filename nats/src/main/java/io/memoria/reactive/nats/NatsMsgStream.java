@@ -1,7 +1,7 @@
 package io.memoria.reactive.nats;
 
-import io.memoria.reactive.core.msg.stream.Msg;
-import io.memoria.reactive.core.msg.stream.MsgStream;
+import io.memoria.reactive.core.stream.Msg;
+import io.memoria.reactive.core.stream.MsgStream;
 import io.nats.client.Connection;
 import io.nats.client.JetStream;
 import io.nats.client.Message;

@@ -1,4 +1,4 @@
-package io.memoria.reactive.core.msg.stream;
+package io.memoria.reactive.core.stream;
 
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;

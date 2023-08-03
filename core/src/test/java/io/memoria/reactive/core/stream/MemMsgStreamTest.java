@@ -1,4 +1,4 @@
-package io.memoria.reactive.core.msg.stream;
+package io.memoria.reactive.core.stream;
 
 import org.assertj.core.api.Assertions;
 import org.awaitility.Awaitility;

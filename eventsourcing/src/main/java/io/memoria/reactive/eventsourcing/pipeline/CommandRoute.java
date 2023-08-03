@@ -1,4 +1,4 @@
-package io.memoria.reactive.eventsourcing.pipeline.partition;
+package io.memoria.reactive.eventsourcing.pipeline;
 
 public record CommandRoute(String topicName, int partition, int totalPartitions) {
   public CommandRoute(String name, int partition) {

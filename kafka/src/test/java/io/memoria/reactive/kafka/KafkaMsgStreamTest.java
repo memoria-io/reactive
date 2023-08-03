@@ -1,6 +1,6 @@
 package io.memoria.reactive.kafka;
 
-import io.memoria.reactive.core.msg.stream.Msg;
+import io.memoria.reactive.core.stream.Msg;
 import io.memoria.reactive.testsuite.MsgStreamScenario;
 import io.memoria.reactive.testsuite.TestsuiteUtils;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;

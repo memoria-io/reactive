@@ -1,7 +1,7 @@
 package io.memoria.reactive.kafka;
 
-import io.memoria.reactive.core.msg.stream.Msg;
-import io.memoria.reactive.core.msg.stream.MsgStream;
+import io.memoria.reactive.core.stream.Msg;
+import io.memoria.reactive.core.stream.MsgStream;
 import io.memoria.reactive.core.reactor.ReactorUtils;
 import io.vavr.collection.Map;
 import org.apache.kafka.clients.consumer.ConsumerRecord;

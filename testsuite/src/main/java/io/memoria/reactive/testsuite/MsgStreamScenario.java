@@ -1,7 +1,7 @@
 package io.memoria.reactive.testsuite;
 
-import io.memoria.reactive.core.msg.stream.Msg;
-import io.memoria.reactive.core.msg.stream.MsgStream;
+import io.memoria.reactive.core.stream.Msg;
+import io.memoria.reactive.core.stream.MsgStream;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
