@@ -8,7 +8,7 @@ import reactor.core.publisher.Sinks.Many;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-public final class MemMsgStream implements MsgStream {
+class MemMsgStream implements MsgStream {
   private final int historySize;
   private final Map<String, Map<Integer, Many<Msg>>> topics = new ConcurrentHashMap<>();
   private final Map<String, Map<Integer, Msg>> lastMsg = new ConcurrentHashMap<>();
