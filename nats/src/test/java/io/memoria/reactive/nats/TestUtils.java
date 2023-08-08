@@ -8,7 +8,6 @@ import io.memoria.reactive.eventsourcing.pipeline.EventRoute;
 import io.memoria.reactive.eventsourcing.pipeline.PartitionPipeline;
 import io.memoria.reactive.eventsourcing.stream.CommandStream;
 import io.memoria.reactive.eventsourcing.stream.EventStream;
-import io.memoria.reactive.testsuite.Utils;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingData;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingInfra;
 import io.nats.client.JetStreamApiException;
@@ -35,12 +34,12 @@ public class TestUtils {
       var msgStream = new NatsMsgStream(NATS_CONFIG, SCHEDULER);
       var commandStream = CommandStream.msgStream(msgStream, AccountCommand.class, TRANSFORMER);
       var eventStream = EventStream.msgStream(msgStream, AccountEvent.class, TRANSFORMER);
-      var commandRoute = new CommandRoute(Utils.topicName("commands"), 0);
-      var eventRoute = new EventRoute(Utils.topicName("events"), 0);
+      var commandRoute = new CommandRoute(io.memoria.reactive.testsuite.Utils.topicName("commands"), 0);
+      var eventRoute = new EventRoute(io.memoria.reactive.testsuite.Utils.topicName("events"), 0);
       //      System.out.printf("Creating %s %n", commandRoute);
       //      System.out.printf("Creating %s %n", eventRoute);
-      NatsUtils.createOrUpdateTopic(NATS_CONFIG, commandRoute.topicName(), commandRoute.totalPartitions());
-      NatsUtils.createOrUpdateTopic(NATS_CONFIG, eventRoute.topicName(), eventRoute.totalPartitions());
+      Utils.createOrUpdateTopic(NATS_CONFIG, commandRoute.topicName(), commandRoute.totalPartitions());
+      Utils.createOrUpdateTopic(NATS_CONFIG, eventRoute.topicName(), eventRoute.totalPartitions());
       return BankingInfra.createPipeline(DATA.idSupplier,
                                          DATA.timeSupplier,
                                          commandStream,

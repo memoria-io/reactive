@@ -18,7 +18,7 @@ import reactor.core.scheduler.Scheduler;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 
-import static io.memoria.reactive.nats.NatsUtils.ID_HEADER;
+import static io.memoria.reactive.nats.Utils.ID_HEADER;
 
 public class NatsMsgStream implements MsgStream {
   private static final Logger log = LoggerFactory.getLogger(NatsMsgStream.class.getName());
@@ -30,7 +30,7 @@ public class NatsMsgStream implements MsgStream {
   public NatsMsgStream(NatsConfig natsConfig, Scheduler scheduler) throws IOException, InterruptedException {
     this.natsConfig = natsConfig;
     this.scheduler = scheduler;
-    this.connection = NatsUtils.createConnection(this.natsConfig);
+    this.connection = Utils.createConnection(this.natsConfig);
     this.jetStream = connection.jetStream();
   }
 
@@ -45,16 +45,16 @@ public class NatsMsgStream implements MsgStream {
 
   @Override
   public Flux<Msg> sub(String topic, int partition) {
-    return NatsUtils.fetchAllMessages(jetStream, natsConfig, topic, partition)
-                    .doOnNext(Message::ack)
-                    .map(NatsMsgStream::toESMsg)
-                    .subscribeOn(scheduler);
+    return Utils.fetchAllMessages(jetStream, natsConfig, topic, partition)
+                .doOnNext(Message::ack)
+                .map(NatsMsgStream::toESMsg)
+                .subscribeOn(scheduler);
   }
 
   @Override
   public Mono<Msg> last(String topic, int partition) {
-    var sub = NatsUtils.createSubscription(jetStream, DeliverPolicy.Last, topic, partition);
-    return NatsUtils.fetchLastMessage(sub, natsConfig).map(NatsMsgStream::toESMsg).subscribeOn(scheduler);
+    var sub = Utils.createSubscription(jetStream, DeliverPolicy.Last, topic, partition);
+    return Utils.fetchLastMessage(sub, natsConfig).map(NatsMsgStream::toESMsg).subscribeOn(scheduler);
   }
 
   @Override
@@ -64,14 +64,14 @@ public class NatsMsgStream implements MsgStream {
   }
 
   static NatsMessage natsMessage(String topic, int partition, Msg msg) {
-    var subjectName = NatsUtils.subjectName(topic, partition);
+    var subjectName = Utils.subjectName(topic, partition);
     var headers = new Headers();
     headers.add(ID_HEADER, msg.key());
     return NatsMessage.builder().subject(subjectName).headers(headers).data(msg.value()).build();
   }
 
   static Msg toESMsg(Message message) {
-    String key = message.getHeaders().getFirst(NatsUtils.ID_HEADER);
+    String key = message.getHeaders().getFirst(Utils.ID_HEADER);
     var value = new String(message.getData(), StandardCharsets.UTF_8);
     return new Msg(key, value);
   }

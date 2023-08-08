@@ -2,7 +2,6 @@ package io.memoria.reactive.nats;
 
 import io.memoria.reactive.core.stream.Msg;
 import io.memoria.reactive.testsuite.MsgStreamScenario;
-import io.memoria.reactive.testsuite.Utils;
 import io.nats.client.JetStreamApiException;
 import io.nats.client.api.StreamInfo;
 import org.junit.jupiter.api.Assertions;
@@ -28,8 +27,8 @@ class NatsMsgStreamTest {
 
   static {
     try {
-      String topic = Utils.topicName(NatsMsgStreamTest.class);
-      NatsUtils.createOrUpdateTopic(NATS_CONFIG, topic, 1).map(StreamInfo::toString).forEach(log::info);
+      String topic = io.memoria.reactive.testsuite.Utils.topicName(NatsMsgStreamTest.class);
+      Utils.createOrUpdateTopic(NATS_CONFIG, topic, 1).map(StreamInfo::toString).forEach(log::info);
       var repo = new NatsMsgStream(NATS_CONFIG, SCHEDULER);
       scenario = new MsgStreamScenario(MSG_COUNT, topic, 0, repo);
     } catch (IOException | InterruptedException | JetStreamApiException e) {
@@ -42,7 +41,7 @@ class NatsMsgStreamTest {
   void publish() {
     var now = System.currentTimeMillis();
     StepVerifier.create(scenario.publish()).expectNextCount(MSG_COUNT).verifyComplete();
-    Utils.printRates("publish", now);
+    io.memoria.reactive.testsuite.Utils.printRates("publish", now);
     //    StepVerifier.create(scenario.last().map(Msg::key)).expectNext(String.valueOf(MSG_COUNT - 1)).verifyComplete();
   }
 
@@ -51,7 +50,7 @@ class NatsMsgStreamTest {
   void subscribe() {
     var now = System.currentTimeMillis();
     StepVerifier.create(scenario.subscribe()).expectNextCount(MSG_COUNT).expectTimeout(TIMEOUT).verify();
-    Utils.printRates("subscribe", now);
+    io.memoria.reactive.testsuite.Utils.printRates("subscribe", now);
   }
 
   @Test
