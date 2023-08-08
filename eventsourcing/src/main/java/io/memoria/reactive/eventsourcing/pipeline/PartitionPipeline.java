@@ -3,6 +3,7 @@ package io.memoria.reactive.eventsourcing.pipeline;
 import io.memoria.atom.eventsourcing.Command;
 import io.memoria.atom.eventsourcing.CommandId;
 import io.memoria.atom.eventsourcing.Domain;
+import io.memoria.atom.eventsourcing.ESException.InvalidEvent;
 import io.memoria.atom.eventsourcing.Event;
 import io.memoria.atom.eventsourcing.EventId;
 import io.memoria.atom.eventsourcing.EventMeta;
@@ -10,7 +11,8 @@ import io.memoria.atom.eventsourcing.State;
 import io.memoria.atom.eventsourcing.StateId;
 import io.memoria.reactive.eventsourcing.stream.CommandStream;
 import io.memoria.reactive.eventsourcing.stream.EventStream;
-import io.vavr.control.Try;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -18,10 +20,13 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static io.memoria.reactive.core.reactor.ReactorUtils.tryToMono;
 
 public class PartitionPipeline<S extends State, C extends Command, E extends Event> {
+  private static final Logger log = LoggerFactory.getLogger(PartitionPipeline.class.getName());
+
   // Core
   public final Domain<S, C, E> domain;
 
@@ -29,13 +34,13 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
   private final CommandStream<C> commandStream;
   private final CommandRoute commandRoute;
 
-  public final EventStream<E> eventStream;
-  public final EventRoute eventRoute;
+  private final EventStream<E> eventStream;
+  private final EventRoute eventRoute;
 
   // In memory
   private final Map<StateId, S> aggregates;
   private final Set<CommandId> processedCommands;
-  private final Set<EventId> processedEvents;
+  private final AtomicReference<E> lastEvent;
 
   public PartitionPipeline(Domain<S, C, E> domain,
                            CommandStream<C> commandStream,
@@ -55,7 +60,7 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
     // In memory
     this.aggregates = new HashMap<>();
     this.processedCommands = new HashSet<>();
-    this.processedEvents = new HashSet<>();
+    this.lastEvent = new AtomicReference<>();
   }
 
   public Flux<E> handle() {
@@ -63,8 +68,8 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
   }
 
   public Flux<E> handle(Flux<C> cmds) {
-    var handleCommands = cmds.concatMap(this::redirectIfNotBelong)
-                             .concatMap(this::handleCommand)
+    var handleCommands = cmds.concatMap(this::redirectIfNeeded)
+                             .concatMap(this::decide)
                              .doOnNext(this::evolve)
                              .concatMap(this::saga)
                              .concatMap(this::pubEvent);
@@ -78,10 +83,6 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
 
   public Flux<C> subToCommands() {
     return commandStream.sub(commandRoute.topicName(), commandRoute.partition());
-  }
-
-  public Mono<E> pubEvent(E e) {
-    return eventStream.pub(eventRoute.topicName(), eventRoute.partition(), e);
   }
 
   public Flux<E> subToEvents() {
@@ -106,7 +107,7 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
   /**
    * Redirection allows location transparency and auto sharding
    */
-  Mono<C> redirectIfNotBelong(C cmd) {
+  Mono<C> redirectIfNeeded(C cmd) {
     if (cmd.meta().isInPartition(commandRoute.partition(), commandRoute.totalPartitions())) {
       return Mono.just(cmd);
     } else {
@@ -114,36 +115,18 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
     }
   }
 
-  Mono<E> handleCommand(C cmd) {
+  Mono<E> decide(C cmd) {
     return Mono.defer(() -> {
       if (processedCommands.contains(cmd.meta().commandId())) {
         return Mono.empty();
       } else {
-        return tryToMono(() -> decide(cmd));
+        if (aggregates.containsKey(cmd.meta().stateId())) {
+          return tryToMono(() -> domain.decider().apply(aggregates.get(cmd.meta().stateId()), cmd));
+        } else {
+          return tryToMono(() -> domain.decider().apply(cmd));
+        }
       }
     });
-  }
-
-  Try<E> decide(C cmd) {
-    if (aggregates.containsKey(cmd.meta().stateId())) {
-      return domain.decider().apply(aggregates.get(cmd.meta().stateId()), cmd);
-    } else {
-      return domain.decider().apply(cmd);
-    }
-  }
-
-  void evolve(E e) {
-    if (!processedEvents.contains(e.meta().eventId())) {
-      S newState;
-      if (aggregates.containsKey(e.meta().stateId())) {
-        newState = domain.evolver().apply(aggregates.get(e.meta().stateId()), e);
-      } else {
-        newState = domain.evolver().apply(e);
-      }
-      aggregates.put(e.meta().stateId(), newState);
-      processedCommands.add(e.meta().commandId());
-      processedEvents.add(e.meta().eventId());
-    }
   }
 
   Mono<E> saga(E e) {
@@ -155,5 +138,41 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
         return Mono.just(e);
       }
     });
+  }
+
+  Mono<E> pubEvent(E e) {
+    return eventStream.pub(eventRoute.topicName(), eventRoute.partition(), e);
+  }
+
+  void evolve(E e) {
+    if (aggregates.containsKey(e.meta().stateId())) {
+      S currentState = aggregates.get(e.meta().stateId());
+      if (hasExpectedVersion(e, currentState)) {
+        update(e, domain.evolver().apply(currentState, e));
+      } else if (isEqToLastEvent(e)) {
+        String message = "Redelivered event[%s], ignoring...".formatted(e.meta());
+        log.debug(message);
+      } else {
+        throw InvalidEvent.of(currentState, e);
+      }
+    } else if (e.meta().version() == 0) {
+      update(e, domain.evolver().apply(e));
+    } else {
+      throw InvalidEvent.of(e);
+    }
+  }
+
+  boolean hasExpectedVersion(E e, S currentState) {
+    return e.meta().version() == currentState.meta().version() + 1;
+  }
+
+  boolean isEqToLastEvent(E e) {
+    return lastEvent.get() == null && lastEvent.get().equals(e);
+  }
+
+  void update(E e, S newState) {
+    aggregates.put(e.meta().stateId(), newState);
+    processedCommands.add(e.meta().commandId());
+    lastEvent.set(e);
   }
 }

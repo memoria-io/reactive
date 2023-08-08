@@ -58,9 +58,7 @@ public class PerformanceScenario implements PartitionScenario<AccountCommand, Ac
 
   @Override
   public Mono<Boolean> verify() {
-    return pipeline.eventStream.sub(pipeline.eventRoute.topicName(), pipeline.eventRoute.partition())
-                               .map(PerformanceScenario::isTypeOf)
-                               .all(b -> b);
+    return pipeline.subToEvents().map(PerformanceScenario::isTypeOf).all(b -> b);
   }
 
   private static boolean isTypeOf(AccountEvent acc) {
