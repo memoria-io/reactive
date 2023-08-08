@@ -1,7 +1,7 @@
 package io.memoria.reactive.eventsourcing.stream;
 
 import io.memoria.atom.eventsourcing.CommandId;
-import io.memoria.atom.eventsourcing.EventId;
+import io.memoria.atom.eventsourcing.EventMeta;
 import io.memoria.atom.eventsourcing.StateId;
 import org.assertj.core.api.Assertions;
 import org.awaitility.Awaitility;
@@ -23,7 +23,7 @@ class EventStreamTest {
   @Test
   void publishAndSubscribe() {
     // Given
-    var cmds = Flux.range(0, ELEMENTS_SIZE).map(i -> new SomeEvent(EventId.of(i), s0, CommandId.of(i)));
+    var cmds = Flux.range(0, ELEMENTS_SIZE).map(i -> new SomeEvent(new EventMeta(CommandId.of(), s0)));
 
     // When
     StepVerifier.create(cmds.flatMap(c -> stream.pub(topic, 0, c))).expectNextCount(ELEMENTS_SIZE).verifyComplete();
@@ -38,7 +38,7 @@ class EventStreamTest {
   }
 
   private static void verify(SomeEvent event) {
-    Assertions.assertThat(event.stateId()).isEqualTo(s0);
-    Assertions.assertThat(event.partition(totalPartitions)).isEqualTo(0);
+    Assertions.assertThat(event.meta().stateId()).isEqualTo(s0);
+    Assertions.assertThat(event.meta().partition(totalPartitions)).isZero();
   }
 }

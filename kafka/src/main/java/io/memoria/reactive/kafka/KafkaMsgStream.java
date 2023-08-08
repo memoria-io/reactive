@@ -1,8 +1,8 @@
 package io.memoria.reactive.kafka;
 
+import io.memoria.reactive.core.reactor.ReactorUtils;
 import io.memoria.reactive.core.stream.Msg;
 import io.memoria.reactive.core.stream.MsgStream;
-import io.memoria.reactive.core.reactor.ReactorUtils;
 import io.vavr.collection.Map;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.TopicPartition;
@@ -53,7 +53,7 @@ public class KafkaMsgStream implements MsgStream {
 
   @Override
   public Mono<Msg> last(String topic, int partition) {
-    return Mono.fromCallable(() -> KafkaUtils.lastKey(topic, partition, timeout, consumerConfig))
+    return Mono.fromCallable(() -> Utils.lastKey(topic, partition, timeout, consumerConfig))
                .flatMap(ReactorUtils::optionToMono)
                .map(KafkaMsgStream::toMsg);
   }

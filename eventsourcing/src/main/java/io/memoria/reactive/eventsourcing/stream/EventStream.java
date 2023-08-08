@@ -20,7 +20,7 @@ public interface EventStream<E extends Event> {
    * @return subscribe until eventId (key) is matched
    */
   default Flux<E> subUntil(String topic, int partition, EventId eventId) {
-    return sub(topic, partition).takeUntil(e -> e.eventId().equals(eventId));
+    return sub(topic, partition).takeUntil(e -> e.meta().eventId().equals(eventId));
   }
 
   static <E extends Event> EventStream<E> msgStream(MsgStream msgStream, Class<E> cClass, TextTransformer transformer) {

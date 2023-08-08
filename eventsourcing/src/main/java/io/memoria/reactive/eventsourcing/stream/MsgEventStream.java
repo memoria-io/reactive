@@ -37,7 +37,7 @@ class MsgEventStream<E extends Event> implements EventStream<E> {
   }
 
   Mono<Msg> toMsg(E cmd) {
-    return tryToMono(() -> transformer.serialize(cmd)).map(value -> new Msg(cmd.commandId().id().value(), value));
+    return tryToMono(() -> transformer.serialize(cmd)).map(value -> new Msg(cmd.meta().commandId().value(), value));
   }
 
   Mono<E> toCmd(Msg msg) {

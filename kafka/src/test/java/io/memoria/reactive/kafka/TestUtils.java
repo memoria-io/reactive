@@ -1,5 +1,8 @@
 package io.memoria.reactive.kafka;
 
+import io.memoria.atom.testsuite.eventsourcing.banking.command.AccountCommand;
+import io.memoria.atom.testsuite.eventsourcing.banking.event.AccountEvent;
+import io.memoria.atom.testsuite.eventsourcing.banking.state.Account;
 import io.memoria.reactive.eventsourcing.pipeline.CommandRoute;
 import io.memoria.reactive.eventsourcing.pipeline.EventRoute;
 import io.memoria.reactive.eventsourcing.pipeline.PartitionPipeline;
@@ -7,9 +10,6 @@ import io.memoria.reactive.eventsourcing.stream.CommandStream;
 import io.memoria.reactive.eventsourcing.stream.EventStream;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingData;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingInfra;
-import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.AccountCommand;
-import io.memoria.reactive.testsuite.eventsourcing.banking.domain.event.AccountEvent;
-import io.memoria.reactive.testsuite.eventsourcing.banking.domain.state.Account;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -19,8 +19,8 @@ import org.apache.kafka.common.serialization.StringSerializer;
 
 import java.time.Duration;
 
-import static io.memoria.reactive.testsuite.TestsuiteUtils.TRANSFORMER;
-import static io.memoria.reactive.testsuite.TestsuiteUtils.topicName;
+import static io.memoria.reactive.testsuite.Utils.TRANSFORMER;
+import static io.memoria.reactive.testsuite.Utils.topicName;
 
 public class TestUtils {
   public static final Duration kafkaTimeout = Duration.ofMillis(500);
