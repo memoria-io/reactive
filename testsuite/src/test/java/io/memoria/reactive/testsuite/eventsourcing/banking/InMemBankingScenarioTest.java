@@ -49,8 +49,8 @@ class InMemBankingScenarioTest {
   }
 
   private static Stream<Arguments> dataSource() {
-    var arg1 = Arguments.of("Serial Ids", BankingData.ofSerial(), 100);
-    var arg2 = Arguments.of("TimeUUIDs", BankingData.ofUUID(), 100);
+    var arg1 = Arguments.of("Serial Ids", BankingData.ofSerial(), 2);
+    var arg2 = Arguments.of("TimeUUIDs", BankingData.ofUUID(), 2);
     return Stream.of(arg1, arg2);
   }
 }

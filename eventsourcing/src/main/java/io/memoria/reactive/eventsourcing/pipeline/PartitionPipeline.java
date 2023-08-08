@@ -8,9 +8,9 @@ import io.memoria.atom.eventsourcing.EventId;
 import io.memoria.atom.eventsourcing.EventMeta;
 import io.memoria.atom.eventsourcing.State;
 import io.memoria.atom.eventsourcing.StateId;
-import io.memoria.reactive.core.reactor.ReactorUtils;
 import io.memoria.reactive.eventsourcing.stream.CommandStream;
 import io.memoria.reactive.eventsourcing.stream.EventStream;
+import io.vavr.control.Try;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -19,8 +19,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-import static io.memoria.reactive.core.reactor.ReactorUtils.booleanToMono;
-import static io.memoria.reactive.core.reactor.ReactorUtils.optionToMono;
+import static io.memoria.reactive.core.reactor.ReactorUtils.tryToMono;
 
 public class PartitionPipeline<S extends State, C extends Command, E extends Event> {
   // Core
@@ -37,7 +36,6 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
   private final Map<StateId, S> aggregates;
   private final Set<CommandId> processedCommands;
   private final Set<EventId> processedEvents;
-  private final Set<EventId> processedSagaEvents;
 
   public PartitionPipeline(Domain<S, C, E> domain,
                            CommandStream<C> commandStream,
@@ -58,7 +56,6 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
     this.aggregates = new HashMap<>();
     this.processedCommands = new HashSet<>();
     this.processedEvents = new HashSet<>();
-    this.processedSagaEvents = new HashSet<>();
   }
 
   public Flux<E> handle() {
@@ -68,7 +65,7 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
   public Flux<E> handle(Flux<C> cmds) {
     var handleCommands = cmds.concatMap(this::redirectIfNotBelong)
                              .concatMap(this::handleCommand)
-                             .concatMap(this::evolve)
+                             .doOnNext(this::evolve)
                              .concatMap(this::saga)
                              .concatMap(this::pubEvent);
     return init().concatWith(handleCommands);
@@ -103,7 +100,7 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
                            .map(E::meta)
                            .map(EventMeta::eventId)
                            .flatMapMany(this::subUntil)
-                           .concatMap(this::evolve);
+                           .doOnNext(this::evolve);
   }
 
   /**
@@ -118,33 +115,25 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
   }
 
   Mono<E> handleCommand(C cmd) {
-    return Mono.fromCallable(() -> isDuplicate(cmd)).flatMap(exists -> booleanToMono(!exists, decide(cmd)));
+    return Mono.defer(() -> {
+      if (processedCommands.contains(cmd.meta().commandId())) {
+        return Mono.empty();
+      } else {
+        return tryToMono(() -> decide(cmd));
+      }
+    });
   }
 
-  Mono<E> decide(C cmd) {
-    return Mono.fromCallable(() -> aggregates.containsKey(cmd.meta().stateId()))
-               .flatMap(stateExists -> booleanToMono(stateExists, decideWithState(cmd), decideWithoutState(cmd)));
+  Try<E> decide(C cmd) {
+    if (aggregates.containsKey(cmd.meta().stateId())) {
+      return domain.decider().apply(aggregates.get(cmd.meta().stateId()), cmd);
+    } else {
+      return domain.decider().apply(cmd);
+    }
   }
 
-  Mono<E> decideWithoutState(C cmd) {
-    return ReactorUtils.tryToMono(() -> domain.decider().apply(cmd));
-  }
-
-  Mono<E> decideWithState(C cmd) {
-    return ReactorUtils.tryToMono(() -> domain.decider().apply(aggregates.get(cmd.meta().stateId()), cmd));
-  }
-
-  Mono<E> evolve(E e) {
-    return Mono.fromCallable(() -> processedEvents.contains(e.meta().eventId()))
-               .flatMap(exists -> booleanToMono(!exists, handleEvent(e)));
-  }
-
-  Mono<E> saga(E e) {
-    return optionToMono(domain.saga().apply(e)).flatMap(this::pubCommand).map(c -> e).defaultIfEmpty(e);
-  }
-
-  Mono<E> handleEvent(E e) {
-    return Mono.fromCallable(() -> {
+  void evolve(E e) {
+    if (!processedEvents.contains(e.meta().eventId())) {
       S newState;
       if (aggregates.containsKey(e.meta().stateId())) {
         newState = domain.evolver().apply(aggregates.get(e.meta().stateId()), e);
@@ -154,13 +143,17 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
       aggregates.put(e.meta().stateId(), newState);
       processedCommands.add(e.meta().commandId());
       processedEvents.add(e.meta().eventId());
-      e.meta().sagaSource().forEach(processedSagaEvents::add);
-      return e;
-    });
+    }
   }
 
-  boolean isDuplicate(C cmd) {
-    return cmd.meta().sagaSource().map(processedSagaEvents::contains).getOrElse(false)
-           || processedCommands.contains(cmd.meta().commandId());
+  Mono<E> saga(E e) {
+    return Mono.defer(() -> {
+      var opt = domain.saga().apply(e);
+      if (opt.isDefined()) {
+        return this.pubCommand(opt.get()).map(c -> e);
+      } else {
+        return Mono.just(e);
+      }
+    });
   }
 }
