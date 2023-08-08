@@ -1,15 +1,15 @@
 package io.memoria.reactive.testsuite.eventsourcing.banking.pipeline;
 
 import io.memoria.atom.eventsourcing.StateId;
+import io.memoria.atom.testsuite.eventsourcing.banking.command.AccountCommand;
+import io.memoria.atom.testsuite.eventsourcing.banking.event.AccountCreated;
+import io.memoria.atom.testsuite.eventsourcing.banking.event.AccountEvent;
+import io.memoria.atom.testsuite.eventsourcing.banking.event.Credited;
+import io.memoria.atom.testsuite.eventsourcing.banking.event.DebitConfirmed;
+import io.memoria.atom.testsuite.eventsourcing.banking.event.Debited;
+import io.memoria.atom.testsuite.eventsourcing.banking.state.Account;
 import io.memoria.reactive.eventsourcing.pipeline.PartitionPipeline;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingData;
-import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.AccountCommand;
-import io.memoria.reactive.testsuite.eventsourcing.banking.domain.event.AccountCreated;
-import io.memoria.reactive.testsuite.eventsourcing.banking.domain.event.AccountEvent;
-import io.memoria.reactive.testsuite.eventsourcing.banking.domain.event.Credited;
-import io.memoria.reactive.testsuite.eventsourcing.banking.domain.event.DebitConfirmed;
-import io.memoria.reactive.testsuite.eventsourcing.banking.domain.event.Debited;
-import io.memoria.reactive.testsuite.eventsourcing.banking.domain.state.Account;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

@@ -32,7 +32,7 @@ class MsgCommandStream<C extends Command> implements CommandStream<C> {
   }
 
   Mono<Msg> toMsg(C cmd) {
-    return tryToMono(() -> transformer.serialize(cmd)).map(value -> new Msg(cmd.commandId().id().value(), value));
+    return tryToMono(() -> transformer.serialize(cmd)).map(value -> new Msg(cmd.meta().commandId().value(), value));
   }
 
   Mono<C> toCmd(Msg msg) {

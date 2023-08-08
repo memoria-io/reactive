@@ -9,8 +9,8 @@ import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
 
-public class TestsuiteUtils {
-  private static final Logger log = LoggerFactory.getLogger(TestsuiteUtils.class.getName());
+public class Utils {
+  private static final Logger log = LoggerFactory.getLogger(Utils.class.getName());
   public static final Scheduler SCHEDULER = Schedulers.boundedElastic();
   public static final int MSG_COUNT = 1000;
   public static final Duration TIMEOUT = Duration.ofMillis(500);
@@ -34,5 +34,5 @@ public class TestsuiteUtils {
     return MSG_COUNT / (totalElapsed / 1000d);
   }
 
-  private TestsuiteUtils() {}
+  private Utils() {}
 }

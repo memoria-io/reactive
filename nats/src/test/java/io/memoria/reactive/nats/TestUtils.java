@@ -1,24 +1,24 @@
 package io.memoria.reactive.nats;
 
+import io.memoria.atom.testsuite.eventsourcing.banking.command.AccountCommand;
+import io.memoria.atom.testsuite.eventsourcing.banking.event.AccountEvent;
+import io.memoria.atom.testsuite.eventsourcing.banking.state.Account;
 import io.memoria.reactive.eventsourcing.pipeline.CommandRoute;
 import io.memoria.reactive.eventsourcing.pipeline.EventRoute;
 import io.memoria.reactive.eventsourcing.pipeline.PartitionPipeline;
 import io.memoria.reactive.eventsourcing.stream.CommandStream;
 import io.memoria.reactive.eventsourcing.stream.EventStream;
-import io.memoria.reactive.testsuite.TestsuiteUtils;
+import io.memoria.reactive.testsuite.Utils;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingData;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingInfra;
-import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.AccountCommand;
-import io.memoria.reactive.testsuite.eventsourcing.banking.domain.event.AccountEvent;
-import io.memoria.reactive.testsuite.eventsourcing.banking.domain.state.Account;
 import io.nats.client.JetStreamApiException;
 import io.nats.client.api.StorageType;
 
 import java.io.IOException;
 import java.time.Duration;
 
-import static io.memoria.reactive.testsuite.TestsuiteUtils.SCHEDULER;
-import static io.memoria.reactive.testsuite.TestsuiteUtils.TRANSFORMER;
+import static io.memoria.reactive.testsuite.Utils.SCHEDULER;
+import static io.memoria.reactive.testsuite.Utils.TRANSFORMER;
 
 public class TestUtils {
   public static final String NATS_URL = "nats://localhost:4222";
@@ -35,8 +35,8 @@ public class TestUtils {
       var msgStream = new NatsMsgStream(NATS_CONFIG, SCHEDULER);
       var commandStream = CommandStream.msgStream(msgStream, AccountCommand.class, TRANSFORMER);
       var eventStream = EventStream.msgStream(msgStream, AccountEvent.class, TRANSFORMER);
-      var commandRoute = new CommandRoute(TestsuiteUtils.topicName("commands"), 0);
-      var eventRoute = new EventRoute(TestsuiteUtils.topicName("events"), 0);
+      var commandRoute = new CommandRoute(Utils.topicName("commands"), 0);
+      var eventRoute = new EventRoute(Utils.topicName("events"), 0);
       //      System.out.printf("Creating %s %n", commandRoute);
       //      System.out.printf("Creating %s %n", eventRoute);
       NatsUtils.createOrUpdateTopic(NATS_CONFIG, commandRoute.topicName(), commandRoute.totalPartitions());

@@ -9,8 +9,8 @@ import org.apache.kafka.common.TopicPartition;
 
 import java.time.Duration;
 
-public class KafkaUtils {
-  private KafkaUtils() {}
+public class Utils {
+  private Utils() {}
 
   public static long topicSize(String topic, int partition, Map<String, Object> conf) {
     try (var consumer = new KafkaConsumer<String, String>(conf.toJavaMap())) {

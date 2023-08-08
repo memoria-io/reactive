@@ -1,13 +1,13 @@
 package io.memoria.reactive.testsuite.eventsourcing.banking.pipeline;
 
 import io.memoria.atom.eventsourcing.StateId;
-import io.memoria.reactive.eventsourcing.PipelineUtils;
+import io.memoria.atom.testsuite.eventsourcing.banking.command.AccountCommand;
+import io.memoria.atom.testsuite.eventsourcing.banking.event.AccountEvent;
+import io.memoria.atom.testsuite.eventsourcing.banking.state.Account;
+import io.memoria.atom.testsuite.eventsourcing.banking.state.OpenAccount;
+import io.memoria.reactive.eventsourcing.Utils;
 import io.memoria.reactive.eventsourcing.pipeline.PartitionPipeline;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingData;
-import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.AccountCommand;
-import io.memoria.reactive.testsuite.eventsourcing.banking.domain.event.AccountEvent;
-import io.memoria.reactive.testsuite.eventsourcing.banking.domain.state.Account;
-import io.memoria.reactive.testsuite.eventsourcing.banking.domain.state.OpenAccount;
 import io.vavr.collection.Map;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -59,12 +59,12 @@ public class SimpleDebitScenario implements PartitionScenario<AccountCommand, Ac
   @Override
   public Mono<Boolean> verify() {
     var events = pipeline.eventStream.sub(pipeline.eventRoute.topicName(), pipeline.eventRoute.partition());
-    return PipelineUtils.reduce(pipeline.domain.evolver(), events.take(expectedEventsCount()))
-                        .map(Map::values)
-                        .flatMapMany(Flux::fromIterable)
-                        .map(OpenAccount.class::cast)
-                        .map(this::verify)
-                        .reduce((a, b) -> a && b);
+    return Utils.reduce(pipeline.domain.evolver(), events.take(expectedEventsCount()))
+                .map(Map::values)
+                .flatMapMany(Flux::fromIterable)
+                .map(OpenAccount.class::cast)
+                .map(this::verify)
+                .reduce((a, b) -> a && b);
   }
 
   boolean verify(OpenAccount acc) {

@@ -2,17 +2,17 @@ package io.memoria.reactive.testsuite.eventsourcing.banking;
 
 import io.memoria.atom.core.id.Id;
 import io.memoria.atom.eventsourcing.Domain;
+import io.memoria.atom.testsuite.eventsourcing.banking.AccountDecider;
+import io.memoria.atom.testsuite.eventsourcing.banking.AccountEvolver;
+import io.memoria.atom.testsuite.eventsourcing.banking.AccountSaga;
+import io.memoria.atom.testsuite.eventsourcing.banking.command.AccountCommand;
+import io.memoria.atom.testsuite.eventsourcing.banking.event.AccountEvent;
+import io.memoria.atom.testsuite.eventsourcing.banking.state.Account;
 import io.memoria.reactive.eventsourcing.pipeline.CommandRoute;
 import io.memoria.reactive.eventsourcing.pipeline.EventRoute;
 import io.memoria.reactive.eventsourcing.pipeline.PartitionPipeline;
 import io.memoria.reactive.eventsourcing.stream.CommandStream;
 import io.memoria.reactive.eventsourcing.stream.EventStream;
-import io.memoria.reactive.testsuite.eventsourcing.banking.domain.AccountDecider;
-import io.memoria.reactive.testsuite.eventsourcing.banking.domain.AccountEvolver;
-import io.memoria.reactive.testsuite.eventsourcing.banking.domain.AccountSaga;
-import io.memoria.reactive.testsuite.eventsourcing.banking.domain.command.AccountCommand;
-import io.memoria.reactive.testsuite.eventsourcing.banking.domain.event.AccountEvent;
-import io.memoria.reactive.testsuite.eventsourcing.banking.domain.state.Account;
 
 import java.util.function.Supplier;
 

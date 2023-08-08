@@ -13,15 +13,15 @@ import reactor.core.publisher.Mono;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class PipelineUtils {
+public class Utils {
   /**
    * Use this method only when the events flux is known to terminate at certain point
    */
   public static <S extends State, E extends Event> Mono<Map<StateId, S>> reduce(Evolver<S, E> evolver, Flux<E> events) {
     java.util.Map<StateId, S> initial = new ConcurrentHashMap<>();
     var result = events.reduce(initial, (map, event) -> {
-      map.computeIfPresent(event.stateId(), (k, st) -> evolver.apply(st, event));
-      map.computeIfAbsent(event.stateId(), k -> evolver.apply(event));
+      map.computeIfPresent(event.meta().stateId(), (k, st) -> evolver.apply(st, event));
+      map.computeIfAbsent(event.meta().stateId(), k -> evolver.apply(event));
       return map;
     });
     return result.map(HashMap::ofAll);
@@ -33,7 +33,7 @@ public class PipelineUtils {
   public static <S extends State, E extends Event> Mono<S> reduce(Evolver<S, E> evolver,
                                                                   StateId stateId,
                                                                   Flux<E> events) {
-    return events.filter(e -> e.stateId().equals(stateId))
+    return events.filter(e -> e.meta().stateId().equals(stateId))
                  .reduce(Option.none(), (Option<S> o, E e) -> applyOpt(evolver, o, e))
                  .filter(Option::isDefined)
                  .map(Option::get);
@@ -47,7 +47,7 @@ public class PipelineUtils {
                                                                   StateId stateId,
                                                                   Flux<E> events,
                                                                   int take) {
-    return events.filter(e -> e.stateId().equals(stateId))
+    return events.filter(e -> e.meta().stateId().equals(stateId))
                  .take(take)
                  .reduce(Option.none(), (Option<S> o, E e) -> applyOpt(evolver, o, e))
                  .filter(Option::isDefined)
@@ -58,7 +58,7 @@ public class PipelineUtils {
                                                                      StateId stateId,
                                                                      Flux<E> events) {
     var atomicReference = new AtomicReference<S>();
-    return events.filter(e -> e.stateId().equals(stateId)).map(event -> {
+    return events.filter(e -> e.meta().stateId().equals(stateId)).map(event -> {
       if (atomicReference.get() == null) {
         S newState = evolver.apply(event);
         atomicReference.compareAndExchange(null, newState);
@@ -78,5 +78,5 @@ public class PipelineUtils {
     return optState.map(s -> evolver.apply(s, event)).orElse(() -> Option.some(evolver.apply(event)));
   }
 
-  private PipelineUtils() {}
+  private Utils() {}
 }

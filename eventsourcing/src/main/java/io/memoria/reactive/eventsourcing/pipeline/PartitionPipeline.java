@@ -5,6 +5,7 @@ import io.memoria.atom.eventsourcing.CommandId;
 import io.memoria.atom.eventsourcing.Domain;
 import io.memoria.atom.eventsourcing.Event;
 import io.memoria.atom.eventsourcing.EventId;
+import io.memoria.atom.eventsourcing.EventMeta;
 import io.memoria.atom.eventsourcing.State;
 import io.memoria.atom.eventsourcing.StateId;
 import io.memoria.reactive.core.reactor.ReactorUtils;
@@ -74,7 +75,7 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
   }
 
   public Mono<C> pubCommand(C cmd) {
-    return Mono.fromCallable(() -> cmd.partition(commandRoute.totalPartitions()))
+    return Mono.fromCallable(() -> cmd.meta().partition(commandRoute.totalPartitions()))
                .flatMap(partition -> commandStream.pub(commandRoute.topicName(), partition, cmd));
   }
 
@@ -99,7 +100,8 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
    */
   Flux<E> init() {
     return this.eventStream.last(eventRoute.topicName(), eventRoute.partition())
-                           .map(E::eventId)
+                           .map(E::meta)
+                           .map(EventMeta::eventId)
                            .flatMapMany(this::subUntil)
                            .concatMap(this::evolve);
   }
@@ -108,7 +110,7 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
    * Redirection allows location transparency and auto sharding
    */
   Mono<C> redirectIfNotBelong(C cmd) {
-    if (cmd.isInPartition(commandRoute.partition(), commandRoute.totalPartitions())) {
+    if (cmd.meta().isInPartition(commandRoute.partition(), commandRoute.totalPartitions())) {
       return Mono.just(cmd);
     } else {
       return this.pubCommand(cmd).flatMap(c -> Mono.empty());
@@ -120,7 +122,7 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
   }
 
   Mono<E> decide(C cmd) {
-    return Mono.fromCallable(() -> aggregates.containsKey(cmd.stateId()))
+    return Mono.fromCallable(() -> aggregates.containsKey(cmd.meta().stateId()))
                .flatMap(stateExists -> booleanToMono(stateExists, decideWithState(cmd), decideWithoutState(cmd)));
   }
 
@@ -129,11 +131,11 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
   }
 
   Mono<E> decideWithState(C cmd) {
-    return ReactorUtils.tryToMono(() -> domain.decider().apply(aggregates.get(cmd.stateId()), cmd));
+    return ReactorUtils.tryToMono(() -> domain.decider().apply(aggregates.get(cmd.meta().stateId()), cmd));
   }
 
   Mono<E> evolve(E e) {
-    return Mono.fromCallable(() -> processedEvents.contains(e.eventId()))
+    return Mono.fromCallable(() -> processedEvents.contains(e.meta().eventId()))
                .flatMap(exists -> booleanToMono(!exists, handleEvent(e)));
   }
 
@@ -144,21 +146,21 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
   Mono<E> handleEvent(E e) {
     return Mono.fromCallable(() -> {
       S newState;
-      if (aggregates.containsKey(e.stateId())) {
-        newState = domain.evolver().apply(aggregates.get(e.stateId()), e);
+      if (aggregates.containsKey(e.meta().stateId())) {
+        newState = domain.evolver().apply(aggregates.get(e.meta().stateId()), e);
       } else {
         newState = domain.evolver().apply(e);
       }
-      aggregates.put(e.stateId(), newState);
-      processedCommands.add(e.commandId());
-      processedEvents.add(e.eventId());
-      e.sagaEventId().forEach(processedSagaEvents::add);
+      aggregates.put(e.meta().stateId(), newState);
+      processedCommands.add(e.meta().commandId());
+      processedEvents.add(e.meta().eventId());
+      e.meta().sagaSource().forEach(processedSagaEvents::add);
       return e;
     });
   }
 
   boolean isDuplicate(C cmd) {
-    return cmd.sagaEventId().map(processedSagaEvents::contains).getOrElse(false)
-           || processedCommands.contains(cmd.commandId());
+    return cmd.meta().sagaSource().map(processedSagaEvents::contains).getOrElse(false)
+           || processedCommands.contains(cmd.meta().commandId());
   }
 }
