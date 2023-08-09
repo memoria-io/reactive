@@ -58,8 +58,7 @@ public class SimpleDebitScenario implements PartitionScenario<AccountCommand, Ac
 
   @Override
   public Mono<Boolean> verify() {
-    var events = pipeline.eventStream.sub(pipeline.eventRoute.topicName(), pipeline.eventRoute.partition());
-    return Utils.reduce(pipeline.domain.evolver(), events.take(expectedEventsCount()))
+    return Utils.reduce(pipeline.domain.evolver(), pipeline.subToEvents().take(expectedEventsCount()))
                 .map(Map::values)
                 .flatMapMany(Flux::fromIterable)
                 .map(OpenAccount.class::cast)

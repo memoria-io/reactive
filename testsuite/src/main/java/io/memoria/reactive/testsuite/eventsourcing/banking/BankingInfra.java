@@ -56,7 +56,7 @@ public class BankingInfra {
                         AccountCommand.class,
                         AccountEvent.class,
                         new AccountDecider(idSupplier, timeSupplier),
-                        new AccountEvolver(idSupplier, timeSupplier),
+                        new AccountEvolver(),
                         new AccountSaga(idSupplier, timeSupplier));
   }
 

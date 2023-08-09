@@ -23,7 +23,7 @@ class EventStreamTest {
   @Test
   void publishAndSubscribe() {
     // Given
-    var cmds = Flux.range(0, ELEMENTS_SIZE).map(i -> new SomeEvent(new EventMeta(CommandId.of(), s0)));
+    var cmds = Flux.range(0, ELEMENTS_SIZE).map(i -> new SomeEvent(new EventMeta(CommandId.of(), 0, s0)));
 
     // When
     StepVerifier.create(cmds.flatMap(c -> stream.pub(topic, 0, c))).expectNextCount(ELEMENTS_SIZE).verifyComplete();
