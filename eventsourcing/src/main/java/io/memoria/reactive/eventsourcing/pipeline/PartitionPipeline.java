@@ -39,7 +39,7 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
   // In memory
   private final Map<StateId, S> aggregates;
   private final KCache<CommandId> processedCommands;
-  private final AtomicReference<E> lastEvent;
+  private final AtomicReference<EventId> lastEvent;
 
   /**
    * Create pipeline with default commandId cache size of 1Million ~= 16Megabyte, since UUID is 32bit -> 16byte
@@ -178,12 +178,12 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
   }
 
   boolean isEqToLastEvent(E e) {
-    return lastEvent.get() == null && lastEvent.get().equals(e);
+    return lastEvent.get() == null && lastEvent.get().equals(e.meta().eventId());
   }
 
   void update(E e, S newState) {
     aggregates.put(e.meta().stateId(), newState);
     processedCommands.add(e.meta().commandId());
-    lastEvent.set(e);
+    lastEvent.set(e.meta().eventId());
   }
 }
