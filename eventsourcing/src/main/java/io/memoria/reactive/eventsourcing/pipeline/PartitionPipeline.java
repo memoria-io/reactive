@@ -1,5 +1,6 @@
 package io.memoria.reactive.eventsourcing.pipeline;
 
+import io.memoria.atom.core.caching.KCache;
 import io.memoria.atom.eventsourcing.Command;
 import io.memoria.atom.eventsourcing.CommandId;
 import io.memoria.atom.eventsourcing.Domain;
@@ -17,9 +18,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static io.memoria.reactive.core.reactor.ReactorUtils.tryToMono;
@@ -39,14 +38,26 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
 
   // In memory
   private final Map<StateId, S> aggregates;
-  private final Set<CommandId> processedCommands;
-  private final AtomicReference<E> lastEvent;
+  private final KCache<CommandId> processedCommands;
+  private final AtomicReference<EventId> lastEvent;
 
+  /**
+   * Create pipeline with default commandId cache size of 1Million ~= 16Megabyte, since UUID is 32bit -> 16byte
+   */
   public PartitionPipeline(Domain<S, C, E> domain,
                            CommandStream<C> commandStream,
                            CommandRoute commandRoute,
                            EventStream<E> eventStream,
                            EventRoute eventRoute) {
+    this(domain, commandStream, commandRoute, eventStream, eventRoute, 1000_000);
+  }
+
+  public PartitionPipeline(Domain<S, C, E> domain,
+                           CommandStream<C> commandStream,
+                           CommandRoute commandRoute,
+                           EventStream<E> eventStream,
+                           EventRoute eventRoute,
+                           int cacheCapacity) {
     // Core
     this.domain = domain;
 
@@ -59,7 +70,7 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
 
     // In memory
     this.aggregates = new HashMap<>();
-    this.processedCommands = new HashSet<>();
+    this.processedCommands = new KCache<>(cacheCapacity);
     this.lastEvent = new AtomicReference<>();
   }
 
@@ -167,12 +178,12 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
   }
 
   boolean isEqToLastEvent(E e) {
-    return lastEvent.get() == null && lastEvent.get().equals(e);
+    return lastEvent.get() == null && lastEvent.get().equals(e.meta().eventId());
   }
 
   void update(E e, S newState) {
     aggregates.put(e.meta().stateId(), newState);
     processedCommands.add(e.meta().commandId());
-    lastEvent.set(e);
+    lastEvent.set(e.meta().eventId());
   }
 }
