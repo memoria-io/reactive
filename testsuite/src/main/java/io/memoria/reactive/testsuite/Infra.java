@@ -1,4 +1,4 @@
-package io.memoria.reactive.testsuite.eventsourcing.banking;
+package io.memoria.reactive.testsuite;
 
 import io.memoria.atom.core.id.Id;
 import io.memoria.atom.eventsourcing.Domain;
@@ -16,7 +16,7 @@ import io.memoria.reactive.eventsourcing.stream.EventStream;
 
 import java.util.function.Supplier;
 
-public class BankingInfra {
+public class Infra {
 
   public static PartitionPipeline<Account, AccountCommand, AccountEvent> createMemoryPipeline(Supplier<Id> idSupplier,
                                                                                               Supplier<Long> timeSupplier) {
@@ -60,5 +60,5 @@ public class BankingInfra {
                         new AccountSaga(idSupplier, timeSupplier));
   }
 
-  private BankingInfra() {}
+  private Infra() {}
 }

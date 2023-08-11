@@ -1,11 +1,13 @@
 package io.memoria.reactive.kafka;
 
+import io.memoria.reactive.core.stream.Msg;
 import io.vavr.collection.List;
 import io.vavr.collection.Map;
 import io.vavr.control.Option;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
+import reactor.kafka.sender.SenderRecord;
 
 import java.time.Duration;
 
@@ -44,5 +46,13 @@ public class Utils {
         return Option.none();
       }
     }
+  }
+
+  static SenderRecord<String, String, Msg> toRecord(String topic, int partition, Msg msg) {
+    return SenderRecord.create(topic, partition, null, msg.key(), msg.value(), msg);
+  }
+
+  static Msg toMsg(ConsumerRecord<String, String> rec) {
+    return new Msg(rec.key(), rec.value());
   }
 }

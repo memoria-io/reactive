@@ -1,4 +1,4 @@
-package io.memoria.reactive.testsuite.eventsourcing.banking;
+package io.memoria.reactive.testsuite;
 
 import io.memoria.atom.core.id.Id;
 import io.memoria.atom.eventsourcing.CommandId;
@@ -15,27 +15,27 @@ import reactor.util.function.Tuple2;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
-public class BankingData {
+public class Data {
   private final AtomicLong counter = new AtomicLong();
   public final Supplier<Id> idSupplier;
   public final Supplier<Long> timeSupplier;
 
-  BankingData() {
+  Data() {
     this.idSupplier = () -> Id.of(counter.getAndIncrement());
     this.timeSupplier = System::currentTimeMillis;
   }
 
-  BankingData(Supplier<Id> idSupplier, Supplier<Long> timeSupplier) {
+  Data(Supplier<Id> idSupplier, Supplier<Long> timeSupplier) {
     this.idSupplier = idSupplier;
     this.timeSupplier = timeSupplier;
   }
 
-  public static BankingData ofSerial() {
-    return new BankingData();
+  public static Data ofSerial() {
+    return new Data();
   }
 
-  public static BankingData ofUUID() {
-    return new BankingData(Id::of, System::currentTimeMillis);
+  public static Data ofUUID() {
+    return new Data(Id::of, System::currentTimeMillis);
   }
 
   public Id createId(int i) {

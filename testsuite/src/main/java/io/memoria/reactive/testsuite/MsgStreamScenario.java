@@ -9,25 +9,25 @@ public class MsgStreamScenario {
   private final int msgCount;
   private final String topic;
   private final int partition;
-  private final MsgStream repo;
+  private final MsgStream stream;
 
-  public MsgStreamScenario(int msgCount, String topic, int partition, MsgStream repo) {
+  public MsgStreamScenario(int msgCount, String topic, int partition, MsgStream stream) {
     this.msgCount = msgCount;
     this.topic = topic;
     this.partition = partition;
-    this.repo = repo;
+    this.stream = stream;
   }
 
   public Flux<Msg> publish() {
     var msgs = Flux.range(0, msgCount).map(i -> new Msg(String.valueOf(i), "hello world"));
-    return msgs.concatMap(msg -> repo.pub(topic, partition, msg));
+    return msgs.concatMap(msg -> stream.pub(topic, partition, msg));
   }
 
   public Flux<Msg> subscribe() {
-    return repo.sub(topic, partition);
+    return stream.sub(topic, partition);
   }
 
   public Mono<Msg> last() {
-    return repo.last(topic, partition);
+    return stream.last(topic, partition);
   }
 }

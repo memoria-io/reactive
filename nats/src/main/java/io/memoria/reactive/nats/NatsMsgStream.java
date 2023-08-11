@@ -7,8 +7,6 @@ import io.nats.client.JetStream;
 import io.nats.client.Message;
 import io.nats.client.PublishOptions;
 import io.nats.client.api.DeliverPolicy;
-import io.nats.client.impl.Headers;
-import io.nats.client.impl.NatsMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -16,9 +14,6 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-
-import static io.memoria.reactive.nats.Utils.ID_HEADER;
 
 public class NatsMsgStream implements MsgStream {
   private static final Logger log = LoggerFactory.getLogger(NatsMsgStream.class.getName());
@@ -37,7 +32,7 @@ public class NatsMsgStream implements MsgStream {
   @Override
   public Mono<Msg> pub(String topic, int partition, Msg msg) {
     var opts = PublishOptions.builder().clearExpected().messageId(msg.key()).build();
-    return Mono.fromCallable(() -> natsMessage(topic, partition, msg))
+    return Mono.fromCallable(() -> Utils.natsMessage(topic, partition, msg))
                .map(message -> jetStream.publishAsync(message, opts))
                .flatMap(Mono::fromFuture)
                .map(ack -> msg);
@@ -47,32 +42,19 @@ public class NatsMsgStream implements MsgStream {
   public Flux<Msg> sub(String topic, int partition) {
     return Utils.fetchAllMessages(jetStream, natsConfig, topic, partition)
                 .doOnNext(Message::ack) // TODO handle from outside
-                .map(NatsMsgStream::toESMsg)
+                .map(Utils::toESMsg)
                 .subscribeOn(scheduler);
   }
 
   @Override
   public Mono<Msg> last(String topic, int partition) {
     var sub = Utils.createSubscription(jetStream, DeliverPolicy.Last, topic, partition);
-    return Utils.fetchLastMessage(sub, natsConfig).map(NatsMsgStream::toESMsg).subscribeOn(scheduler);
+    return Utils.fetchLastMessage(sub, natsConfig).map(Utils::toESMsg).subscribeOn(scheduler);
   }
 
   @Override
   public void close() throws Exception {
     log.info("Closing connection:{}", connection.getServerInfo());
     connection.close();
-  }
-
-  static NatsMessage natsMessage(String topic, int partition, Msg msg) {
-    var subjectName = Utils.subjectName(topic, partition);
-    var headers = new Headers();
-    headers.add(ID_HEADER, msg.key());
-    return NatsMessage.builder().subject(subjectName).headers(headers).data(msg.value()).build();
-  }
-
-  static Msg toESMsg(Message message) {
-    String key = message.getHeaders().getFirst(Utils.ID_HEADER);
-    var value = new String(message.getData(), StandardCharsets.UTF_8);
-    return new Msg(key, value);
   }
 }

@@ -4,7 +4,6 @@ import io.memoria.reactive.core.reactor.ReactorUtils;
 import io.memoria.reactive.core.stream.Msg;
 import io.memoria.reactive.core.stream.MsgStream;
 import io.vavr.collection.Map;
-import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.common.TopicPartition;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -12,7 +11,6 @@ import reactor.kafka.receiver.KafkaReceiver;
 import reactor.kafka.receiver.ReceiverOptions;
 import reactor.kafka.sender.KafkaSender;
 import reactor.kafka.sender.SenderOptions;
-import reactor.kafka.sender.SenderRecord;
 import reactor.kafka.sender.SenderResult;
 
 import java.time.Duration;
@@ -35,7 +33,7 @@ public class KafkaMsgStream implements MsgStream {
 
   @Override
   public Mono<Msg> pub(String topic, int partition, Msg msg) {
-    return sender.send(Mono.fromCallable(() -> toRecord(topic, partition, msg)))
+    return sender.send(Mono.fromCallable(() -> Utils.toRecord(topic, partition, msg)))
                  .map(SenderResult::correlationMetadata)
                  .single();
   }
@@ -48,26 +46,18 @@ public class KafkaMsgStream implements MsgStream {
                                          .addAssignListener(partitions -> partitions.forEach(p -> p.seek(0)))
                                          .assignment(singleton(tp));
     var receiver = KafkaReceiver.create(receiverOptions);
-    return receiver.receive().map(KafkaMsgStream::toMsg);
+    return receiver.receive().map(Utils::toMsg);
   }
 
   @Override
   public Mono<Msg> last(String topic, int partition) {
     return Mono.fromCallable(() -> Utils.lastKey(topic, partition, timeout, consumerConfig))
                .flatMap(ReactorUtils::optionToMono)
-               .map(KafkaMsgStream::toMsg);
+               .map(Utils::toMsg);
   }
 
   @Override
   public void close() {
     this.sender.close();
-  }
-
-  static SenderRecord<String, String, Msg> toRecord(String topic, int partition, Msg msg) {
-    return SenderRecord.create(topic, partition, null, msg.key(), msg.value(), msg);
-  }
-
-  static Msg toMsg(ConsumerRecord<String, String> rec) {
-    return new Msg(rec.key(), rec.value());
   }
 }

@@ -1,4 +1,4 @@
-package io.memoria.reactive.testsuite.eventsourcing.banking.pipeline;
+package io.memoria.reactive.testsuite;
 
 import io.memoria.atom.eventsourcing.Command;
 import io.memoria.atom.eventsourcing.Event;

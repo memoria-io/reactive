@@ -9,8 +9,8 @@ import io.memoria.reactive.eventsourcing.pipeline.PartitionPipeline;
 import io.memoria.reactive.eventsourcing.stream.CommandStream;
 import io.memoria.reactive.eventsourcing.stream.EventStream;
 import io.memoria.reactive.kafka.KafkaMsgStream;
-import io.memoria.reactive.testsuite.eventsourcing.banking.BankingData;
-import io.memoria.reactive.testsuite.eventsourcing.banking.BankingInfra;
+import io.memoria.reactive.testsuite.Data;
+import io.memoria.reactive.testsuite.Infra;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -25,7 +25,7 @@ import static io.memoria.reactive.testsuite.Utils.topicName;
 
 class TestUtils {
   public static final Duration kafkaTimeout = Duration.ofMillis(500);
-  public static final BankingData DATA = BankingData.ofUUID();
+  public static final Data DATA = Data.ofUUID();
 
   private TestUtils() {}
 
@@ -61,12 +61,12 @@ class TestUtils {
     var eventStream = EventStream.msgStream(msgStream, AccountEvent.class, TRANSFORMER);
     var commandRoute = new CommandRoute(topicName("commands"), 0);
     var eventRoute = new EventRoute(topicName("events"), 0);
-    return BankingInfra.createPipeline(DATA.idSupplier,
-                                       DATA.timeSupplier,
-                                       commandStream,
-                                       commandRoute,
-                                       eventStream,
-                                       eventRoute);
+    return Infra.createPipeline(DATA.idSupplier,
+                                DATA.timeSupplier,
+                                commandStream,
+                                commandRoute,
+                                eventStream,
+                                eventRoute);
 
   }
 }

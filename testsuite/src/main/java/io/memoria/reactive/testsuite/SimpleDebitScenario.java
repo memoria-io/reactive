@@ -1,4 +1,4 @@
-package io.memoria.reactive.testsuite.eventsourcing.banking.pipeline;
+package io.memoria.reactive.testsuite;
 
 import io.memoria.atom.eventsourcing.StateId;
 import io.memoria.atom.testsuite.eventsourcing.banking.command.AccountCommand;
@@ -7,7 +7,6 @@ import io.memoria.atom.testsuite.eventsourcing.banking.state.Account;
 import io.memoria.atom.testsuite.eventsourcing.banking.state.OpenAccount;
 import io.memoria.reactive.eventsourcing.Utils;
 import io.memoria.reactive.eventsourcing.pipeline.PartitionPipeline;
-import io.memoria.reactive.testsuite.eventsourcing.banking.BankingData;
 import io.vavr.collection.Map;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -17,14 +16,14 @@ public class SimpleDebitScenario implements PartitionScenario<AccountCommand, Ac
   public static final int INITIAL_BALANCE = 500;
   public static final int DEBIT_AMOUNT = 300;
 
-  public final BankingData bankingData;
+  public final Data data;
   public final PartitionPipeline<Account, AccountCommand, AccountEvent> pipeline;
   public final int numOfAccounts;
 
-  public SimpleDebitScenario(BankingData bankingData,
+  public SimpleDebitScenario(Data data,
                              PartitionPipeline<Account, AccountCommand, AccountEvent> pipeline,
                              int numOfAccounts) {
-    this.bankingData = bankingData;
+    this.data = data;
     this.pipeline = pipeline;
     this.numOfAccounts = numOfAccounts;
   }
@@ -41,11 +40,11 @@ public class SimpleDebitScenario implements PartitionScenario<AccountCommand, Ac
 
   @Override
   public Flux<AccountCommand> publishCommands() {
-    var debitedIds = bankingData.createIds(0, numOfAccounts).map(StateId::of);
-    var creditedIds = bankingData.createIds(numOfAccounts, numOfAccounts).map(StateId::of);
-    var createDebitedAcc = bankingData.createAccountCmd(debitedIds, INITIAL_BALANCE);
-    var createCreditedAcc = bankingData.createAccountCmd(creditedIds, INITIAL_BALANCE);
-    var debitTheAccounts = bankingData.debitCmd(debitedIds.zipWith(creditedIds), DEBIT_AMOUNT);
+    var debitedIds = data.createIds(0, numOfAccounts).map(StateId::of);
+    var creditedIds = data.createIds(numOfAccounts, numOfAccounts).map(StateId::of);
+    var createDebitedAcc = data.createAccountCmd(debitedIds, INITIAL_BALANCE);
+    var createCreditedAcc = data.createAccountCmd(creditedIds, INITIAL_BALANCE);
+    var debitTheAccounts = data.debitCmd(debitedIds.zipWith(creditedIds), DEBIT_AMOUNT);
     var commands = createDebitedAcc.concatWith(createCreditedAcc).concatWith(debitTheAccounts);
 
     return commands.concatMap(pipeline::pubCommand);

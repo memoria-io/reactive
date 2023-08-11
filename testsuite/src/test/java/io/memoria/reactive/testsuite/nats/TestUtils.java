@@ -11,8 +11,8 @@ import io.memoria.reactive.eventsourcing.stream.EventStream;
 import io.memoria.reactive.nats.NatsConfig;
 import io.memoria.reactive.nats.NatsMsgStream;
 import io.memoria.reactive.nats.Utils;
-import io.memoria.reactive.testsuite.eventsourcing.banking.BankingData;
-import io.memoria.reactive.testsuite.eventsourcing.banking.BankingInfra;
+import io.memoria.reactive.testsuite.Data;
+import io.memoria.reactive.testsuite.Infra;
 import io.nats.client.JetStreamApiException;
 import io.nats.client.api.StorageType;
 
@@ -24,7 +24,7 @@ import static io.memoria.reactive.testsuite.Utils.TRANSFORMER;
 
 class TestUtils {
   public static final String NATS_URL = "nats://localhost:4222";
-  public static final BankingData DATA = BankingData.ofSerial();
+  public static final Data DATA = Data.ofSerial();
   public static final NatsConfig NATS_CONFIG = NatsConfig.appendOnly(NATS_URL,
                                                                      StorageType.File,
                                                                      1,
@@ -43,12 +43,12 @@ class TestUtils {
       //      System.out.printf("Creating %s %n", eventRoute);
       Utils.createOrUpdateTopic(NATS_CONFIG, commandRoute.topicName(), commandRoute.totalPartitions());
       Utils.createOrUpdateTopic(NATS_CONFIG, eventRoute.topicName(), eventRoute.totalPartitions());
-      return BankingInfra.createPipeline(DATA.idSupplier,
-                                         DATA.timeSupplier,
-                                         commandStream,
-                                         commandRoute,
-                                         eventStream,
-                                         eventRoute);
+      return Infra.createPipeline(DATA.idSupplier,
+                                  DATA.timeSupplier,
+                                  commandStream,
+                                  commandRoute,
+                                  eventStream,
+                                  eventRoute);
     } catch (IOException | InterruptedException | JetStreamApiException e) {
       throw new RuntimeException(e);
     }

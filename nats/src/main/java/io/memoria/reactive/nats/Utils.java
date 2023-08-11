@@ -1,6 +1,7 @@
 package io.memoria.reactive.nats;
 
 import io.memoria.reactive.core.reactor.ReactorUtils;
+import io.memoria.reactive.core.stream.Msg;
 import io.nats.client.Connection;
 import io.nats.client.ErrorListener;
 import io.nats.client.JetStream;
@@ -16,6 +17,8 @@ import io.nats.client.api.DeliverPolicy;
 import io.nats.client.api.ReplayPolicy;
 import io.nats.client.api.StreamConfiguration;
 import io.nats.client.api.StreamInfo;
+import io.nats.client.impl.Headers;
+import io.nats.client.impl.NatsMessage;
 import io.vavr.collection.List;
 import io.vavr.collection.Traversable;
 import io.vavr.control.Try;
@@ -25,6 +28,7 @@ import reactor.core.publisher.SynchronousSink;
 import reactor.core.scheduler.Schedulers;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.function.Function;
 
@@ -135,5 +139,18 @@ public class Utils {
 
   static String streamName(String topic, int partition) {
     return "%s%s%d".formatted(topic, SPLIT_TOKEN, partition);
+  }
+
+  static NatsMessage natsMessage(String topic, int partition, Msg msg) {
+    var subjectName = subjectName(topic, partition);
+    var headers = new Headers();
+    headers.add(ID_HEADER, msg.key());
+    return NatsMessage.builder().subject(subjectName).headers(headers).data(msg.value()).build();
+  }
+
+  static Msg toESMsg(Message message) {
+    String key = message.getHeaders().getFirst(Utils.ID_HEADER);
+    var value = new String(message.getData(), StandardCharsets.UTF_8);
+    return new Msg(key, value);
   }
 }
