@@ -6,7 +6,7 @@ import io.memoria.atom.testsuite.eventsourcing.banking.state.Account;
 import io.memoria.reactive.eventsourcing.pipeline.CommandRoute;
 import io.memoria.reactive.eventsourcing.pipeline.EventRoute;
 import io.memoria.reactive.eventsourcing.pipeline.PartitionPipeline;
-import io.memoria.reactive.nats.Utils;
+import io.memoria.reactive.nats.NatsUtils;
 import io.nats.client.JetStreamApiException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Disabled;
@@ -32,8 +32,8 @@ class ESScenarioTest {
 
   @BeforeAll
   static void beforeAll() throws JetStreamApiException, IOException, InterruptedException {
-    Utils.createOrUpdateTopic(NATS_CONFIG, commandRoute.topicName(), commandRoute.totalPartitions());
-    Utils.createOrUpdateTopic(NATS_CONFIG, eventRoute.topicName(), eventRoute.totalPartitions());
+    NatsUtils.createOrUpdateTopic(NATS_CONFIG, commandRoute.topicName(), commandRoute.totalPartitions());
+    NatsUtils.createOrUpdateTopic(NATS_CONFIG, eventRoute.topicName(), eventRoute.totalPartitions());
   }
 
   @ParameterizedTest(name = "Using {0} adapter")

@@ -25,14 +25,14 @@ public class NatsMsgStream implements MsgStream {
   public NatsMsgStream(NatsConfig natsConfig, Scheduler scheduler) throws IOException, InterruptedException {
     this.natsConfig = natsConfig;
     this.scheduler = scheduler;
-    this.connection = Utils.createConnection(this.natsConfig);
+    this.connection = NatsUtils.createConnection(this.natsConfig);
     this.jetStream = connection.jetStream();
   }
 
   @Override
   public Mono<Msg> pub(String topic, int partition, Msg msg) {
     var opts = PublishOptions.builder().clearExpected().messageId(msg.key()).build();
-    return Mono.fromCallable(() -> Utils.natsMessage(topic, partition, msg))
+    return Mono.fromCallable(() -> NatsUtils.natsMessage(topic, partition, msg))
                .map(message -> jetStream.publishAsync(message, opts))
                .flatMap(Mono::fromFuture)
                .map(ack -> msg);
@@ -40,16 +40,16 @@ public class NatsMsgStream implements MsgStream {
 
   @Override
   public Flux<Msg> sub(String topic, int partition) {
-    return Utils.fetchAllMessages(jetStream, natsConfig, topic, partition)
-                .doOnNext(Message::ack) // TODO handle from outside
-                .map(Utils::toESMsg)
-                .subscribeOn(scheduler);
+    return NatsUtils.fetchAllMessages(jetStream, natsConfig, topic, partition)
+                    .doOnNext(Message::ack) // TODO handle from outside
+                    .map(NatsUtils::toESMsg)
+                    .subscribeOn(scheduler);
   }
 
   @Override
   public Mono<Msg> last(String topic, int partition) {
-    var sub = Utils.createSubscription(jetStream, DeliverPolicy.Last, topic, partition);
-    return Utils.fetchLastMessage(sub, natsConfig).map(Utils::toESMsg).subscribeOn(scheduler);
+    var sub = NatsUtils.createSubscription(jetStream, DeliverPolicy.Last, topic, partition);
+    return NatsUtils.fetchLastMessage(sub, natsConfig).map(NatsUtils::toESMsg).subscribeOn(scheduler);
   }
 
   @Override

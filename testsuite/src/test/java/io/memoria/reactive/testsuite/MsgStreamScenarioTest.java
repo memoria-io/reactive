@@ -2,7 +2,7 @@ package io.memoria.reactive.testsuite;
 
 import io.memoria.reactive.core.stream.Msg;
 import io.memoria.reactive.core.stream.MsgStream;
-import io.memoria.reactive.nats.Utils;
+import io.memoria.reactive.nats.NatsUtils;
 import io.nats.client.JetStreamApiException;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -30,7 +30,7 @@ class MsgStreamScenarioTest {
 
   @BeforeAll
   static void beforeAll() throws JetStreamApiException, IOException, InterruptedException {
-    Utils.createOrUpdateTopic(NATS_CONFIG, topic, totalPartitions);
+    NatsUtils.createOrUpdateTopic(NATS_CONFIG, topic, totalPartitions);
   }
 
   @ParameterizedTest(name = "Using {0} adapter")

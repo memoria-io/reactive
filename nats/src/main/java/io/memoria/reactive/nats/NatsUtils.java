@@ -36,12 +36,12 @@ import java.util.function.Function;
  * Utility class for directly using nats, this layer is for testing NATS java driver, and ideally it shouldn't have
  * Flux/Mono utilities, only pure java/nats APIs
  */
-public class Utils {
+public class NatsUtils {
   public static final String ID_HEADER = "ID_HEADER";
   public static final String SPLIT_TOKEN = "_";
   public static final String SUBJECT_EXT = ".subject";
 
-  private Utils() {}
+  private NatsUtils() {}
 
   public static String subjectName(String topic, int partition) {
     return streamName(topic, partition) + SUBJECT_EXT;
@@ -54,7 +54,7 @@ public class Utils {
   public static List<StreamInfo> createOrUpdateTopic(NatsConfig natsConfig, String topic, int numOfPartitions)
           throws IOException, InterruptedException, JetStreamApiException {
     var result = List.<StreamInfo>empty();
-    try (var nc = Utils.createConnection(natsConfig)) {
+    try (var nc = NatsUtils.createConnection(natsConfig)) {
       var streamConfigs = List.range(0, numOfPartitions)
                               .map(partition -> streamConfiguration(natsConfig, topic, partition));
       for (StreamConfiguration config : streamConfigs) {
@@ -149,7 +149,7 @@ public class Utils {
   }
 
   static Msg toESMsg(Message message) {
-    String key = message.getHeaders().getFirst(Utils.ID_HEADER);
+    String key = message.getHeaders().getFirst(NatsUtils.ID_HEADER);
     var value = new String(message.getData(), StandardCharsets.UTF_8);
     return new Msg(key, value);
   }

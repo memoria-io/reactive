@@ -33,7 +33,7 @@ public class KafkaMsgStream implements MsgStream {
 
   @Override
   public Mono<Msg> pub(String topic, int partition, Msg msg) {
-    return sender.send(Mono.fromCallable(() -> Utils.toRecord(topic, partition, msg)))
+    return sender.send(Mono.fromCallable(() -> KafkaUtils.toRecord(topic, partition, msg)))
                  .map(SenderResult::correlationMetadata)
                  .single();
   }
@@ -46,14 +46,14 @@ public class KafkaMsgStream implements MsgStream {
                                          .addAssignListener(partitions -> partitions.forEach(p -> p.seek(0)))
                                          .assignment(singleton(tp));
     var receiver = KafkaReceiver.create(receiverOptions);
-    return receiver.receive().map(Utils::toMsg);
+    return receiver.receive().map(KafkaUtils::toMsg);
   }
 
   @Override
   public Mono<Msg> last(String topic, int partition) {
-    return Mono.fromCallable(() -> Utils.lastKey(topic, partition, timeout, consumerConfig))
+    return Mono.fromCallable(() -> KafkaUtils.lastKey(topic, partition, timeout, consumerConfig))
                .flatMap(ReactorUtils::optionToMono)
-               .map(Utils::toMsg);
+               .map(KafkaUtils::toMsg);
   }
 
   @Override
