@@ -1,6 +1,6 @@
 package io.memoria.reactive.testsuite.kafka;
 
-import io.memoria.reactive.testsuite.Utils;
+import io.memoria.reactive.testsuite.Infra;
 import io.memoria.reactive.testsuite.PerformanceScenario;
 import io.memoria.reactive.testsuite.SimpleDebitScenario;
 import org.junit.jupiter.api.Disabled;
@@ -8,8 +8,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import reactor.test.StepVerifier;
 
-import static io.memoria.reactive.testsuite.Utils.MSG_COUNT;
-import static io.memoria.reactive.testsuite.Utils.TIMEOUT;
+import static io.memoria.reactive.testsuite.Infra.MSG_COUNT;
+import static io.memoria.reactive.testsuite.Infra.TIMEOUT;
 
 class ESScenarioTest {
 
@@ -17,13 +17,13 @@ class ESScenarioTest {
   @ValueSource(ints = MSG_COUNT)
   void simpleDebitScenario(int numOfAccounts) {
     // When
-    var scenario = new SimpleDebitScenario(TestUtils.DATA, TestUtils.createPipeline(), numOfAccounts);
+    var scenario = new SimpleDebitScenario(KafkaInfra.DATA, KafkaInfra.createPipeline(), numOfAccounts);
     StepVerifier.create(scenario.publishCommands()).expectNextCount(scenario.expectedCommandsCount()).verifyComplete();
 
     // Then
     var now = System.currentTimeMillis();
     StepVerifier.create(scenario.handleCommands()).expectNextCount(numOfAccounts * 5L).expectTimeout(TIMEOUT).verify();
-    Utils.printRates("scenario", now);
+    Infra.printRates("scenario", now);
     if (numOfAccounts > 0) {
       //      StepVerifier.create(scenario.verify()).expectNext(true).verifyComplete();
     }
@@ -34,7 +34,7 @@ class ESScenarioTest {
   @ValueSource(ints = {1, 10, 100, 1000, 10_000, 100_000, 200_000, 300_000, 400_000, 500_000, 600_000, 1000_000})
   void performance(int numOfAccounts) {
     // When
-    var scenario = new PerformanceScenario(TestUtils.DATA, TestUtils.createPipeline(), numOfAccounts);
+    var scenario = new PerformanceScenario(KafkaInfra.DATA, KafkaInfra.createPipeline(), numOfAccounts);
     StepVerifier.create(scenario.publishCommands()).expectNextCount(scenario.expectedCommandsCount()).verifyComplete();
 
     // Then
@@ -43,6 +43,6 @@ class ESScenarioTest {
                 .expectNextCount(scenario.expectedEventsCount())
                 .expectTimeout(TIMEOUT)
                 .verify();
-    Utils.printRates("Performance scenario", now);
+    Infra.printRates("Performance scenario", now);
   }
 }

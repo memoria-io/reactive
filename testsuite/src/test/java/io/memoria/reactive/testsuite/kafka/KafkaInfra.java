@@ -20,14 +20,14 @@ import org.apache.kafka.common.serialization.StringSerializer;
 
 import java.time.Duration;
 
-import static io.memoria.reactive.testsuite.Utils.TRANSFORMER;
-import static io.memoria.reactive.testsuite.Utils.topicName;
+import static io.memoria.reactive.testsuite.Infra.TRANSFORMER;
+import static io.memoria.reactive.testsuite.Infra.topicName;
 
-class TestUtils {
+class KafkaInfra {
   public static final Duration kafkaTimeout = Duration.ofMillis(500);
   public static final Data DATA = Data.ofUUID();
 
-  private TestUtils() {}
+  private KafkaInfra() {}
 
   public static Map<String, Object> consumerConfigs() {
     return HashMap.of(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,

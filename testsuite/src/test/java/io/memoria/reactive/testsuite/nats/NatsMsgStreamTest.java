@@ -3,10 +3,10 @@ package io.memoria.reactive.testsuite.nats;
 import io.memoria.reactive.core.stream.Msg;
 import io.memoria.reactive.nats.NatsMsgStream;
 import io.memoria.reactive.nats.Utils;
+import io.memoria.reactive.testsuite.Infra;
 import io.memoria.reactive.testsuite.MsgStreamScenario;
 import io.nats.client.JetStreamApiException;
 import io.nats.client.api.StreamInfo;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.MethodOrderer;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
@@ -17,9 +17,9 @@ import reactor.test.StepVerifier;
 
 import java.io.IOException;
 
-import static io.memoria.reactive.testsuite.Utils.MSG_COUNT;
-import static io.memoria.reactive.testsuite.Utils.SCHEDULER;
-import static io.memoria.reactive.testsuite.Utils.TIMEOUT;
+import static io.memoria.reactive.testsuite.Infra.MSG_COUNT;
+import static io.memoria.reactive.testsuite.Infra.SCHEDULER;
+import static io.memoria.reactive.testsuite.Infra.TIMEOUT;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 class NatsMsgStreamTest {
@@ -28,9 +28,9 @@ class NatsMsgStreamTest {
 
   static {
     try {
-      String topic = io.memoria.reactive.testsuite.Utils.topicName(NatsMsgStreamTest.class);
-      Utils.createOrUpdateTopic(TestUtils.NATS_CONFIG, topic, 1).map(StreamInfo::toString).forEach(log::info);
-      var repo = new NatsMsgStream(TestUtils.NATS_CONFIG, SCHEDULER);
+      String topic = Infra.topicName(NatsMsgStreamTest.class);
+      Utils.createOrUpdateTopic(NatsInfra.NATS_CONFIG, topic, 1).map(StreamInfo::toString).forEach(log::info);
+      var repo = new NatsMsgStream(NatsInfra.NATS_CONFIG, SCHEDULER);
       scenario = new MsgStreamScenario(MSG_COUNT, topic, 0, repo);
     } catch (IOException | InterruptedException | JetStreamApiException e) {
       throw new RuntimeException(e);
@@ -42,7 +42,7 @@ class NatsMsgStreamTest {
   void publish() {
     var now = System.currentTimeMillis();
     StepVerifier.create(scenario.publish()).expectNextCount(MSG_COUNT).verifyComplete();
-    io.memoria.reactive.testsuite.Utils.printRates("publish", now);
+    Infra.printRates("publish", now);
     //    StepVerifier.create(scenario.last().map(Msg::key)).expectNext(String.valueOf(MSG_COUNT - 1)).verifyComplete();
   }
 
@@ -51,7 +51,7 @@ class NatsMsgStreamTest {
   void subscribe() {
     var now = System.currentTimeMillis();
     StepVerifier.create(scenario.subscribe()).expectNextCount(MSG_COUNT).expectTimeout(TIMEOUT).verify();
-    io.memoria.reactive.testsuite.Utils.printRates("subscribe", now);
+    Infra.printRates("subscribe", now);
   }
 
   @Test

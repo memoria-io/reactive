@@ -19,10 +19,10 @@ import io.nats.client.api.StorageType;
 import java.io.IOException;
 import java.time.Duration;
 
-import static io.memoria.reactive.testsuite.Utils.SCHEDULER;
-import static io.memoria.reactive.testsuite.Utils.TRANSFORMER;
+import static io.memoria.reactive.testsuite.Infra.SCHEDULER;
+import static io.memoria.reactive.testsuite.Infra.TRANSFORMER;
 
-class TestUtils {
+class NatsInfra {
   public static final String NATS_URL = "nats://localhost:4222";
   public static final Data DATA = Data.ofSerial();
   public static final NatsConfig NATS_CONFIG = NatsConfig.appendOnly(NATS_URL,
@@ -37,22 +37,17 @@ class TestUtils {
       var msgStream = new NatsMsgStream(NATS_CONFIG, SCHEDULER);
       var commandStream = CommandStream.msgStream(msgStream, AccountCommand.class, TRANSFORMER);
       var eventStream = EventStream.msgStream(msgStream, AccountEvent.class, TRANSFORMER);
-      var commandRoute = new CommandRoute(io.memoria.reactive.testsuite.Utils.topicName("commands"), 0);
-      var eventRoute = new EventRoute(io.memoria.reactive.testsuite.Utils.topicName("events"), 0);
+      var commandRoute = new CommandRoute(Infra.topicName("commands"), 0);
+      var eventRoute = new EventRoute(Infra.topicName("events"), 0);
       //      System.out.printf("Creating %s %n", commandRoute);
       //      System.out.printf("Creating %s %n", eventRoute);
       Utils.createOrUpdateTopic(NATS_CONFIG, commandRoute.topicName(), commandRoute.totalPartitions());
       Utils.createOrUpdateTopic(NATS_CONFIG, eventRoute.topicName(), eventRoute.totalPartitions());
-      return Infra.createPipeline(DATA.idSupplier,
-                                  DATA.timeSupplier,
-                                  commandStream,
-                                  commandRoute,
-                                  eventStream,
-                                  eventRoute);
+      return Infra.createPipeline(DATA.idSupplier, DATA.timeSupplier, commandStream, commandRoute, eventStream, eventRoute);
     } catch (IOException | InterruptedException | JetStreamApiException e) {
       throw new RuntimeException(e);
     }
   }
 
-  private TestUtils() {}
+  private NatsInfra() {}
 }

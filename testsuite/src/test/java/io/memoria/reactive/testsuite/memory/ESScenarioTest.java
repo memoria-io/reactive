@@ -1,6 +1,5 @@
 package io.memoria.reactive.testsuite.memory;
 
-import io.memoria.reactive.testsuite.Utils;
 import io.memoria.reactive.testsuite.Data;
 import io.memoria.reactive.testsuite.Infra;
 import io.memoria.reactive.testsuite.PerformanceScenario;
@@ -14,13 +13,13 @@ import reactor.test.StepVerifier;
 
 import java.util.stream.Stream;
 
-class InMemBankingScenarioTest {
+class ESScenarioTest {
 
   @ParameterizedTest(name = "Using {0} accounts")
   @MethodSource("dataSource")
   void simpleDebitScenario(String name, Data data, int numOfAccounts) {
     // Given
-    var pipeline = Infra.createMemoryPipeline(data.idSupplier, data.timeSupplier);
+    var pipeline = InMemoryInfra.createMemoryPipeline(data.idSupplier, data.timeSupplier);
 
     // When
     var scenario = new SimpleDebitScenario(data, pipeline, numOfAccounts);
@@ -29,7 +28,7 @@ class InMemBankingScenarioTest {
     // Then
     StepVerifier.create(scenario.handleCommands())
                 .expectNextCount(numOfAccounts * 5L)
-                .expectTimeout(Utils.TIMEOUT)
+                .expectTimeout(Infra.TIMEOUT)
                 .verify();
   }
 
@@ -39,14 +38,14 @@ class InMemBankingScenarioTest {
   void performance(int numOfAccounts) {
     // Given
     var data = Data.ofUUID();
-    var pipeline = Infra.createMemoryPipeline(data.idSupplier, data.timeSupplier);
+    var pipeline = InMemoryInfra.createMemoryPipeline(data.idSupplier, data.timeSupplier);
     // When
     var scenario = new PerformanceScenario(data, pipeline, numOfAccounts);
     StepVerifier.create(scenario.publishCommands()).expectNextCount(numOfAccounts * 3L).verifyComplete();
     // Then
     StepVerifier.create(scenario.handleCommands())
                 .expectNextCount(numOfAccounts * 5L)
-                .expectTimeout(Utils.TIMEOUT)
+                .expectTimeout(Infra.TIMEOUT)
                 .verify();
   }
 
