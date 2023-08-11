@@ -9,6 +9,7 @@ import io.memoria.reactive.eventsourcing.pipeline.PartitionPipeline;
 import io.memoria.reactive.nats.Utils;
 import io.nats.client.JetStreamApiException;
 import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -17,7 +18,7 @@ import reactor.test.StepVerifier;
 import java.io.IOException;
 import java.util.stream.Stream;
 
-import static io.memoria.reactive.testsuite.Config.NATS_CONFIG;
+import static io.memoria.reactive.testsuite.Infra.NATS_CONFIG;
 import static io.memoria.reactive.testsuite.Infra.StreamType.KAFKA;
 import static io.memoria.reactive.testsuite.Infra.StreamType.MEMORY;
 import static io.memoria.reactive.testsuite.Infra.StreamType.NATS;
@@ -52,17 +53,22 @@ class ESScenarioTest {
                 .verify();
   }
 
-  //  @Disabled("For debugging purposes only")
-  //  void performance(int numOfAccounts) {
-  //    // When
-  //    var scenario = new PerformanceScenario(data, pipeline, numOfAccounts);
-  //    StepVerifier.create(scenario.publishCommands()).expectNextCount(numOfAccounts * 3L).verifyComplete();
-  //    // Then
-  //    StepVerifier.create(scenario.handleCommands())
-  //                .expectNextCount(numOfAccounts * 5L)
-  //                .expectTimeout(Infra.TIMEOUT)
-  //                .verify();
-  //  }
+  @Disabled("For debugging purposes only")
+  @ParameterizedTest(name = "Using {0} adapter")
+  @MethodSource("dataSource")
+  void performance(String name, Data data, PartitionPipeline<Account, AccountCommand, AccountEvent> pipeline) {
+    // Given
+    int numOfAccounts = 1000_000;
+
+    // When
+    var scenario = new PerformanceScenario(data, pipeline, numOfAccounts);
+    StepVerifier.create(scenario.publishCommands()).expectNextCount(numOfAccounts * 3L).verifyComplete();
+    // Then
+    StepVerifier.create(scenario.handleCommands())
+                .expectNextCount(numOfAccounts * 5L)
+                .expectTimeout(Infra.TIMEOUT)
+                .verify();
+  }
 
   private static Stream<Arguments> dataSource() throws IOException, InterruptedException {
 

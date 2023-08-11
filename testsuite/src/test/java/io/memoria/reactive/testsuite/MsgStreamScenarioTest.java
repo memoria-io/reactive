@@ -15,7 +15,7 @@ import reactor.test.StepVerifier;
 import java.io.IOException;
 import java.util.stream.Stream;
 
-import static io.memoria.reactive.testsuite.Config.NATS_CONFIG;
+import static io.memoria.reactive.testsuite.Infra.NATS_CONFIG;
 import static io.memoria.reactive.testsuite.Infra.StreamType.KAFKA;
 import static io.memoria.reactive.testsuite.Infra.StreamType.MEMORY;
 import static io.memoria.reactive.testsuite.Infra.StreamType.NATS;
