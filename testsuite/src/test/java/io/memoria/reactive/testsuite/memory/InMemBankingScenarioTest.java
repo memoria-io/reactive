@@ -1,6 +1,8 @@
-package io.memoria.reactive.testsuite.eventsourcing.banking;
+package io.memoria.reactive.testsuite.memory;
 
 import io.memoria.reactive.testsuite.Utils;
+import io.memoria.reactive.testsuite.eventsourcing.banking.BankingData;
+import io.memoria.reactive.testsuite.eventsourcing.banking.BankingInfra;
 import io.memoria.reactive.testsuite.eventsourcing.banking.pipeline.PerformanceScenario;
 import io.memoria.reactive.testsuite.eventsourcing.banking.pipeline.SimpleDebitScenario;
 import org.junit.jupiter.api.Disabled;

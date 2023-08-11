@@ -28,6 +28,17 @@
             <artifactId>eventsourcing</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
+        <dependency>
+            <groupId>io.memoria.reactive</groupId>
+            <artifactId>kafka</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>io.memoria.reactive</groupId>
+            <artifactId>nats</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
+
         <!--======================================================================================== -->
         <!-- Atom Dependencies -->
         <!--======================================================================================== -->

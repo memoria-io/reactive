@@ -15,11 +15,17 @@
     <name>${project.groupId}.${project.artifactId}</name>
     <description>Event sourcing Module</description>
     <dependencies>
+        <!--======================================================================================== -->
+        <!-- Module Dependencies -->
+        <!--======================================================================================== -->
         <dependency>
             <groupId>io.memoria.reactive</groupId>
             <artifactId>core</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
+        <!--======================================================================================== -->
+        <!-- Atom Dependencies -->
+        <!--======================================================================================== -->
         <dependency>
             <groupId>io.memoria.atom</groupId>
             <artifactId>eventsourcing</artifactId>

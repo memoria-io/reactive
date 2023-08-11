@@ -1,48 +1,57 @@
 package io.memoria.reactive.kafka;
 
-import io.memoria.reactive.core.stream.Msg;
-import io.memoria.reactive.testsuite.MsgStreamScenario;
-import io.memoria.reactive.testsuite.Utils;
-import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
-import org.junit.jupiter.api.Order;
+import io.vavr.collection.HashMap;
+import io.vavr.collection.Map;
+import io.vavr.control.Option;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
+import org.apache.kafka.clients.producer.ProducerConfig;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.apache.kafka.common.serialization.StringSerializer;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestMethodOrder;
-import reactor.test.StepVerifier;
 
 import java.time.Duration;
 
-import static io.memoria.reactive.testsuite.Utils.MSG_COUNT;
-import static io.memoria.reactive.testsuite.Utils.TIMEOUT;
-
-@TestMethodOrder(OrderAnnotation.class)
 class KafkaMsgStreamTest {
-  private static final String topic = Utils.topicName("messages");
-  private static final MsgStreamScenario scenario;
+  public static final Duration kafkaTimeout = Duration.ofMillis(500);
 
-  static {
-    var repo = new KafkaMsgStream(TestUtils.producerConfigs(), TestUtils.consumerConfigs(), Duration.ofMillis(500));
-    scenario = new MsgStreamScenario(MSG_COUNT, topic, 0, repo);
+  @Test
+  void topicSize() {
+    var conf = consumerConfigs();
+    var size = Utils.topicSize("some_topic", 0, conf);
+    Assertions.assertEquals(0, size);
   }
 
   @Test
-  @Order(0)
-  void publish() {
-    var now = System.currentTimeMillis();
-    StepVerifier.create(scenario.publish()).expectNextCount(MSG_COUNT).verifyComplete();
-    Utils.printRates("publish", now);
+  void lastKey() {
+    var conf = consumerConfigs();
+    var keyOpt = Utils.lastKey("some_topic", 0, Duration.ofMillis(300), conf);
+    Assertions.assertEquals(Option.none(), keyOpt);
   }
 
-  @Test
-  @Order(1)
-  void subscribe() {
-    var now = System.currentTimeMillis();
-    StepVerifier.create(scenario.subscribe()).expectNextCount(MSG_COUNT).expectTimeout(TIMEOUT).verify();
-    Utils.printRates("subscribe", now);
+  private static Map<String, Object> consumerConfigs() {
+    return HashMap.of(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
+                      "localhost:9092",
+                      ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG,
+                      false,
+                      ConsumerConfig.AUTO_OFFSET_RESET_CONFIG,
+                      "earliest",
+                      ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG,
+                      StringDeserializer.class,
+                      ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG,
+                      StringDeserializer.class,
+                      ConsumerConfig.GROUP_ID_CONFIG,
+                      "some_group_id1");
   }
 
-  @Test
-  @Order(2)
-  void last() {
-    StepVerifier.create(scenario.last().map(Msg::key)).expectNext(String.valueOf(MSG_COUNT - 1)).verifyComplete();
+  private static Map<String, Object> producerConfigs() {
+    return HashMap.of(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
+                      "localhost:9092",
+                      ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG,
+                      false,
+                      ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG,
+                      StringSerializer.class,
+                      ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG,
+                      StringSerializer.class);
   }
 }

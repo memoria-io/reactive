@@ -1,4 +1,4 @@
-package io.memoria.reactive.nats;
+package io.memoria.reactive.testsuite.nats;
 
 import io.memoria.atom.testsuite.eventsourcing.banking.command.AccountCommand;
 import io.memoria.atom.testsuite.eventsourcing.banking.event.AccountEvent;
@@ -8,6 +8,9 @@ import io.memoria.reactive.eventsourcing.pipeline.EventRoute;
 import io.memoria.reactive.eventsourcing.pipeline.PartitionPipeline;
 import io.memoria.reactive.eventsourcing.stream.CommandStream;
 import io.memoria.reactive.eventsourcing.stream.EventStream;
+import io.memoria.reactive.nats.NatsConfig;
+import io.memoria.reactive.nats.NatsMsgStream;
+import io.memoria.reactive.nats.Utils;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingData;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingInfra;
 import io.nats.client.JetStreamApiException;
@@ -19,7 +22,7 @@ import java.time.Duration;
 import static io.memoria.reactive.testsuite.Utils.SCHEDULER;
 import static io.memoria.reactive.testsuite.Utils.TRANSFORMER;
 
-public class TestUtils {
+class TestUtils {
   public static final String NATS_URL = "nats://localhost:4222";
   public static final BankingData DATA = BankingData.ofSerial();
   public static final NatsConfig NATS_CONFIG = NatsConfig.appendOnly(NATS_URL,

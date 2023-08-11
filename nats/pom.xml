@@ -23,12 +23,6 @@
             <artifactId>eventsourcing</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
-        <dependency>
-            <groupId>io.memoria.reactive</groupId>
-            <artifactId>testsuite</artifactId>
-            <version>${project.parent.version}</version>
-            <scope>test</scope>
-        </dependency>
         <!-- ===============================================================   -->
         <!-- Nats Dependencies                                                 -->
         <!-- ===============================================================   -->
