@@ -1,4 +1,4 @@
-package io.memoria.reactive.kafka;
+package io.memoria.reactive.testsuite.kafka;
 
 import io.memoria.atom.testsuite.eventsourcing.banking.command.AccountCommand;
 import io.memoria.atom.testsuite.eventsourcing.banking.event.AccountEvent;
@@ -8,6 +8,7 @@ import io.memoria.reactive.eventsourcing.pipeline.EventRoute;
 import io.memoria.reactive.eventsourcing.pipeline.PartitionPipeline;
 import io.memoria.reactive.eventsourcing.stream.CommandStream;
 import io.memoria.reactive.eventsourcing.stream.EventStream;
+import io.memoria.reactive.kafka.KafkaMsgStream;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingData;
 import io.memoria.reactive.testsuite.eventsourcing.banking.BankingInfra;
 import io.vavr.collection.HashMap;
@@ -22,7 +23,7 @@ import java.time.Duration;
 import static io.memoria.reactive.testsuite.Utils.TRANSFORMER;
 import static io.memoria.reactive.testsuite.Utils.topicName;
 
-public class TestUtils {
+class TestUtils {
   public static final Duration kafkaTimeout = Duration.ofMillis(500);
   public static final BankingData DATA = BankingData.ofUUID();
 

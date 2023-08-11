@@ -6,15 +6,23 @@
     <parent>
         <groupId>io.memoria</groupId>
         <artifactId>reactive</artifactId>
-        <version>20.33.0</version>
+        <version>20.34.0</version>
     </parent>
     <groupId>io.memoria.reactive</groupId>
     <artifactId>web</artifactId>
-    <version>20.33.0</version>
+    <version>20.34.0</version>
     <packaging>jar</packaging>
     <name>${project.groupId}.${project.artifactId}</name>
     <description>Web Module</description>
     <dependencies>
+        <!--======================================================================================== -->
+        <!-- Module Dependencies -->
+        <!--======================================================================================== -->
+        <dependency>
+            <groupId>io.memoria.reactive</groupId>
+            <artifactId>core</artifactId>
+            <version>${project.parent.version}</version>
+        </dependency>
         <!--======================================================================================== -->
         <!-- Reactive Dependencies -->
         <!--======================================================================================== -->

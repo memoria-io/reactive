@@ -1,5 +1,6 @@
-package io.memoria.reactive.kafka;
+package io.memoria.reactive.testsuite.kafka;
 
+import io.memoria.reactive.kafka.Utils;
 import io.vavr.control.Option;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;

@@ -46,7 +46,7 @@ public class NatsMsgStream implements MsgStream {
   @Override
   public Flux<Msg> sub(String topic, int partition) {
     return Utils.fetchAllMessages(jetStream, natsConfig, topic, partition)
-                .doOnNext(Message::ack)
+                .doOnNext(Message::ack) // TODO handle from outside
                 .map(NatsMsgStream::toESMsg)
                 .subscribeOn(scheduler);
   }
