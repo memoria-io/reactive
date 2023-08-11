@@ -77,5 +77,4 @@ public class Data {
   private CommandMeta createCommandMeta(StateId stateId) {
     return new CommandMeta(CommandId.of(idSupplier.get()), stateId, timeSupplier.get());
   }
-
 }
