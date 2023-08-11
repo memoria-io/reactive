@@ -32,7 +32,7 @@ class ESScenarioTest {
 
   @BeforeAll
   static void beforeAll() throws JetStreamApiException, IOException, InterruptedException {
-    NatsUtils.createOrUpdateTopic(NATS_CONFIG, commandRoute.topicName(), commandRoute.totalPartitions());
+    NatsUtils.createOrUpdateTopic(NATS_CONFIG, commandRoute.name(), commandRoute.totalPartitions());
     NatsUtils.createOrUpdateTopic(NATS_CONFIG, eventRoute.topicName(), eventRoute.totalPartitions());
   }
 

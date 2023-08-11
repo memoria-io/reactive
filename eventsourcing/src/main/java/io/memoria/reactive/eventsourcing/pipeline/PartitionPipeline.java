@@ -75,7 +75,7 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
   }
 
   public Flux<E> handle() {
-    return handle(commandStream.sub(commandRoute.topicName(), commandRoute.partition()));
+    return handle(commandStream.sub(commandRoute.name(), commandRoute.partition()));
   }
 
   public Flux<E> handle(Flux<C> cmds) {
@@ -89,11 +89,11 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
 
   public Mono<C> pubCommand(C cmd) {
     return Mono.fromCallable(() -> cmd.meta().partition(commandRoute.totalPartitions()))
-               .flatMap(partition -> commandStream.pub(commandRoute.topicName(), partition, cmd));
+               .flatMap(partition -> commandStream.pub(commandRoute.name(), partition, cmd));
   }
 
   public Flux<C> subToCommands() {
-    return commandStream.sub(commandRoute.topicName(), commandRoute.partition());
+    return commandStream.sub(commandRoute.name(), commandRoute.partition());
   }
 
   public Flux<E> subToEvents() {
