@@ -33,7 +33,7 @@ applications.
 
 ### Core module
 
-Core module has basic set of reactive utilities and standard interfaces for reactive streams and event repos
+* Has basic set of reactive utilities and standard interfaces for reactive streams and event repos
 
 ### Eventsourcing module
 
@@ -47,7 +47,7 @@ Core module has basic set of reactive utilities and standard interfaces for reac
 
 ### `kafka`, `nats` modules
 
-Adapter modules initially built to implement eventsourcing infra ports.
+* Adapter modules initially built to implement eventsourcing infra ports.
 
 ## Usage
 
