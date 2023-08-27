@@ -58,7 +58,7 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
                            CommandRoute commandRoute,
                            EventStream<E> eventStream,
                            EventRoute eventRoute,
-                           KCache<CommandId> commandIdCache) {
+                           KCache<CommandId> cache) {
     // Core
     this.domain = domain;
 
@@ -71,7 +71,7 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
 
     // In memory
     this.aggregates = new HashMap<>();
-    this.processedCommands = commandIdCache;
+    this.processedCommands = cache;
     this.prevEvent = new AtomicReference<>();
   }
 
