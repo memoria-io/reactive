@@ -67,7 +67,7 @@ public class Infra {
 
     // Pipeline
     var domain = domain(idSupplier, timeSupplier);
-    return new PartitionPipeline<>(domain, commandStream, commandRoute, eventStream, eventRoute, 1000_000);
+    return new PartitionPipeline<>(domain, commandStream, commandRoute, eventStream, eventRoute, 1000_000, false);
   }
 
   public static MsgStream msgStream(StreamType streamType) throws IOException, InterruptedException {
