@@ -21,6 +21,7 @@ import io.memoria.reactive.nats.NatsMsgStream;
 import io.nats.client.api.StorageType;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.Map;
+import io.vavr.control.Try;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
@@ -46,7 +47,7 @@ public class Infra {
   public static final NatsConfig NATS_CONFIG = NatsConfig.appendOnly(NATS_URL,
                                                                      StorageType.File,
                                                                      1,
-                                                                     1000,
+                                                                     100,
                                                                      Duration.ofMillis(100),
                                                                      Duration.ofMillis(300));
 
@@ -67,16 +68,12 @@ public class Infra {
 
   }
 
-  public static MsgStream msgStream(StreamType streamType) {
-    try {
-      return switch (streamType) {
-        case KAFKA -> new KafkaMsgStream(kafkaProducerConfigs(), kafkaConsumerConfigs(), Duration.ofMillis(500));
-        case NATS -> new NatsMsgStream(NATS_CONFIG, Schedulers.boundedElastic());
-        case MEMORY -> MsgStream.inMemory();
-      };
-    } catch (Exception e) {
-      throw new RuntimeException(e);
-    }
+  public static Try<MsgStream> msgStream(StreamType streamType) {
+    return Try.of(() -> switch (streamType) {
+      case KAFKA -> new KafkaMsgStream(kafkaProducerConfigs(), kafkaConsumerConfigs(), Duration.ofMillis(500));
+      case NATS -> new NatsMsgStream(NATS_CONFIG, Schedulers.boundedElastic());
+      case MEMORY -> MsgStream.inMemory();
+    });
   }
 
   public static Domain<Account, AccountCommand, AccountEvent> domain(Supplier<Id> idSupplier,

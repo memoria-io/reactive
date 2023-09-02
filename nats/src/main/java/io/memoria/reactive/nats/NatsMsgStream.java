@@ -1,10 +1,10 @@
 package io.memoria.reactive.nats;
 
+import io.memoria.reactive.core.reactor.ReactorUtils;
 import io.memoria.reactive.core.stream.Msg;
 import io.memoria.reactive.core.stream.MsgStream;
 import io.nats.client.Connection;
 import io.nats.client.JetStream;
-import io.nats.client.Message;
 import io.nats.client.PublishOptions;
 import io.nats.client.api.DeliverPolicy;
 import org.slf4j.Logger;
@@ -41,15 +41,16 @@ public class NatsMsgStream implements MsgStream {
   @Override
   public Flux<Msg> sub(String topic, int partition) {
     return NatsUtils.fetchAllMessages(jetStream, natsConfig, topic, partition)
-                    .doOnNext(Message::ack) // TODO handle from outside
                     .map(NatsUtils::toESMsg)
                     .subscribeOn(scheduler);
   }
 
   @Override
   public Mono<Msg> last(String topic, int partition) {
-    var sub = NatsUtils.createSubscription(jetStream, DeliverPolicy.Last, topic, partition);
-    return NatsUtils.fetchLastMessage(sub, natsConfig).map(NatsUtils::toESMsg).subscribeOn(scheduler);
+    return ReactorUtils.tryToMono(() -> NatsUtils.createSubscription(jetStream, DeliverPolicy.Last, topic, partition))
+                       .flatMap(sub -> NatsUtils.fetchLastMessage(sub, natsConfig)
+                                                .map(NatsUtils::toESMsg)
+                                                .subscribeOn(scheduler));
   }
 
   @Override

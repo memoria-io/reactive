@@ -35,9 +35,9 @@ class ESScenarioTest {
   private static final Data data = Data.ofUUID();
   private static final CommandRoute commandRoute = new CommandRoute(topicName("commands"), 0);
   private static final EventRoute eventRoute = new EventRoute(topicName("events"), 0);
-  private static final MsgStream inMemoryStream = msgStream(MEMORY);
-  private static final MsgStream kafkaStream = msgStream(KAFKA);
-  private static final MsgStream natsStream = msgStream(NATS);
+  private static final MsgStream inMemoryStream = msgStream(MEMORY).get();
+  private static final MsgStream kafkaStream = msgStream(KAFKA).get();
+  private static final MsgStream natsStream = msgStream(NATS).get();
 
   @BeforeAll
   static void beforeAll() throws JetStreamApiException, IOException, InterruptedException {

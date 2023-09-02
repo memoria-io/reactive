@@ -9,7 +9,7 @@ public class Infra {
   public static final NatsConfig NATS_CONFIG = NatsConfig.appendOnly(NATS_URL,
                                                                      StorageType.File,
                                                                      1,
-                                                                     1000,
+                                                                     100,
                                                                      Duration.ofMillis(100),
                                                                      Duration.ofMillis(300));
 

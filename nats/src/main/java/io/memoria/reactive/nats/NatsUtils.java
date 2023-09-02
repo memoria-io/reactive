@@ -65,28 +65,24 @@ public class NatsUtils {
     return result;
   }
 
-  public static JetStreamSubscription createSubscription(JetStream js,
-                                                         DeliverPolicy deliverPolicy,
-                                                         String topic,
-                                                         int partition) {
+  public static Try<JetStreamSubscription> createSubscription(JetStream js,
+                                                              DeliverPolicy deliverPolicy,
+                                                              String topic,
+                                                              int partition) {
     var config = ConsumerConfiguration.builder()
-                                      .ackPolicy(AckPolicy.Explicit)
+                                      .ackPolicy(AckPolicy.None)
                                       .deliverPolicy(deliverPolicy)
                                       .replayPolicy(ReplayPolicy.Instant)
                                       .build();
     var streamName = streamName(topic, partition);
     var subscribeOptions = PullSubscribeOptions.builder().stream(streamName).configuration(config).build();
-    try {
-      String subjectName = subjectName(topic, partition);
-      return js.subscribe(subjectName, subscribeOptions);
-    } catch (IOException | JetStreamApiException e) {
-      throw new RuntimeException(e);
-    }
+    String subjectName = subjectName(topic, partition);
+    return Try.of(() -> js.subscribe(subjectName, subscribeOptions));
   }
 
   public static Flux<Message> fetchAllMessages(JetStream js, NatsConfig natsConfig, String topic, int partition) {
-    return Mono.fromCallable(() -> createSubscription(js, DeliverPolicy.All, topic, partition))
-               .flatMapMany(sub -> fetchMessages(sub, natsConfig.fetchBatchSize(), natsConfig.fetchMaxWait()));
+    return ReactorUtils.tryToMono(() -> createSubscription(js, DeliverPolicy.All, topic, partition))
+                       .flatMapMany(sub -> fetchMessages(sub, natsConfig.fetchBatchSize(), natsConfig.fetchMaxWait()));
   }
 
   static Flux<Message> fetchMessages(JetStreamSubscription sub, int fetchBatchSize, Duration fetchMaxWait) {
