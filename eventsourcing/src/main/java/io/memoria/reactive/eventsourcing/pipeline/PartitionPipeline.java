@@ -1,6 +1,5 @@
 package io.memoria.reactive.eventsourcing.pipeline;
 
-import io.memoria.atom.core.caching.KCache;
 import io.memoria.atom.eventsourcing.Command;
 import io.memoria.atom.eventsourcing.CommandId;
 import io.memoria.atom.eventsourcing.Domain;
@@ -18,7 +17,9 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static io.memoria.reactive.core.reactor.ReactorUtils.tryToMono;
@@ -38,27 +39,26 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
 
   // In memory
   private final Map<StateId, S> aggregates;
-  private final KCache<CommandId> processedCommands;
+  private final Set<CommandId> processedCommands;
+  private final Set<EventId> sagaSources;
   private final AtomicReference<EventId> prevEvent;
 
+  // Config
+  private final boolean startupSagaEnabled;
+
   /**
-   * Create pipeline with default commandId cache size of 1Million ~= 16Megabyte, since UUID is 32bit -> 16byte
+   * The Ids cache (sagaSources and processedCommands) size of 1Million ~= 16Megabyte, since UUID is 32bit -> 16byte
+   *
+   * @param startupSagaEnabled this enables self-healing by reproducing saga commands, adapting to state-machine new
+   *                           additions, note the reproduced saga commands have no effect if they were already ingested
+   *                           and produced an event.
    */
   public PartitionPipeline(Domain<S, C, E> domain,
                            CommandStream<C> commandStream,
                            CommandRoute commandRoute,
                            EventStream<E> eventStream,
                            EventRoute eventRoute,
-                           int cacheCapacity) {
-    this(domain, commandStream, commandRoute, eventStream, eventRoute, KCache.inMemory(cacheCapacity));
-  }
-
-  public PartitionPipeline(Domain<S, C, E> domain,
-                           CommandStream<C> commandStream,
-                           CommandRoute commandRoute,
-                           EventStream<E> eventStream,
-                           EventRoute eventRoute,
-                           KCache<CommandId> cache) {
+                           boolean startupSagaEnabled) {
     // Core
     this.domain = domain;
 
@@ -71,8 +71,12 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
 
     // In memory
     this.aggregates = new HashMap<>();
-    this.processedCommands = cache;
+    this.processedCommands = new HashSet<>();
+    this.sagaSources = new HashSet<>();
     this.prevEvent = new AtomicReference<>();
+
+    // Config
+    this.startupSagaEnabled = startupSagaEnabled;
   }
 
   public Flux<E> handle() {
@@ -85,7 +89,7 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
                              .doOnNext(this::evolve)
                              .concatMap(this::saga)
                              .concatMap(this::pubEvent);
-    return init().concatWith(handleCommands);
+    return loadEvents().concatWith(handleCommands);
   }
 
   public Mono<C> pubCommand(C cmd) {
@@ -108,12 +112,13 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
   /**
    * Load previous events and build the state
    */
-  Flux<E> init() {
+  Flux<E> loadEvents() {
     return this.eventStream.last(eventRoute.topicName(), eventRoute.partition())
                            .map(E::meta)
                            .map(EventMeta::eventId)
                            .flatMapMany(this::subUntil)
-                           .doOnNext(this::evolve);
+                           .doOnNext(this::evolve)
+                           .concatMap(this::startupSaga);
   }
 
   /**
@@ -129,9 +134,10 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
 
   Mono<E> decide(C cmd) {
     return Mono.defer(() -> {
-      if (processedCommands.contains(cmd.meta().commandId())) {
+      if (isHandledCommand(cmd) || isHandledSagaCommand(cmd)) {
         return Mono.empty();
       } else {
+        cmd.meta().sagaSource().forEach(this.sagaSources::add);
         if (aggregates.containsKey(cmd.meta().stateId())) {
           return tryToMono(() -> domain.decider().apply(aggregates.get(cmd.meta().stateId()), cmd));
         } else {
@@ -139,6 +145,10 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
         }
       }
     });
+  }
+
+  Mono<E> startupSaga(E e) {
+    return (startupSagaEnabled) ? saga(e) : Mono.just(e);
   }
 
   Mono<E> saga(E e) {
@@ -157,6 +167,7 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
   }
 
   void evolve(E e) {
+    e.meta().sagaSource().forEach(sagaSources::add);
     if (aggregates.containsKey(e.meta().stateId())) {
       S currentState = aggregates.get(e.meta().stateId());
       if (hasExpectedVersion(e, currentState)) {
@@ -186,5 +197,13 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
     aggregates.put(e.meta().stateId(), newState);
     processedCommands.add(e.meta().commandId());
     prevEvent.set(e.meta().eventId());
+  }
+
+  private boolean isHandledCommand(C cmd) {
+    return processedCommands.contains(cmd.meta().commandId());
+  }
+
+  private boolean isHandledSagaCommand(C cmd) {
+    return cmd.meta().sagaSource().map(sagaSources::contains).getOrElse(false);
   }
 }
