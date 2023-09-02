@@ -163,6 +163,7 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
   }
 
   void evolve(E e) {
+    e.meta().sagaSource().forEach(sagaSources::add);
     if (aggregates.containsKey(e.meta().stateId())) {
       S currentState = aggregates.get(e.meta().stateId());
       if (hasExpectedVersion(e, currentState)) {

@@ -29,7 +29,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.scheduler.Schedulers;
 
-import java.io.IOException;
 import java.time.Duration;
 import java.util.function.Supplier;
 
@@ -53,29 +52,31 @@ public class Infra {
 
   public static PartitionPipeline<Account, AccountCommand, AccountEvent> pipeline(Supplier<Id> idSupplier,
                                                                                   Supplier<Long> timeSupplier,
-                                                                                  StreamType streamType,
                                                                                   CommandRoute commandRoute,
-                                                                                  EventRoute eventRoute)
-          throws IOException, InterruptedException {
-
-    var transformer = new SerializableTransformer();
-
+                                                                                  EventRoute eventRoute,
+                                                                                  MsgStream msgStream,
+                                                                                  boolean startupSaga) {
     // Stream
-    var msgStream = msgStream(streamType);
+    var transformer = new SerializableTransformer();
     var commandStream = CommandStream.msgStream(msgStream, AccountCommand.class, transformer);
     var eventStream = EventStream.msgStream(msgStream, AccountEvent.class, transformer);
 
     // Pipeline
     var domain = domain(idSupplier, timeSupplier);
-    return new PartitionPipeline<>(domain, commandStream, commandRoute, eventStream, eventRoute, false);
+    return new PartitionPipeline<>(domain, commandStream, commandRoute, eventStream, eventRoute, startupSaga);
+
   }
 
-  public static MsgStream msgStream(StreamType streamType) throws IOException, InterruptedException {
-    return switch (streamType) {
-      case KAFKA -> new KafkaMsgStream(kafkaProducerConfigs(), kafkaConsumerConfigs(), Duration.ofMillis(500));
-      case NATS -> new NatsMsgStream(NATS_CONFIG, Schedulers.boundedElastic());
-      case MEMORY -> MsgStream.inMemory();
-    };
+  public static MsgStream msgStream(StreamType streamType) {
+    try {
+      return switch (streamType) {
+        case KAFKA -> new KafkaMsgStream(kafkaProducerConfigs(), kafkaConsumerConfigs(), Duration.ofMillis(500));
+        case NATS -> new NatsMsgStream(NATS_CONFIG, Schedulers.boundedElastic());
+        case MEMORY -> MsgStream.inMemory();
+      };
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public static Domain<Account, AccountCommand, AccountEvent> domain(Supplier<Id> idSupplier,
