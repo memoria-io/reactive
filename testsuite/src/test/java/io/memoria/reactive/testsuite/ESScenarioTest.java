@@ -46,12 +46,12 @@ class ESScenarioTest {
   }
 
   @ParameterizedTest(name = "Using {0} adapter")
-  @MethodSource("initialSources")
+  @MethodSource("emptyStreams")
   @Order(0)
-  void simpleDebitScenario(String name,
-                           Data data,
-                           PartitionPipeline<Account, AccountCommand, AccountEvent> pipeline,
-                           int numOfAccounts) {
+  void simpleScenario(String name,
+                      Data data,
+                      PartitionPipeline<Account, AccountCommand, AccountEvent> pipeline,
+                      int numOfAccounts) {
     // When
     var scenario = new SimpleDebitScenario(data, pipeline, numOfAccounts);
     StepVerifier.create(scenario.publishCommands()).expectNextCount(numOfAccounts * 3L).verifyComplete();
@@ -64,7 +64,7 @@ class ESScenarioTest {
   }
 
   @ParameterizedTest(name = "Restart simulation with enabled saga on startup, Using {0} adapter")
-  @MethodSource("enabledSagaOnStartup")
+  @MethodSource("nonEmptyStream")
   @Order(1)
   void restartSimulation(String name,
                          Data data,
@@ -82,7 +82,7 @@ class ESScenarioTest {
 
   @Disabled("For debugging purposes only")
   @ParameterizedTest(name = "Using {0} adapter")
-  @MethodSource("initialSources")
+  @MethodSource("emptyStreams")
   void performance(String name, Data data, PartitionPipeline<Account, AccountCommand, AccountEvent> pipeline) {
     // Given
     int numOfAccounts = 1000_000;
@@ -97,7 +97,7 @@ class ESScenarioTest {
                 .verify();
   }
 
-  private static Stream<Arguments> initialSources() {
+  private static Stream<Arguments> emptyStreams() {
     // StartupSaga = true, has no effect since the pipeline is initial and empty (no events)
     var inMemoryPipeline = pipeline(data.idSupplier, data.timeSupplier, commandRoute, eventRoute, inMemoryStream, true);
     var kafkaPipeline = pipeline(data.idSupplier, data.timeSupplier, commandRoute, eventRoute, kafkaStream, true);
@@ -107,7 +107,7 @@ class ESScenarioTest {
                      Arguments.of(NATS.name(), data, natsPipeline, 10));
   }
 
-  private static Stream<Arguments> enabledSagaOnStartup() {
+  private static Stream<Arguments> nonEmptyStream() {
     var inMemoryPipeline = pipeline(data.idSupplier, data.timeSupplier, commandRoute, eventRoute, inMemoryStream, true);
     var kafkaPipeline = pipeline(data.idSupplier, data.timeSupplier, commandRoute, eventRoute, kafkaStream, true);
     var natsPipeline = pipeline(data.idSupplier, data.timeSupplier, commandRoute, eventRoute, natsStream, true);
