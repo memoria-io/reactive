@@ -48,6 +48,10 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
 
   /**
    * The Ids cache (sagaSources and processedCommands) size of 1Million ~= 16Megabyte, since UUID is 32bit -> 16byte
+   *
+   * @param startupSagaEnabled this enables self-healing by reproducing saga commands, adapting to state-machine new
+   *                           additions, note the reproduced saga commands have no effect if they were already ingested
+   *                           and produced an event.
    */
   public PartitionPipeline(Domain<S, C, E> domain,
                            CommandStream<C> commandStream,
