@@ -5,7 +5,7 @@ import io.memoria.atom.eventsourcing.Event;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public interface PartitionScenario<C extends Command, E extends Event> {
+public interface ESScenario<C extends Command, E extends Event> {
   int expectedCommandsCount();
 
   int expectedEventsCount();

@@ -12,7 +12,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @SuppressWarnings("ClassCanBeRecord")
-public class SimpleDebitScenario implements PartitionScenario<AccountCommand, AccountEvent> {
+public class SimpleDebitScenario implements ESScenario<AccountCommand, AccountEvent> {
   public static final int INITIAL_BALANCE = 500;
   public static final int DEBIT_AMOUNT = 300;
 
