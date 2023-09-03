@@ -10,7 +10,6 @@ import io.memoria.reactive.eventsourcing.pipeline.PartitionPipeline;
 import io.memoria.reactive.nats.NatsUtils;
 import io.nats.client.JetStreamApiException;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.TestMethodOrder;
@@ -31,7 +30,7 @@ import static io.memoria.reactive.testsuite.Infra.pipeline;
 import static io.memoria.reactive.testsuite.Infra.topicName;
 
 @TestMethodOrder(OrderAnnotation.class)
-class ESScenarioTest {
+class SimpleDebitScenarioTest {
   private static final Data data = Data.ofUUID();
   private static final CommandRoute commandRoute = new CommandRoute(topicName("commands"), 0);
   private static final EventRoute eventRoute = new EventRoute(topicName("events"), 0);
@@ -76,23 +75,6 @@ class ESScenarioTest {
     // Then
     StepVerifier.create(scenario.handleCommands())
                 .expectNextCount(scenario.expectedEventsCount())
-                .expectTimeout(Infra.TIMEOUT)
-                .verify();
-  }
-
-  @Disabled("For debugging purposes only")
-  @ParameterizedTest(name = "Using {0} adapter")
-  @MethodSource("emptyStreams")
-  void performance(String name, Data data, PartitionPipeline<Account, AccountCommand, AccountEvent> pipeline) {
-    // Given
-    int numOfAccounts = 1000_000;
-
-    // When
-    var scenario = new PerformanceScenario(data, pipeline, numOfAccounts);
-    StepVerifier.create(scenario.publishCommands()).expectNextCount(numOfAccounts * 3L).verifyComplete();
-    // Then
-    StepVerifier.create(scenario.handleCommands())
-                .expectNextCount(numOfAccounts * 5L)
                 .expectTimeout(Infra.TIMEOUT)
                 .verify();
   }
