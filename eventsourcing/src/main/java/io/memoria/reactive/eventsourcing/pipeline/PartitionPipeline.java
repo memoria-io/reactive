@@ -88,35 +88,35 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
                              .concatMap(this::decide)
                              .doOnNext(this::evolve)
                              .concatMap(this::saga)
-                             .concatMap(this::pubEvent);
-    return loadEvents().concatWith(handleCommands);
+                             .concatMap(this::publish);
+    return initialize().concatWith(handleCommands);
   }
 
-  public Mono<C> pubCommand(C cmd) {
+  public Mono<C> publish(C cmd) {
     return Mono.fromCallable(() -> cmd.meta().partition(commandRoute.totalPartitions()))
                .flatMap(partition -> commandStream.pub(commandRoute.name(), partition, cmd));
-  }
-
-  public Flux<C> subToCommands() {
-    return commandStream.sub(commandRoute.name(), commandRoute.partition());
   }
 
   public Flux<E> subToEvents() {
     return eventStream.sub(eventRoute.topicName(), eventRoute.partition());
   }
 
-  public Flux<E> subUntil(EventId id) {
+  public Flux<E> subToEventsUntil(EventId id) {
     return eventStream.subUntil(eventRoute.topicName(), eventRoute.partition(), id);
+  }
+
+  Mono<E> publish(E e) {
+    return eventStream.pub(eventRoute.topicName(), eventRoute.partition(), e);
   }
 
   /**
    * Load previous events and build the state
    */
-  Flux<E> loadEvents() {
+  Flux<E> initialize() {
     return this.eventStream.last(eventRoute.topicName(), eventRoute.partition())
                            .map(E::meta)
                            .map(EventMeta::eventId)
-                           .flatMapMany(this::subUntil)
+                           .flatMapMany(this::subToEventsUntil)
                            .doOnNext(this::evolve)
                            .concatMap(this::startupSaga);
   }
@@ -128,7 +128,7 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
     if (cmd.meta().isInPartition(commandRoute.partition(), commandRoute.totalPartitions())) {
       return Mono.just(cmd);
     } else {
-      return this.pubCommand(cmd).flatMap(c -> Mono.empty());
+      return this.publish(cmd).flatMap(c -> Mono.empty());
     }
   }
 
@@ -155,15 +155,11 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
     return Mono.defer(() -> {
       var opt = domain.saga().apply(e);
       if (opt.isDefined()) {
-        return this.pubCommand(opt.get()).map(c -> e);
+        return this.publish(opt.get()).map(c -> e);
       } else {
         return Mono.just(e);
       }
     });
-  }
-
-  Mono<E> pubEvent(E e) {
-    return eventStream.pub(eventRoute.topicName(), eventRoute.partition(), e);
   }
 
   void evolve(E e) {
@@ -199,11 +195,11 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
     prevEvent.set(e.meta().eventId());
   }
 
-  private boolean isHandledCommand(C cmd) {
+  boolean isHandledCommand(C cmd) {
     return processedCommands.contains(cmd.meta().commandId());
   }
 
-  private boolean isHandledSagaCommand(C cmd) {
+  boolean isHandledSagaCommand(C cmd) {
     return cmd.meta().sagaSource().map(sagaSources::contains).getOrElse(false);
   }
 }

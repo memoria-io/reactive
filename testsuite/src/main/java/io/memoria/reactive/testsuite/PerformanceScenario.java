@@ -47,7 +47,7 @@ public class PerformanceScenario implements PartitionScenario<AccountCommand, Ac
     var debitTheAccounts = data.debitCmd(debitedIds.zipWith(creditedIds), DEBIT_AMOUNT);
     var commands = createDebitedAcc.concatWith(createCreditedAcc).concatWith(debitTheAccounts);
 
-    return commands.concatMap(pipeline::pubCommand);
+    return commands.concatMap(pipeline::publish);
   }
 
   @Override
