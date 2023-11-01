@@ -24,6 +24,16 @@ jobs:
           echo "MAVEN_VERSION=$MAVEN_VERSION" >> $GITHUB_ENV
       - name: echo tag
         run: echo ${{ env.MAVEN_VERSION }}
+      - name: Create tag
+        uses: actions/github-script@v5
+        with:
+          script: |
+            github.rest.git.createRef({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: 'refs/tags/dummytag',
+              sha: context.sha
+            })
 #      - name: Cache Maven packages
 #        uses: actions/cache@v1
 #        with:
