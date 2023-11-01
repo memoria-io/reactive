@@ -15,15 +15,13 @@ jobs:
           distribution: "oracle"
           java-version: "21"
           check-latest: true
-      - name: Tag version variable
+      - name: Get Maven project version
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           MAVEN_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
           echo $MAVEN_VERSION
           echo "MAVEN_VERSION=$MAVEN_VERSION" >> $GITHUB_ENV
-      - name: echo tag
-        run: echo ${{ env.MAVEN_VERSION }}
       - name: Create tag
         uses: actions/github-script@v6
         with:
@@ -40,12 +38,6 @@ jobs:
 #          path: ~/.m2
 #          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
 #          restore-keys: ${{ runner.os }}-m2
-#      - name: Tag version variable
-#        run: |
-#          echo "MAVEN_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
-#      - name: echo tag
-#        run: echo ${{ env.MAVEN_VERSION }}
-
 #      - name: Docker compose
 #        run: docker-compose up -d
 #      - name: Sleeping
@@ -54,3 +46,4 @@ jobs:
 #        env:
 #          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 #        run: mvn --batch-mode deploy
+
