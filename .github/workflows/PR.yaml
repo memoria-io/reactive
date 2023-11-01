@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-java@v3
         with:
           distribution: "oracle"
@@ -28,7 +28,7 @@ jobs:
         run: echo ${{ env.MAVEN_VERSION }}
 
       - name: Cache Maven packages
-        uses: actions/cache@v1
+        uses: actions/cache@v3
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
@@ -38,7 +38,7 @@ jobs:
         run: docker-compose up -d
 
       - name: Sleeping
-        run: sleep 15
+        run: sleep 30
 
       - name: Sonar
         env:
