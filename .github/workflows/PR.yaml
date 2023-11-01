@@ -16,8 +16,8 @@ jobs:
           java-version: "21"
           check-latest: true
       - name: Tag version variable
-        run: |
-          MAVEN_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+        run: mvn help:evaluate -Dexpression=project.version -q -DforceStdout
+#          MAVEN_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
 #          echo $MAVEN_VERSION
 #          echo "MAVEN_VERSION=$MAVEN_VERSION" >> $GITHUB_ENV
       - name: echo tag
