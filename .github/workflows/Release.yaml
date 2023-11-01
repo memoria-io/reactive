@@ -15,6 +15,21 @@ jobs:
           distribution: "oracle"
           java-version: "21"
           check-latest: true
+      - name: Cache Maven packages
+        uses: actions/cache@v1
+        with:
+          path: ~/.m2
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+          restore-keys: ${{ runner.os }}-m2
+      - name: Docker compose
+        run: docker-compose up -d
+      - name: Sleeping
+        run: sleep 30
+      - name: Publish package
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: mvn --batch-mode deploy
+
       - name: Get Maven project version
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -32,18 +47,3 @@ jobs:
               ref: 'refs/tags/${{ env.MAVEN_VERSION }}',
               sha: context.sha
             })
-#      - name: Cache Maven packages
-#        uses: actions/cache@v1
-#        with:
-#          path: ~/.m2
-#          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
-#          restore-keys: ${{ runner.os }}-m2
-#      - name: Docker compose
-#        run: docker-compose up -d
-#      - name: Sleeping
-#        run: sleep 30
-#      - name: Publish package
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#        run: mvn --batch-mode deploy
-
