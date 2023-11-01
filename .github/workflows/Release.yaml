@@ -31,7 +31,7 @@ jobs:
             github.rest.git.createRef({
               owner: context.repo.owner,
               repo: context.repo.repo,
-              ref: 'refs/tags/dummytag2',
+              ref: 'refs/tags/${{ env.MAVEN_VERSION }}',
               sha: context.sha
             })
 #      - name: Cache Maven packages
