@@ -1,11 +1,11 @@
-name: Release
+name: PR
 
 on:
   pull_request:
     types: [ opened, synchronize, reopened ]
 
 jobs:
-  Release:
+  PR:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -24,33 +24,30 @@ jobs:
           echo "MAVEN_VERSION=$MAVEN_VERSION" >> $GITHUB_ENV
       - name: echo tag
         run: echo ${{ env.MAVEN_VERSION }}
-      - name: Create tag
-        uses: actions/github-script@v6
-        with:
-          script: |
-            github.rest.git.createRef({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              ref: 'refs/tags/${{ env.MAVEN_VERSION }}',
-              sha: context.sha
-            })
 #      - name: Cache Maven packages
 #        uses: actions/cache@v1
 #        with:
 #          path: ~/.m2
 #          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
 #          restore-keys: ${{ runner.os }}-m2
-#      - name: Tag version variable
-#        run: |
-#          echo "MAVEN_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
-#      - name: echo tag
-#        run: echo ${{ env.MAVEN_VERSION }}
-
 #      - name: Docker compose
 #        run: docker-compose up -d
 #      - name: Sleeping
 #        run: sleep 30
-#      - name: Publish package
+#      - name: Sonar
 #        env:
 #          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#        run: mvn --batch-mode deploy
+#          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+#        run: |
+#          mvn -B verify org.sonarsource.scanner.maven:sonar-maven-plugin:sonar \
+#          -Dsonar.host.url="https://sonarcloud.io" \
+#          -Dsonar.organization=memoria-io \
+#          -Dsonar.projectKey=memoria-io_reactive
+#
+#
+##          -Dsonar.pullrequest.github.repository=${{ GITHUB_REPOSITORY }}
+##          -Dsonar.pullrequest.branch=${{ GITHUB_HEAD_REF#refs/heads/ }}
+##          -Dsonar.pullrequest.base=${{ GITHUB_BASE_REF#refs/heads/ }} \
+##          -Dsonar.pullrequest.key=${{ github.event.number }}
+#
+#

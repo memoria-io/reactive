@@ -8,7 +8,7 @@ import reactor.test.StepVerifier;
 
 import java.util.Random;
 
-class EtcdKVStoreTest {
+class EtcdKVStoreIT {
   private final Random random = new Random();
   private final String keyPrefix = "key_" + random.nextInt(1000);
   private final Client client = Client.builder().endpoints("http://localhost:2379").build();

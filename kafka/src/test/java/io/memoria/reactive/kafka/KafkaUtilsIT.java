@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Duration;
 
-class KafkaUtilsTest {
+class KafkaUtilsIT {
 
   @Test
   void topicSize() {
