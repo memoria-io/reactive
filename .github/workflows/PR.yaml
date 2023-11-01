@@ -15,10 +15,6 @@ jobs:
           distribution: "oracle"
           java-version: "21"
           check-latest: true
-      - name: check java
-        run: |
-          java --version
-          mvn --version
       - name: Tag version variable
         run: |
           MAVEN_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
