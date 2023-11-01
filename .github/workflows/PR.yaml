@@ -1,14 +1,11 @@
 name: Build
 
 on:
-  push:
-    branches:
-      - master
   pull_request:
     types: [ opened, synchronize, reopened ]
 
 jobs:
-  Build:
+  PR:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -28,8 +25,10 @@ jobs:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
-      - name: Github API URL
-        run: echo ${GITHUB_API_URL}
+      - name: Docker compose
+        run: docker-compose up -d
+      - name: Sleeping
+        run: sleep 30
       - name: Sonar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

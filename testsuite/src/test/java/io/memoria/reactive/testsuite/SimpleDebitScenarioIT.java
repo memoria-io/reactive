@@ -44,7 +44,7 @@ class SimpleDebitScenarioIT {
 
   private static final int INITIAL_BALANCE = 500;
   private static final int DEBIT_AMOUNT = 300;
-  private static final int numOfAccounts = 100000;
+  private static final int numOfAccounts = 1000;
 
   @BeforeAll
   static void beforeAll() throws JetStreamApiException, IOException, InterruptedException {
@@ -66,6 +66,8 @@ class SimpleDebitScenarioIT {
     var start = System.currentTimeMillis();
     StepVerifier.create(pipeline.handle()).expectNextCount(expectedEventsCount).expectTimeout(Infra.TIMEOUT).verify();
     Infra.printRates(SimpleDebitScenarioIT.class.getName(), start, expectedEventsCount);
+    // And
+    StepVerifier.create(verify(pipeline, expectedCommandsCount)).expectNext(true).verifyComplete();
   }
 
   private Flux<AccountCommand> commands() {

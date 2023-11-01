@@ -25,8 +25,8 @@ import static io.memoria.reactive.testsuite.Infra.TIMEOUT;
 import static io.memoria.reactive.testsuite.Infra.msgStream;
 
 @TestMethodOrder(OrderAnnotation.class)
-class MsgStreamScenarioTest {
-  private static final String topic = Infra.randomTopicName(MsgStreamScenarioTest.class.getSimpleName());
+class MsgStreamScenarioIT {
+  private static final String topic = Infra.randomTopicName(MsgStreamScenarioIT.class.getSimpleName());
   private static final int partition = 0;
   private static final int totalPartitions = 1;
   private static final int msgCount = 10_000;

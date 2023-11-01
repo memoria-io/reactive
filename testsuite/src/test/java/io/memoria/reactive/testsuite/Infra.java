@@ -94,7 +94,7 @@ public class Infra {
   }
 
   public static String randomTopicName(String postfix) {
-    return "topic%d_%s".formatted(System.currentTimeMillis(), postfix);
+    return STR. "topic\{ System.currentTimeMillis() }_\{ postfix }" ;
   }
 
   public static void printRates(String methodName, long start, long msgCount) {
@@ -129,8 +129,8 @@ public class Infra {
                       StringSerializer.class);
   }
 
-  private static double eventsPerSec(long msgCount, long totalElapsed) {
-    return msgCount / (totalElapsed / 1000d);
+  private static double eventsPerSec(long msgCount, long totalElapsedMillis) {
+    return msgCount / (totalElapsedMillis / 1000d);
   }
 
   private Infra() {}
