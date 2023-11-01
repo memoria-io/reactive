@@ -1,0 +1,46 @@
+name: Release
+
+on:
+  pull_request:
+    types: [ opened, synchronize, reopened ]
+
+jobs:
+  Release:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-java@v3
+        with:
+          distribution: "oracle"
+          java-version: "21"
+          check-latest: true
+      - name: Tag version variable
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          MAVEN_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo $MAVEN_VERSION
+          echo "MAVEN_VERSION=$MAVEN_VERSION" >> $GITHUB_ENV
+      - name: echo tag
+        run: echo ${{ env.MAVEN_VERSION }}
+#      - name: Cache Maven packages
+#        uses: actions/cache@v1
+#        with:
+#          path: ~/.m2
+#          key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
+#          restore-keys: ${{ runner.os }}-m2
+#      - name: Tag version variable
+#        run: |
+#          echo "MAVEN_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)" >> $GITHUB_ENV
+#      - name: echo tag
+#        run: echo ${{ env.MAVEN_VERSION }}
+
+#      - name: Docker compose
+#        run: docker-compose up -d
+#      - name: Sleeping
+#        run: sleep 30
+#      - name: Publish package
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#        run: mvn --batch-mode deploy
