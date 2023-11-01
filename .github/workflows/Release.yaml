@@ -1,4 +1,4 @@
-name: Release
+name: Releasing
 
 on:
   pull_request:
@@ -10,7 +10,7 @@ on:
 
 
 jobs:
-  Release:
+  Releasing:
     runs-on: ubuntu-latest
     if: github.event_name == 'push'
     timeout-minutes: 30
