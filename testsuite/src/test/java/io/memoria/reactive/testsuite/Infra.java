@@ -33,6 +33,10 @@ import reactor.core.scheduler.Schedulers;
 import java.time.Duration;
 import java.util.function.Supplier;
 
+import static io.memoria.reactive.testsuite.Infra.StreamType.KAFKA;
+import static io.memoria.reactive.testsuite.Infra.StreamType.MEMORY;
+import static io.memoria.reactive.testsuite.Infra.StreamType.NATS;
+
 public class Infra {
   private static final Logger log = LoggerFactory.getLogger(Infra.class.getName());
   public static final Duration TIMEOUT = Duration.ofMillis(500);
@@ -50,6 +54,9 @@ public class Infra {
                                                                      100,
                                                                      Duration.ofMillis(100),
                                                                      Duration.ofMillis(300));
+  public static final MsgStream inMemoryStream = msgStream(MEMORY).get();
+  public static final MsgStream kafkaStream = msgStream(KAFKA).get();
+  public static final MsgStream natsStream = msgStream(NATS).get();
 
   public static PartitionPipeline<Account, AccountCommand, AccountEvent> pipeline(Supplier<Id> idSupplier,
                                                                                   Supplier<Long> timeSupplier,
@@ -86,12 +93,12 @@ public class Infra {
                         new AccountSaga(idSupplier, timeSupplier));
   }
 
-  public static String topicName(String postfix) {
-    return "topic%d_%s".formatted(System.currentTimeMillis(), postfix);
+  public static String randomTopicName(String postfix) {
+    return STR. "topic\{ System.currentTimeMillis() }_\{ postfix }" ;
   }
 
-  public static void printRates(String methodName, long now, long msgCount) {
-    long totalElapsed = System.currentTimeMillis() - now;
+  public static void printRates(String methodName, long start, long msgCount) {
+    long totalElapsed = System.currentTimeMillis() - start;
     log.info("{}: Finished processing {} events, in {} millis %n", methodName, msgCount, totalElapsed);
     log.info("{}: Average {} events per second %n", methodName, (long) eventsPerSec(msgCount, totalElapsed));
   }
@@ -122,8 +129,8 @@ public class Infra {
                       StringSerializer.class);
   }
 
-  private static double eventsPerSec(long msgCount, long totalElapsed) {
-    return msgCount / (totalElapsed / 1000d);
+  private static double eventsPerSec(long msgCount, long totalElapsedMillis) {
+    return msgCount / (totalElapsedMillis / 1000d);
   }
 
   private Infra() {}

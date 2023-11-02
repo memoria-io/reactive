@@ -1,35 +1,45 @@
-name: Build
+name: PR
 
 on:
-  push:
-    branches:
-      - master
   pull_request:
     types: [ opened, synchronize, reopened ]
 
 jobs:
-  Build:
+  PR:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-java@v3
         with:
           distribution: "oracle"
           java-version: "21"
           check-latest: true
-      - name: check java
+
+      - name: Tag version variable
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          java --version
-          mvn --version
+          MAVEN_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)
+          echo $MAVEN_VERSION
+          echo "MAVEN_VERSION=$MAVEN_VERSION" >> $GITHUB_ENV
+
+      - name: echo tag
+        run: echo ${{ env.MAVEN_VERSION }}
+
       - name: Cache Maven packages
-        uses: actions/cache@v1
+        uses: actions/cache@v3
         with:
           path: ~/.m2
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
-      - name: Github API URL
-        run: echo ${GITHUB_API_URL}
+
+      - name: Docker compose
+        run: docker-compose up -d
+
+      - name: Sleeping
+        run: sleep 30
+
       - name: Sonar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

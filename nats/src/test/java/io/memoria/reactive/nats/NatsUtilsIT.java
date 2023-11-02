@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import java.io.IOException;
 import java.util.List;
 
-class NatsUtilsTest {
+class NatsUtilsIT {
   @Test
   void toMessage() {
     var message = NatsUtils.natsMessage("topic", 0, new Msg("0", "hello world"));
