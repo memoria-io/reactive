@@ -6,13 +6,13 @@
     <parent>
         <groupId>io.memoria</groupId>
         <artifactId>atom</artifactId>
-        <version>21.0.5</version>
+        <version>21.0.6</version>
     </parent>
 
     <!--suppress MavenRedundantGroupId -->
     <groupId>io.memoria</groupId>
     <artifactId>reactive</artifactId>
-    <version>21.0.6</version>
+    <version>21.0.7</version>
     <packaging>pom</packaging>
 
     <name>${project.groupId}.${project.artifactId}</name>
