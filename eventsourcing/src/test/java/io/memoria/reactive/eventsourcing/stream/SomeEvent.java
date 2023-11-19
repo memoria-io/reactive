@@ -1,6 +1,6 @@
 package io.memoria.reactive.eventsourcing.stream;
 
-import io.memoria.atom.eventsourcing.Event;
-import io.memoria.atom.eventsourcing.EventMeta;
+import io.memoria.reactive.eventsourcing.Event;
+import io.memoria.reactive.eventsourcing.EventMeta;
 
 record SomeEvent(EventMeta meta) implements Event {}

@@ -1,16 +1,16 @@
 package io.memoria.reactive.testsuite;
 
-import io.memoria.atom.eventsourcing.StateId;
-import io.memoria.atom.testsuite.eventsourcing.banking.command.AccountCommand;
-import io.memoria.atom.testsuite.eventsourcing.banking.event.AccountEvent;
-import io.memoria.atom.testsuite.eventsourcing.banking.state.Account;
-import io.memoria.atom.testsuite.eventsourcing.banking.state.OpenAccount;
 import io.memoria.reactive.core.stream.MsgStream;
+import io.memoria.reactive.eventsourcing.StateId;
 import io.memoria.reactive.eventsourcing.Utils;
 import io.memoria.reactive.eventsourcing.pipeline.CommandRoute;
 import io.memoria.reactive.eventsourcing.pipeline.EventRoute;
 import io.memoria.reactive.eventsourcing.pipeline.PartitionPipeline;
 import io.memoria.reactive.nats.NatsUtils;
+import io.memoria.reactive.testsuite.command.AccountCommand;
+import io.memoria.reactive.testsuite.event.AccountEvent;
+import io.memoria.reactive.testsuite.state.Account;
+import io.memoria.reactive.testsuite.state.OpenAccount;
 import io.nats.client.JetStreamApiException;
 import io.vavr.collection.Map;
 import org.junit.jupiter.api.BeforeAll;

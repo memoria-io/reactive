@@ -1,9 +1,9 @@
 package io.memoria.reactive.eventsourcing.stream;
 
 import io.memoria.atom.core.text.TextTransformer;
-import io.memoria.atom.eventsourcing.Event;
 import io.memoria.reactive.core.stream.Msg;
 import io.memoria.reactive.core.stream.MsgStream;
+import io.memoria.reactive.eventsourcing.Event;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
