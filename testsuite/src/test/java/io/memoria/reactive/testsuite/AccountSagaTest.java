@@ -1,7 +1,7 @@
 package io.memoria.reactive.testsuite;
 
-import io.memoria.reactive.eventsourcing.CommandId;
-import io.memoria.reactive.eventsourcing.EventMeta;
+import io.memoria.atom.eventsourcing.CommandId;
+import io.memoria.atom.eventsourcing.EventMeta;
 import io.memoria.reactive.testsuite.command.Credit;
 import io.memoria.reactive.testsuite.event.Debited;
 import org.assertj.core.api.Assertions;

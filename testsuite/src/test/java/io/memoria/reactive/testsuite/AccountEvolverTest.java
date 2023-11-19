@@ -1,8 +1,8 @@
 package io.memoria.reactive.testsuite;
 
-import io.memoria.reactive.eventsourcing.CommandId;
-import io.memoria.reactive.eventsourcing.EventMeta;
-import io.memoria.reactive.eventsourcing.StateMeta;
+import io.memoria.atom.eventsourcing.CommandId;
+import io.memoria.atom.eventsourcing.EventMeta;
+import io.memoria.atom.eventsourcing.StateMeta;
 import io.memoria.reactive.testsuite.event.Debited;
 import io.memoria.reactive.testsuite.state.OpenAccount;
 import org.assertj.core.api.Assertions;

@@ -1,7 +1,7 @@
 package io.memoria.reactive.testsuite;
 
 import io.memoria.reactive.core.stream.MsgStream;
-import io.memoria.reactive.eventsourcing.StateId;
+import io.memoria.atom.eventsourcing.StateId;
 import io.memoria.reactive.eventsourcing.Utils;
 import io.memoria.reactive.eventsourcing.pipeline.CommandRoute;
 import io.memoria.reactive.eventsourcing.pipeline.EventRoute;

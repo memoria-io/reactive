@@ -1,7 +1,7 @@
 package io.memoria.reactive.testsuite;
 
 import io.memoria.atom.core.id.Id;
-import io.memoria.reactive.eventsourcing.rule.Saga;
+import io.memoria.atom.eventsourcing.rule.Saga;
 import io.memoria.reactive.testsuite.command.AccountCommand;
 import io.memoria.reactive.testsuite.command.ConfirmDebit;
 import io.memoria.reactive.testsuite.command.Credit;

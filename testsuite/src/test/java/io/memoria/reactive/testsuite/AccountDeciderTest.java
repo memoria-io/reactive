@@ -1,7 +1,7 @@
 package io.memoria.reactive.testsuite;
 
-import io.memoria.reactive.eventsourcing.CommandMeta;
-import io.memoria.reactive.eventsourcing.StateMeta;
+import io.memoria.atom.eventsourcing.CommandMeta;
+import io.memoria.atom.eventsourcing.StateMeta;
 import io.memoria.reactive.testsuite.command.Debit;
 import io.memoria.reactive.testsuite.event.DebitRejected;
 import io.memoria.reactive.testsuite.event.Debited;
