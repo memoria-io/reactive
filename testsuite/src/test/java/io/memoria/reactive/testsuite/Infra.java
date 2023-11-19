@@ -2,8 +2,8 @@ package io.memoria.reactive.testsuite;
 
 import io.memoria.atom.core.id.Id;
 import io.memoria.atom.core.text.SerializableTransformer;
+import io.memoria.atom.eventsourcing.Domain;
 import io.memoria.reactive.core.stream.MsgStream;
-import io.memoria.reactive.eventsourcing.Domain;
 import io.memoria.reactive.eventsourcing.pipeline.CommandRoute;
 import io.memoria.reactive.eventsourcing.pipeline.EventRoute;
 import io.memoria.reactive.eventsourcing.pipeline.PartitionPipeline;

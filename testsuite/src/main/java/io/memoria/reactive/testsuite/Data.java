@@ -1,9 +1,9 @@
 package io.memoria.reactive.testsuite;
 
 import io.memoria.atom.core.id.Id;
-import io.memoria.reactive.eventsourcing.CommandId;
-import io.memoria.reactive.eventsourcing.CommandMeta;
-import io.memoria.reactive.eventsourcing.StateId;
+import io.memoria.atom.eventsourcing.CommandId;
+import io.memoria.atom.eventsourcing.CommandMeta;
+import io.memoria.atom.eventsourcing.StateId;
 import io.memoria.reactive.testsuite.command.AccountCommand;
 import io.memoria.reactive.testsuite.command.ChangeName;
 import io.memoria.reactive.testsuite.command.CloseAccount;

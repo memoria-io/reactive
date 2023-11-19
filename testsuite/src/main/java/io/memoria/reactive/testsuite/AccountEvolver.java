@@ -1,8 +1,8 @@
 package io.memoria.reactive.testsuite;
 
-import io.memoria.reactive.eventsourcing.ESException.InvalidEvent;
-import io.memoria.reactive.eventsourcing.StateMeta;
-import io.memoria.reactive.eventsourcing.rule.Evolver;
+import io.memoria.atom.eventsourcing.ESException.InvalidEvent;
+import io.memoria.atom.eventsourcing.StateMeta;
+import io.memoria.atom.eventsourcing.rule.Evolver;
 import io.memoria.reactive.testsuite.event.AccountClosed;
 import io.memoria.reactive.testsuite.event.AccountCreated;
 import io.memoria.reactive.testsuite.event.AccountEvent;

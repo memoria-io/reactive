@@ -1,6 +1,9 @@
 package io.memoria.reactive.eventsourcing;
 
-import io.memoria.reactive.eventsourcing.rule.Evolver;
+import io.memoria.atom.eventsourcing.Event;
+import io.memoria.atom.eventsourcing.State;
+import io.memoria.atom.eventsourcing.StateId;
+import io.memoria.atom.eventsourcing.rule.Evolver;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.Map;
 import io.vavr.control.Option;

@@ -1,6 +1,6 @@
 package io.memoria.reactive.testsuite.state;
 
-import io.memoria.reactive.eventsourcing.StateMeta;
+import io.memoria.atom.eventsourcing.StateMeta;
 
 public record OpenAccount(StateMeta meta,
                           String name,

@@ -1,6 +1,6 @@
 package io.memoria.reactive.eventsourcing.stream;
 
-import io.memoria.reactive.eventsourcing.Command;
-import io.memoria.reactive.eventsourcing.CommandMeta;
+import io.memoria.atom.eventsourcing.Command;
+import io.memoria.atom.eventsourcing.CommandMeta;
 
 record SomeCommand(CommandMeta meta) implements Command {}
