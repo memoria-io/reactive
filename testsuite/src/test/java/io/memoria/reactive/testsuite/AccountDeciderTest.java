@@ -13,6 +13,7 @@ import static io.memoria.reactive.testsuite.TestUtils.alice;
 import static io.memoria.reactive.testsuite.TestUtils.aliceId;
 import static io.memoria.reactive.testsuite.TestUtils.bobId;
 import static io.memoria.reactive.testsuite.TestUtils.decider;
+import static org.assertj.core.api.Assertions.assertThat;
 
 class AccountDeciderTest {
 
