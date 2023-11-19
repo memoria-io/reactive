@@ -1,8 +1,8 @@
 package io.memoria.reactive.eventsourcing.stream;
 
-import io.memoria.atom.eventsourcing.CommandId;
-import io.memoria.atom.eventsourcing.EventMeta;
-import io.memoria.atom.eventsourcing.StateId;
+import io.memoria.reactive.eventsourcing.CommandId;
+import io.memoria.reactive.eventsourcing.EventMeta;
+import io.memoria.reactive.eventsourcing.StateId;
 import org.assertj.core.api.Assertions;
 import org.awaitility.Awaitility;
 import org.junit.jupiter.api.Test;

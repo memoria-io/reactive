@@ -1,14 +1,14 @@
 package io.memoria.reactive.testsuite;
 
 import io.memoria.atom.core.id.Id;
-import io.memoria.atom.eventsourcing.CommandId;
-import io.memoria.atom.eventsourcing.CommandMeta;
-import io.memoria.atom.eventsourcing.StateId;
-import io.memoria.atom.testsuite.eventsourcing.banking.command.AccountCommand;
-import io.memoria.atom.testsuite.eventsourcing.banking.command.ChangeName;
-import io.memoria.atom.testsuite.eventsourcing.banking.command.CloseAccount;
-import io.memoria.atom.testsuite.eventsourcing.banking.command.CreateAccount;
-import io.memoria.atom.testsuite.eventsourcing.banking.command.Debit;
+import io.memoria.reactive.eventsourcing.CommandId;
+import io.memoria.reactive.eventsourcing.CommandMeta;
+import io.memoria.reactive.eventsourcing.StateId;
+import io.memoria.reactive.testsuite.command.AccountCommand;
+import io.memoria.reactive.testsuite.command.ChangeName;
+import io.memoria.reactive.testsuite.command.CloseAccount;
+import io.memoria.reactive.testsuite.command.CreateAccount;
+import io.memoria.reactive.testsuite.command.Debit;
 import reactor.core.publisher.Flux;
 import reactor.util.function.Tuple2;
 
