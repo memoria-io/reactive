@@ -6,13 +6,13 @@
     <parent>
         <groupId>io.memoria</groupId>
         <artifactId>atom</artifactId>
-        <version>21.2.0</version>
+        <version>21.5.0</version>
     </parent>
 
     <!--suppress MavenRedundantGroupId -->
     <groupId>io.memoria</groupId>
     <artifactId>reactive</artifactId>
-    <version>21.3.0</version>
+    <version>21.5.0</version>
     <packaging>pom</packaging>
 
     <name>${project.groupId}.${project.artifactId}</name>
@@ -34,7 +34,7 @@
     </modules>
 
     <properties>
-        <atom.version>21.2.0</atom.version>
+        <atom.version>21.5.0</atom.version>
         <jsonwebtoken.version>0.11.5</jsonwebtoken.version>
         <sonar.coverage.exclusions>
             **/*Exception.java
@@ -136,6 +136,19 @@
         </dependencies>
     </dependencyManagement>
     <dependencies>
+        <!--======================================================================================== -->
+        <!-- JBOM Dependencies -->
+        <!--======================================================================================== -->
+        <dependency>
+            <groupId>org.assertj</groupId>
+            <artifactId>assertj-core</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.awaitility</groupId>
+            <artifactId>awaitility</artifactId>
+            <scope>test</scope>
+        </dependency>
         <!--======================================================================================== -->
         <!-- Atom Dependencies -->
         <!--======================================================================================== -->
