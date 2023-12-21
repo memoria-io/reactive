@@ -6,15 +6,22 @@
     <parent>
         <groupId>io.memoria</groupId>
         <artifactId>reactive</artifactId>
-        <version>21.5.0</version>
+        <version>21.6.0</version>
     </parent>
     <groupId>io.memoria.reactive</groupId>
     <artifactId>testsuite</artifactId>
-    <version>21.5.0</version>
+    <version>21.6.0</version>
     <packaging>jar</packaging>
     <name>${project.groupId}.${project.artifactId}</name>
     <description>Event sourcing Module</description>
     <dependencies>
+        <!--======================================================================================== -->
+        <!-- Module Dependencies -->
+        <!--======================================================================================== -->
+        <dependency>
+            <groupId>io.memoria.atom</groupId>
+            <artifactId>testsuite</artifactId>
+        </dependency>
         <!--======================================================================================== -->
         <!-- Module Dependencies -->
         <!--======================================================================================== -->
