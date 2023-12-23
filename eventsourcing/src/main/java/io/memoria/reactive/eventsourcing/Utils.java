@@ -17,8 +17,8 @@ public class Utils {
   /**
    * Use this method only when the events flux is known to terminate at certain point
    */
-  public static <S extends State, E extends Event> Mono<Map<StateId, S>> reduce(Evolver<S, E> evolver, Flux<E> events) {
-    java.util.Map<StateId, S> initial = new ConcurrentHashMap<>();
+  public static Mono<Map<StateId, State>> reduce(Evolver evolver, Flux<Event> events) {
+    java.util.Map<StateId, State> initial = new ConcurrentHashMap<>();
     var result = events.reduce(initial, (map, event) -> {
       map.computeIfPresent(event.meta().stateId(), (k, st) -> evolver.apply(st, event));
       map.computeIfAbsent(event.meta().stateId(), k -> evolver.apply(event));
@@ -30,11 +30,9 @@ public class Utils {
   /**
    * Use this method only when the events flux is known to terminate at certain point
    */
-  public static <S extends State, E extends Event> Mono<S> reduce(Evolver<S, E> evolver,
-                                                                  StateId stateId,
-                                                                  Flux<E> events) {
+  public static Mono<State> reduce(Evolver evolver, StateId stateId, Flux<Event> events) {
     return events.filter(e -> e.meta().stateId().equals(stateId))
-                 .reduce(Option.none(), (Option<S> o, E e) -> applyOpt(evolver, o, e))
+                 .reduce(Option.none(), (Option<State> o, Event e) -> applyOpt(evolver, o, e))
                  .filter(Option::isDefined)
                  .map(Option::get);
   }
@@ -43,24 +41,19 @@ public class Utils {
    * Filters the events for certain state(stateId) and reducing them into one state after taking (take) number of
    * events
    */
-  public static <S extends State, E extends Event> Mono<S> reduce(Evolver<S, E> evolver,
-                                                                  StateId stateId,
-                                                                  Flux<E> events,
-                                                                  int take) {
+  public static Mono<State> reduce(Evolver evolver, StateId stateId, Flux<Event> events, int take) {
     return events.filter(e -> e.meta().stateId().equals(stateId))
                  .take(take)
-                 .reduce(Option.none(), (Option<S> o, E e) -> applyOpt(evolver, o, e))
+                 .reduce(Option.none(), (Option<State> o, Event e) -> applyOpt(evolver, o, e))
                  .filter(Option::isDefined)
                  .map(Option::get);
   }
 
-  public static <S extends State, E extends Event> Flux<S> allStates(Evolver<S, E> evolver,
-                                                                     StateId stateId,
-                                                                     Flux<E> events) {
-    var atomicReference = new AtomicReference<S>();
+  public static Flux<State> allStates(Evolver evolver, StateId stateId, Flux<Event> events) {
+    var atomicReference = new AtomicReference<State>();
     return events.filter(e -> e.meta().stateId().equals(stateId)).map(event -> {
       if (atomicReference.get() == null) {
-        S newState = evolver.apply(event);
+        State newState = evolver.apply(event);
         atomicReference.compareAndExchange(null, newState);
         return newState;
       } else {
@@ -72,9 +65,7 @@ public class Utils {
     });
   }
 
-  public static <S extends State, E extends Event> Option<S> applyOpt(Evolver<S, E> evolver,
-                                                                      Option<S> optState,
-                                                                      E event) {
+  public static Option<State> applyOpt(Evolver evolver, Option<State> optState, Event event) {
     return optState.map(s -> evolver.apply(s, event)).orElse(() -> Option.some(evolver.apply(event)));
   }
 

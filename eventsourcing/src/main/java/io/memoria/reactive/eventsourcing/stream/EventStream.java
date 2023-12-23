@@ -8,31 +8,31 @@ import io.memoria.reactive.core.stream.MsgStream;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public interface EventStream<E extends Event> {
+public interface EventStream {
 
-  Mono<E> pub(String topic, int partition, E e);
+  Mono<Event> pub(String topic, int partition, Event event);
 
-  Flux<E> sub(String topic, int partition);
+  Flux<Event> sub(String topic, int partition);
 
-  Mono<E> last(String topic, int partition);
+  Mono<Event> last(String topic, int partition);
 
   /**
    * @return subscribe until eventId (key) is matched
    */
-  default Flux<E> subUntil(String topic, int partition, EventId eventId) {
+  default Flux<Event> subUntil(String topic, int partition, EventId eventId) {
     return sub(topic, partition).takeUntil(e -> e.meta().eventId().equals(eventId));
   }
 
-  static <E extends Event> EventStream<E> msgStream(MsgStream msgStream, Class<E> cClass, TextTransformer transformer) {
-    return new MsgEventStream<>(msgStream, cClass, transformer);
+  static EventStream msgStream(MsgStream msgStream, TextTransformer transformer) {
+    return new MsgEventStream(msgStream, transformer);
   }
 
-  static <E extends Event> EventStream<E> inMemory(Class<E> cClass) {
-    return EventStream.msgStream(MsgStream.inMemory(), cClass, new SerializableTransformer());
+  static EventStream inMemory() {
+    return EventStream.msgStream(MsgStream.inMemory(), new SerializableTransformer());
   }
 
-  static <E extends Event> EventStream<E> inMemory(int history, Class<E> cClass) {
-    return EventStream.msgStream(MsgStream.inMemory(history), cClass, new SerializableTransformer());
+  static EventStream inMemory(int history) {
+    return EventStream.msgStream(MsgStream.inMemory(history), new SerializableTransformer());
   }
 }
 

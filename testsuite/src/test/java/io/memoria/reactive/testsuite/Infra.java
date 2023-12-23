@@ -6,9 +6,6 @@ import io.memoria.atom.eventsourcing.Domain;
 import io.memoria.atom.testsuite.eventsourcing.AccountDecider;
 import io.memoria.atom.testsuite.eventsourcing.AccountEvolver;
 import io.memoria.atom.testsuite.eventsourcing.AccountSaga;
-import io.memoria.atom.testsuite.eventsourcing.command.AccountCommand;
-import io.memoria.atom.testsuite.eventsourcing.event.AccountEvent;
-import io.memoria.atom.testsuite.eventsourcing.state.Account;
 import io.memoria.reactive.core.stream.MsgStream;
 import io.memoria.reactive.eventsourcing.pipeline.CommandRoute;
 import io.memoria.reactive.eventsourcing.pipeline.EventRoute;
@@ -58,20 +55,20 @@ public class Infra {
   public static final MsgStream kafkaStream = msgStream(KAFKA).get();
   public static final MsgStream natsStream = msgStream(NATS).get();
 
-  public static PartitionPipeline<Account, AccountCommand, AccountEvent> pipeline(Supplier<Id> idSupplier,
-                                                                                  Supplier<Long> timeSupplier,
-                                                                                  CommandRoute commandRoute,
-                                                                                  EventRoute eventRoute,
-                                                                                  MsgStream msgStream,
-                                                                                  boolean startupSaga) {
+  public static PartitionPipeline pipeline(Supplier<Id> idSupplier,
+                                           Supplier<Long> timeSupplier,
+                                           CommandRoute commandRoute,
+                                           EventRoute eventRoute,
+                                           MsgStream msgStream,
+                                           boolean startupSaga) {
     // Stream
     var transformer = new SerializableTransformer();
-    var commandStream = CommandStream.msgStream(msgStream, AccountCommand.class, transformer);
-    var eventStream = EventStream.msgStream(msgStream, AccountEvent.class, transformer);
+    var commandStream = CommandStream.msgStream(msgStream, transformer);
+    var eventStream = EventStream.msgStream(msgStream, transformer);
 
     // Pipeline
     var domain = domain(idSupplier, timeSupplier);
-    return new PartitionPipeline<>(domain, commandStream, commandRoute, eventStream, eventRoute, startupSaga);
+    return new PartitionPipeline(domain, commandStream, commandRoute, eventStream, eventRoute, startupSaga);
 
   }
 
@@ -83,14 +80,10 @@ public class Infra {
     });
   }
 
-  public static Domain<Account, AccountCommand, AccountEvent> domain(Supplier<Id> idSupplier,
-                                                                     Supplier<Long> timeSupplier) {
-    return new Domain<>(Account.class,
-                        AccountCommand.class,
-                        AccountEvent.class,
-                        new AccountDecider(idSupplier, timeSupplier),
-                        new AccountEvolver(),
-                        new AccountSaga(idSupplier, timeSupplier));
+  public static Domain domain(Supplier<Id> idSupplier, Supplier<Long> timeSupplier) {
+    return new Domain(new AccountDecider(idSupplier, timeSupplier),
+                      new AccountEvolver(),
+                      new AccountSaga(idSupplier, timeSupplier));
   }
 
   public static String randomTopicName(String postfix) {

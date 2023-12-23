@@ -7,23 +7,21 @@ import io.memoria.reactive.core.stream.MsgStream;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public interface CommandStream<C extends Command> {
-  Mono<C> pub(String topic, int partition, C c);
+public interface CommandStream {
+  Mono<Command> pub(String topic, int partition, Command cmd);
 
-  Flux<C> sub(String topic, int partition);
+  Flux<Command> sub(String topic, int partition);
 
-  static <C extends Command> CommandStream<C> msgStream(MsgStream msgStream,
-                                                        Class<C> cClass,
-                                                        TextTransformer transformer) {
-    return new MsgCommandStream<>(msgStream, cClass, transformer);
+  static CommandStream msgStream(MsgStream msgStream, TextTransformer transformer) {
+    return new MsgCommandStream(msgStream, transformer);
   }
 
-  static <C extends Command> CommandStream<C> inMemory(Class<C> cClass) {
-    return CommandStream.msgStream(MsgStream.inMemory(), cClass, new SerializableTransformer());
+  static CommandStream inMemory() {
+    return CommandStream.msgStream(MsgStream.inMemory(), new SerializableTransformer());
   }
 
-  static <C extends Command> CommandStream<C> inMemory(int history, Class<C> cClass) {
-    return CommandStream.msgStream(MsgStream.inMemory(history), cClass, new SerializableTransformer());
+  static CommandStream inMemory(int history) {
+    return CommandStream.msgStream(MsgStream.inMemory(history), new SerializableTransformer());
   }
 }
 

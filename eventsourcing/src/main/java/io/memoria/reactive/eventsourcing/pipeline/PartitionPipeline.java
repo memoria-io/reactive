@@ -3,12 +3,12 @@ package io.memoria.reactive.eventsourcing.pipeline;
 import io.memoria.atom.eventsourcing.Command;
 import io.memoria.atom.eventsourcing.CommandId;
 import io.memoria.atom.eventsourcing.Domain;
-import io.memoria.atom.eventsourcing.ESException.InvalidEvent;
 import io.memoria.atom.eventsourcing.Event;
 import io.memoria.atom.eventsourcing.EventId;
 import io.memoria.atom.eventsourcing.EventMeta;
 import io.memoria.atom.eventsourcing.State;
 import io.memoria.atom.eventsourcing.StateId;
+import io.memoria.atom.eventsourcing.exceptions.InvalidEvolution;
 import io.memoria.reactive.eventsourcing.stream.CommandStream;
 import io.memoria.reactive.eventsourcing.stream.EventStream;
 import org.slf4j.Logger;
@@ -24,21 +24,21 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static io.memoria.reactive.core.reactor.ReactorUtils.tryToMono;
 
-public class PartitionPipeline<S extends State, C extends Command, E extends Event> {
+public class PartitionPipeline {
   private static final Logger log = LoggerFactory.getLogger(PartitionPipeline.class.getName());
 
   // Core
-  public final Domain<S, C, E> domain;
+  public final Domain domain;
 
   // Infra
-  private final CommandStream<C> commandStream;
+  private final CommandStream commandStream;
   private final CommandRoute commandRoute;
 
-  private final EventStream<E> eventStream;
+  private final EventStream eventStream;
   private final EventRoute eventRoute;
 
   // In memory
-  private final Map<StateId, S> aggregates;
+  private final Map<StateId, State> aggregates;
   private final Set<CommandId> processedCommands;
   private final Set<EventId> sagaSources;
   private final AtomicReference<EventId> prevEvent;
@@ -53,10 +53,10 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
    *                           additions, note the reproduced saga commands have no effect if they were already ingested
    *                           and produced an event.
    */
-  public PartitionPipeline(Domain<S, C, E> domain,
-                           CommandStream<C> commandStream,
+  public PartitionPipeline(Domain domain,
+                           CommandStream commandStream,
                            CommandRoute commandRoute,
-                           EventStream<E> eventStream,
+                           EventStream eventStream,
                            EventRoute eventRoute,
                            boolean startupSagaEnabled) {
     // Core
@@ -79,11 +79,11 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
     this.startupSagaEnabled = startupSagaEnabled;
   }
 
-  public Flux<E> handle() {
+  public Flux<Event> handle() {
     return handle(commandStream.sub(commandRoute.name(), commandRoute.partition()));
   }
 
-  public Flux<E> handle(Flux<C> cmds) {
+  public Flux<Event> handle(Flux<Command> cmds) {
     var handleCommands = cmds.concatMap(this::redirectIfNeeded)
                              .concatMap(this::decide)
                              .doOnNext(this::evolve)
@@ -92,29 +92,29 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
     return initialize().concatWith(handleCommands);
   }
 
-  public Mono<C> publish(C cmd) {
+  public Mono<Command> publish(Command cmd) {
     return Mono.fromCallable(() -> cmd.meta().partition(commandRoute.totalPartitions()))
                .flatMap(partition -> commandStream.pub(commandRoute.name(), partition, cmd));
   }
 
-  public Flux<E> subToEvents() {
+  public Flux<Event> subToEvents() {
     return eventStream.sub(eventRoute.topicName(), eventRoute.partition());
   }
 
-  public Flux<E> subToEventsUntil(EventId id) {
+  public Flux<Event> subToEventsUntil(EventId id) {
     return eventStream.subUntil(eventRoute.topicName(), eventRoute.partition(), id);
   }
 
-  Mono<E> publish(E e) {
-    return eventStream.pub(eventRoute.topicName(), eventRoute.partition(), e);
+  Mono<Event> publish(Event event) {
+    return eventStream.pub(eventRoute.topicName(), eventRoute.partition(), event);
   }
 
   /**
    * Load previous events and build the state
    */
-  Flux<E> initialize() {
+  Flux<Event> initialize() {
     return this.eventStream.last(eventRoute.topicName(), eventRoute.partition())
-                           .map(E::meta)
+                           .map(Event::meta)
                            .map(EventMeta::eventId)
                            .flatMapMany(this::subToEventsUntil)
                            .doOnNext(this::evolve)
@@ -124,7 +124,7 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
   /**
    * Redirection allows location transparency and auto sharding
    */
-  Mono<C> redirectIfNeeded(C cmd) {
+  Mono<Command> redirectIfNeeded(Command cmd) {
     if (cmd.meta().isInPartition(commandRoute.partition(), commandRoute.totalPartitions())) {
       return Mono.just(cmd);
     } else {
@@ -132,7 +132,7 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
     }
   }
 
-  Mono<E> decide(C cmd) {
+  Mono<Event> decide(Command cmd) {
     return Mono.defer(() -> {
       if (isHandledCommand(cmd) || isHandledSagaCommand(cmd)) {
         return Mono.empty();
@@ -147,11 +147,11 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
     });
   }
 
-  Mono<E> startupSaga(E e) {
-    return (startupSagaEnabled) ? saga(e) : Mono.just(e);
+  Mono<Event> startupSaga(Event event) {
+    return (startupSagaEnabled) ? saga(event) : Mono.just(event);
   }
 
-  Mono<E> saga(E e) {
+  Mono<Event> saga(Event e) {
     return Mono.defer(() -> {
       var opt = domain.saga().apply(e);
       if (opt.isDefined()) {
@@ -162,44 +162,44 @@ public class PartitionPipeline<S extends State, C extends Command, E extends Eve
     });
   }
 
-  void evolve(E e) {
-    e.meta().sagaSource().forEach(sagaSources::add);
-    if (aggregates.containsKey(e.meta().stateId())) {
-      S currentState = aggregates.get(e.meta().stateId());
-      if (hasExpectedVersion(e, currentState)) {
-        update(e, domain.evolver().apply(currentState, e));
-      } else if (isDuplicate(e)) {
-        String message = "Redelivered event[%s], ignoring...".formatted(e.meta());
+  void evolve(Event event) {
+    event.meta().sagaSource().forEach(sagaSources::add);
+    if (aggregates.containsKey(event.meta().stateId())) {
+      State currentState = aggregates.get(event.meta().stateId());
+      if (hasExpectedVersion(event, currentState)) {
+        update(event, domain.evolver().apply(currentState, event));
+      } else if (isDuplicate(event)) {
+        String message = "Redelivered event[%s], ignoring...".formatted(event.meta());
         log.debug(message);
       } else {
-        throw InvalidEvent.of(currentState, e);
+        throw InvalidEvolution.of(event, currentState);
       }
-    } else if (e.meta().version() == 0) {
-      update(e, domain.evolver().apply(e));
+    } else if (event.meta().version() == 0) {
+      update(event, domain.evolver().apply(event));
     } else {
-      throw InvalidEvent.of(e);
+      throw InvalidEvolution.of(event);
     }
   }
 
-  boolean hasExpectedVersion(E e, S currentState) {
-    return e.meta().version() == currentState.meta().version() + 1;
+  boolean hasExpectedVersion(Event event, State currentState) {
+    return event.meta().version() == currentState.meta().version() + 1;
   }
 
-  boolean isDuplicate(E e) {
+  boolean isDuplicate(Event e) {
     return prevEvent.get() == null && prevEvent.get().equals(e.meta().eventId());
   }
 
-  void update(E e, S newState) {
+  void update(Event e, State newState) {
     aggregates.put(e.meta().stateId(), newState);
     processedCommands.add(e.meta().commandId());
     prevEvent.set(e.meta().eventId());
   }
 
-  boolean isHandledCommand(C cmd) {
+  boolean isHandledCommand(Command cmd) {
     return processedCommands.contains(cmd.meta().commandId());
   }
 
-  boolean isHandledSagaCommand(C cmd) {
+  boolean isHandledSagaCommand(Command cmd) {
     return cmd.meta().sagaSource().map(sagaSources::contains).getOrElse(false);
   }
 }
