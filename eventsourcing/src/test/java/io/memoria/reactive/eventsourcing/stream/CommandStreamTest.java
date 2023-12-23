@@ -2,7 +2,6 @@ package io.memoria.reactive.eventsourcing.stream;
 
 import io.memoria.atom.eventsourcing.Command;
 import io.memoria.atom.eventsourcing.CommandMeta;
-import io.memoria.atom.eventsourcing.Event;
 import io.memoria.atom.eventsourcing.StateId;
 import org.assertj.core.api.Assertions;
 import org.awaitility.Awaitility;
