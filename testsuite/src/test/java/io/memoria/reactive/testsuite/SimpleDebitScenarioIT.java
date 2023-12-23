@@ -1,11 +1,9 @@
 package io.memoria.reactive.testsuite;
 
+import io.memoria.atom.eventsourcing.StateId;
 import io.memoria.atom.testsuite.eventsourcing.command.AccountCommand;
-import io.memoria.atom.testsuite.eventsourcing.event.AccountEvent;
-import io.memoria.atom.testsuite.eventsourcing.state.Account;
 import io.memoria.atom.testsuite.eventsourcing.state.OpenAccount;
 import io.memoria.reactive.core.stream.MsgStream;
-import io.memoria.atom.eventsourcing.StateId;
 import io.memoria.reactive.eventsourcing.Utils;
 import io.memoria.reactive.eventsourcing.pipeline.CommandRoute;
 import io.memoria.reactive.eventsourcing.pipeline.EventRoute;
@@ -15,6 +13,7 @@ import io.nats.client.JetStreamApiException;
 import io.vavr.collection.Map;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
+import org.junit.jupiter.api.Named;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -38,9 +37,9 @@ class SimpleDebitScenarioIT {
   private static final Data data = Data.ofUUID();
   private static final CommandRoute commandRoute = new CommandRoute(randomTopicName("commands"), 0);
   private static final EventRoute eventRoute = new EventRoute(randomTopicName("events"), 0);
-  private static final PartitionPipeline<Account, AccountCommand, AccountEvent> inMemoryPipeline = createPipeline(Infra.inMemoryStream);
-  private static final PartitionPipeline<Account, AccountCommand, AccountEvent> kafkaPipeline = createPipeline(Infra.kafkaStream);
-  private static final PartitionPipeline<Account, AccountCommand, AccountEvent> natsPipeline = createPipeline(Infra.natsStream);
+  private static final PartitionPipeline inMemoryPipeline = createPipeline(Infra.inMemoryStream);
+  private static final PartitionPipeline kafkaPipeline = createPipeline(Infra.kafkaStream);
+  private static final PartitionPipeline natsPipeline = createPipeline(Infra.natsStream);
 
   private static final int INITIAL_BALANCE = 500;
   private static final int DEBIT_AMOUNT = 300;
@@ -54,7 +53,7 @@ class SimpleDebitScenarioIT {
 
   @ParameterizedTest(name = "Using {0} adapter")
   @MethodSource("adapters")
-  void simpleScenario(String name, PartitionPipeline<Account, AccountCommand, AccountEvent> pipeline) {
+  void simpleScenario(PartitionPipeline pipeline) {
     // Given
     int expectedCommandsCount = numOfAccounts * 3;
     int expectedEventsCount = numOfAccounts * 5;
@@ -79,8 +78,7 @@ class SimpleDebitScenarioIT {
     return createDebitedAcc.concatWith(createCreditedAcc).concatWith(debitTheAccounts);
   }
 
-  private Mono<Boolean> verify(PartitionPipeline<Account, AccountCommand, AccountEvent> pipeline,
-                               int expectedEventsCount) {
+  private Mono<Boolean> verify(PartitionPipeline pipeline, int expectedEventsCount) {
     return Utils.reduce(pipeline.domain.evolver(), pipeline.subToEvents().take(expectedEventsCount))
                 .map(Map::values)
                 .flatMapMany(Flux::fromIterable)
@@ -101,12 +99,12 @@ class SimpleDebitScenarioIT {
 
   private static Stream<Arguments> adapters() {
 
-    return Stream.of(Arguments.of(MEMORY.name(), inMemoryPipeline),
-                     Arguments.of(KAFKA.name(), kafkaPipeline),
-                     Arguments.of(NATS.name(), natsPipeline));
+    return Stream.of(Arguments.of(Named.of(MEMORY.name(), inMemoryPipeline)),
+                     Arguments.of(Named.of(KAFKA.name(), kafkaPipeline)),
+                     Arguments.of(Named.of(NATS.name(), natsPipeline)));
   }
 
-  private static PartitionPipeline<Account, AccountCommand, AccountEvent> createPipeline(MsgStream msgStream) {
+  private static PartitionPipeline createPipeline(MsgStream msgStream) {
     return pipeline(data.idSupplier, data.timeSupplier, commandRoute, eventRoute, msgStream, true);
   }
 }

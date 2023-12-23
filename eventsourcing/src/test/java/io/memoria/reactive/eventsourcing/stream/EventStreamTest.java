@@ -1,6 +1,7 @@
 package io.memoria.reactive.eventsourcing.stream;
 
 import io.memoria.atom.eventsourcing.CommandId;
+import io.memoria.atom.eventsourcing.Event;
 import io.memoria.atom.eventsourcing.EventMeta;
 import io.memoria.atom.eventsourcing.StateId;
 import org.assertj.core.api.Assertions;
@@ -18,7 +19,7 @@ class EventStreamTest {
   private static final StateId s0 = StateId.of(0L);
   private static final String topic = "commands";
   private static final int totalPartitions = 1;
-  private final EventStream<SomeEvent> stream = EventStream.inMemory(SomeEvent.class);
+  private final EventStream stream = EventStream.inMemory();
 
   @Test
   void publishAndSubscribe() {
@@ -37,7 +38,7 @@ class EventStreamTest {
     Awaitility.await().atMost(timeout).until(() -> latch0.get() == ELEMENTS_SIZE);
   }
 
-  private static void verify(SomeEvent event) {
+  private static void verify(Event event) {
     Assertions.assertThat(event.meta().stateId()).isEqualTo(s0);
     Assertions.assertThat(event.meta().partition(totalPartitions)).isZero();
   }

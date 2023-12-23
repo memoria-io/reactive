@@ -9,33 +9,31 @@ import reactor.core.publisher.Mono;
 
 import static io.memoria.reactive.core.reactor.ReactorUtils.tryToMono;
 
-class MsgCommandStream<C extends Command> implements CommandStream<C> {
+class MsgCommandStream implements CommandStream {
 
   private final MsgStream msgStream;
-  private final Class<C> cClass;
   private final TextTransformer transformer;
 
-  public MsgCommandStream(MsgStream msgStream, Class<C> cClass, TextTransformer transformer) {
+  public MsgCommandStream(MsgStream msgStream, TextTransformer transformer) {
     this.msgStream = msgStream;
-    this.cClass = cClass;
     this.transformer = transformer;
   }
 
   @Override
-  public Mono<C> pub(String topic, int partition, C cmd) {
+  public Mono<Command> pub(String topic, int partition, Command cmd) {
     return toMsg(cmd).flatMap(msg -> msgStream.pub(topic, partition, msg)).map(msg -> cmd);
   }
 
   @Override
-  public Flux<C> sub(String topic, int partition) {
+  public Flux<Command> sub(String topic, int partition) {
     return msgStream.sub(topic, partition).concatMap(this::toCmd);
   }
 
-  Mono<Msg> toMsg(C cmd) {
+  Mono<Msg> toMsg(Command cmd) {
     return tryToMono(() -> transformer.serialize(cmd)).map(value -> new Msg(cmd.meta().commandId().value(), value));
   }
 
-  Mono<C> toCmd(Msg msg) {
-    return tryToMono(() -> transformer.deserialize(msg.value(), cClass));
+  Mono<Command> toCmd(Msg msg) {
+    return tryToMono(() -> transformer.deserialize(msg.value(), Command.class));
   }
 }
