@@ -105,6 +105,6 @@ class SimpleDebitScenarioIT {
   }
 
   private static PartitionPipeline createPipeline(MsgStream msgStream) {
-    return pipeline(data.idSupplier, data.timeSupplier, commandRoute, eventRoute, msgStream, true);
+    return pipeline(data.idSupplier, data.timeSupplier, commandRoute, eventRoute, msgStream);
   }
 }

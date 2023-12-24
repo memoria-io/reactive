@@ -43,22 +43,14 @@ public class PartitionPipeline {
   private final Set<EventId> sagaSources;
   private final AtomicReference<EventId> prevEvent;
 
-  // Config
-  private final boolean startupSagaEnabled;
-
   /**
    * The Ids cache (sagaSources and processedCommands) size of 1Million ~= 16Megabyte, since UUID is 32bit -> 16byte
-   *
-   * @param startupSagaEnabled this enables self-healing by reproducing saga commands, adapting to state-machine new
-   *                           additions, note the reproduced saga commands have no effect if they were already ingested
-   *                           and produced an event.
    */
   public PartitionPipeline(Domain domain,
                            CommandStream commandStream,
                            CommandRoute commandRoute,
                            EventStream eventStream,
-                           EventRoute eventRoute,
-                           boolean startupSagaEnabled) {
+                           EventRoute eventRoute) {
     // Core
     this.domain = domain;
 
@@ -74,9 +66,6 @@ public class PartitionPipeline {
     this.processedCommands = new HashSet<>();
     this.sagaSources = new HashSet<>();
     this.prevEvent = new AtomicReference<>();
-
-    // Config
-    this.startupSagaEnabled = startupSagaEnabled;
   }
 
   public Flux<Event> handle() {
@@ -117,8 +106,7 @@ public class PartitionPipeline {
                            .map(Event::meta)
                            .map(EventMeta::eventId)
                            .flatMapMany(this::subToEventsUntil)
-                           .doOnNext(this::evolve)
-                           .concatMap(this::startupSaga);
+                           .doOnNext(this::evolve);
   }
 
   /**
@@ -128,7 +116,7 @@ public class PartitionPipeline {
     if (cmd.meta().isInPartition(commandRoute.partition(), commandRoute.totalPartitions())) {
       return Mono.just(cmd);
     } else {
-      return this.publish(cmd).flatMap(c -> Mono.empty());
+      return this.publish(cmd).flatMap(_ -> Mono.empty());
     }
   }
 
@@ -147,15 +135,11 @@ public class PartitionPipeline {
     });
   }
 
-  Mono<Event> startupSaga(Event event) {
-    return (startupSagaEnabled) ? saga(event) : Mono.just(event);
-  }
-
   Mono<Event> saga(Event e) {
     return Mono.defer(() -> {
       var opt = domain.saga().apply(e);
       if (opt.isDefined()) {
-        return this.publish(opt.get()).map(c -> e);
+        return this.publish(opt.get()).map(_ -> e);
       } else {
         return Mono.just(e);
       }
