@@ -2,6 +2,7 @@ package io.memoria.reactive.eventsourcing.stream;
 
 import io.memoria.atom.eventsourcing.CommandId;
 import io.memoria.atom.eventsourcing.Event;
+import io.memoria.atom.eventsourcing.EventId;
 import io.memoria.atom.eventsourcing.EventMeta;
 import io.memoria.atom.eventsourcing.StateId;
 import org.assertj.core.api.Assertions;
@@ -11,6 +12,7 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 class EventStreamTest {
@@ -24,7 +26,11 @@ class EventStreamTest {
   @Test
   void publishAndSubscribe() {
     // Given
-    var cmds = Flux.range(0, ELEMENTS_SIZE).map(i -> new SomeEvent(new EventMeta(CommandId.of(), 0, s0)));
+    var cmds = Flux.range(0, ELEMENTS_SIZE)
+                   .map(i -> new SomeEvent(new EventMeta(EventId.of(UUID.randomUUID()),
+                                                         0,
+                                                         s0,
+                                                         CommandId.of(UUID.randomUUID()))));
 
     // When
     StepVerifier.create(cmds.flatMap(c -> stream.pub(topic, 0, c))).expectNextCount(ELEMENTS_SIZE).verifyComplete();
