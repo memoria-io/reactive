@@ -59,8 +59,7 @@ public class Infra {
                                            Supplier<Long> timeSupplier,
                                            CommandRoute commandRoute,
                                            EventRoute eventRoute,
-                                           MsgStream msgStream,
-                                           boolean startupSaga) {
+                                           MsgStream msgStream) {
     // Stream
     var transformer = new SerializableTransformer();
     var commandStream = CommandStream.msgStream(msgStream, transformer);
@@ -68,7 +67,7 @@ public class Infra {
 
     // Pipeline
     var domain = domain(idSupplier, timeSupplier);
-    return new PartitionPipeline(domain, commandStream, commandRoute, eventStream, eventRoute, startupSaga);
+    return new PartitionPipeline(domain, commandStream, commandRoute, eventStream, eventRoute);
 
   }
 

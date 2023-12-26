@@ -12,6 +12,7 @@ import io.memoria.atom.testsuite.eventsourcing.command.Debit;
 import reactor.core.publisher.Flux;
 import reactor.util.function.Tuple2;
 
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
@@ -35,7 +36,7 @@ public class Data {
   }
 
   public static Data ofUUID() {
-    return new Data(Id::of, System::currentTimeMillis);
+    return new Data(()-> Id.of(UUID.randomUUID()), System::currentTimeMillis);
   }
 
   public Id createId(int i) {
