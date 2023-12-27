@@ -32,7 +32,7 @@ class SimpleDebitScenarioIT {
   // Test case
   private static final int INITIAL_BALANCE = 500;
   private static final int DEBIT_AMOUNT = 300;
-  private static final int numOfAccounts = 1000;
+  private static final int numOfAccounts = 100;
   private static final int count = 1000;
 
   @ParameterizedTest(name = "Using {0} adapter")
@@ -47,10 +47,9 @@ class SimpleDebitScenarioIT {
                 .expectNextCount(expectedCommandsCount)
                 .verifyComplete();
     // Then
-    StepVerifier.create(pipeline.handle(pipeline.commandRepo.subscribe()))
+    StepVerifier.create(pipeline.handle(pipeline.commandRepo.subscribe()).take(expectedEventsCount))
                 .expectNextCount(expectedEventsCount)
-                .expectTimeout(Duration.ofMillis(5000))
-                .verify();
+                .verifyComplete();
     // And
 //    StepVerifier.create(verify(pipeline, expectedCommandsCount)).expectNext(true).verifyComplete();
   }

@@ -34,7 +34,6 @@ public class NatsEventRepo implements EventRepo {
   private final int totalPartitions;
 
   // Polling Config
-  private final Duration pollTimeout;
   private final int fetchBatchSize;
   private final Duration fetchMaxWait;
 
@@ -50,7 +49,6 @@ public class NatsEventRepo implements EventRepo {
          NatsUtils.defaultCommandConsumerConfigs(toSubscriptionName(topic)).build(),
          topic,
          totalPartitions,
-         Duration.ofMillis(100),
          100,
          Duration.ofMillis(100),
          transformer);
@@ -60,7 +58,6 @@ public class NatsEventRepo implements EventRepo {
                        ConsumerConfiguration consumerConfig,
                        String topic,
                        int totalPartitions,
-                       Duration pollTimeout,
                        int fetchBatchSize,
                        Duration fetchMaxWait,
                        TextTransformer transformer) throws IOException {
@@ -69,7 +66,6 @@ public class NatsEventRepo implements EventRepo {
     this.topic = topic;
     this.subjectName = toPartitionedSubjectName(topic);
     this.totalPartitions = totalPartitions;
-    this.pollTimeout = pollTimeout;
     this.fetchBatchSize = fetchBatchSize;
     this.fetchMaxWait = fetchMaxWait;
     this.transformer = transformer;

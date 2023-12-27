@@ -31,7 +31,6 @@ public class NatsCommandRepo implements CommandRepo {
   private final int totalPartitions;
 
   // Polling Config
-  private final Duration pollTimeout;
   private final int fetchBatchSize;
   private final Duration fetchMaxWait;
 
@@ -47,7 +46,6 @@ public class NatsCommandRepo implements CommandRepo {
          NatsUtils.defaultCommandConsumerConfigs(toSubscriptionName(topic)).build(),
          topic,
          totalPartitions,
-         Duration.ofMillis(1000),
          100,
          Duration.ofMillis(100),
          transformer);
@@ -57,7 +55,6 @@ public class NatsCommandRepo implements CommandRepo {
                          ConsumerConfiguration consumerConfig,
                          String topic,
                          int totalPartitions,
-                         Duration pollTimeout,
                          int fetchBatchSize,
                          Duration fetchMaxWait,
                          TextTransformer transformer) throws IOException {
@@ -66,7 +63,6 @@ public class NatsCommandRepo implements CommandRepo {
     this.topic = topic;
     this.subjectName = toPartitionedSubjectName(topic);
     this.totalPartitions = totalPartitions;
-    this.pollTimeout = pollTimeout;
     this.fetchBatchSize = fetchBatchSize;
     this.fetchMaxWait = fetchMaxWait;
     this.transformer = transformer;

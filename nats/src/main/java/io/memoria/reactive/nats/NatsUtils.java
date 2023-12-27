@@ -17,7 +17,6 @@ import io.nats.client.api.RetentionPolicy;
 import io.nats.client.api.StorageType;
 import io.nats.client.api.StreamConfiguration;
 import io.nats.client.api.StreamInfo;
-import io.vavr.collection.List;
 import io.vavr.control.Try;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.SynchronousSink;
@@ -86,15 +85,17 @@ public class NatsUtils {
 
   public static Flux<Message> fetchMessages(JetStreamSubscription sub, int fetchBatchSize, Duration fetchMaxWait) {
     return Flux.generate((SynchronousSink<Flux<Message>> sink) -> {
-      var tr = Try.of(() -> sub.fetch(fetchBatchSize, fetchMaxWait));
-      if (tr.isSuccess()) {
-        List<Message> messages = List.ofAll(tr.get()).dropWhile(Message::isStatusMessage).peek(Message::ack);
-        System.out.println(messages);
-        sink.next(Flux.fromIterable(messages));
-      } else {
-        sink.error(tr.getCause());
-      }
-    }).concatMap(Function.identity()).subscribeOn(Schedulers.boundedElastic());
+                 var tr = Try.of(() -> sub.fetch(fetchBatchSize, fetchMaxWait));
+                 if (tr.isSuccess()) {
+                   sink.next(Flux.fromIterable(tr.get()));
+                 } else {
+                   sink.error(tr.getCause());
+                 }
+               })
+               .concatMap(Function.identity())
+               .skipWhile(Message::isStatusMessage)
+               .doOnNext(Message::ack)
+               .subscribeOn(Schedulers.boundedElastic());
   }
 
   private static ErrorListener errorListener() {
