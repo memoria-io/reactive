@@ -84,8 +84,6 @@ public class NatsUtils {
     };
   }
 
-
-
   static StreamInfo createOrUpdateStream(Connection nc, StreamConfiguration streamConfiguration)
           throws IOException, JetStreamApiException {
     var streamNames = nc.jetStreamManagement().getStreamNames();
