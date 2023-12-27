@@ -80,7 +80,7 @@ public class NatsEventRepo implements EventRepo {
 
   @Override
   public Flux<Event> subscribe(int partition) {
-    var subject = toPartitionedSubjectName(topic,partition);
+    var subject = toPartitionedSubjectName(topic, partition);
     return Mono.fromCallable(() -> jetStream.subscribe(subject, subscribeOptions))
                .flatMapMany(sub -> NatsUtils.fetchMessages(sub, fetchBatchSize, fetchMaxWait))
                .concatMap(this::toEvent);
@@ -88,7 +88,7 @@ public class NatsEventRepo implements EventRepo {
 
   @Override
   public Mono<Event> last(int partition) {
-    var subject = toPartitionedSubjectName(topic,partition);
+    var subject = toPartitionedSubjectName(topic, partition);
     return Mono.fromCallable(() -> jetStream.subscribe(subject, subscribeOptions))
                .flatMap(this::fetchLastMessage)
                .flatMap(this::toEvent);

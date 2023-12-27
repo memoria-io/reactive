@@ -65,7 +65,7 @@ public class PartitionPipeline {
                                  .doOnNext(this::evolve)
                                  .concatMap(this::saga)
                                  .concatMap(eventRepo::publish);
-//    return initialize().concatWith(handleCommands);
+    //    return initialize().concatWith(handleCommands);
     return handleCommands;
   }
 
