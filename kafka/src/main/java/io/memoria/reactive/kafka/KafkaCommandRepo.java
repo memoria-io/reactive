@@ -45,9 +45,7 @@ public class KafkaCommandRepo implements CommandRepo {
   @Override
   public Flux<Command> subscribe() {
     var receiverOptions = ReceiverOptions.<String, String>create(consumerConfig.toJavaMap())
-                                         .subscription(singleton(topic))
-                                         .addAssignListener(partitions -> partitions.forEach(p -> p.seek(0)));
-
+                                         .subscription(singleton(topic));
     var receiver = KafkaReceiver.create(receiverOptions);
     return receiver.receive().concatMap(this::toCommand);
   }

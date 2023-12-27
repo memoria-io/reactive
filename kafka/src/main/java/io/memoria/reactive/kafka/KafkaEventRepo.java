@@ -50,9 +50,7 @@ public class KafkaEventRepo implements EventRepo {
   @Override
   public Flux<Event> subscribe(int partition) {
     var receiverOptions = ReceiverOptions.<String, String>create(consumerConfig.toJavaMap())
-                                         .subscription(singleton(topic))
-                                         .addAssignListener(partitions -> partitions.forEach(p -> p.seek(0)));
-
+                                         .subscription(singleton(topic));
     var receiver = KafkaReceiver.create(receiverOptions);
     return receiver.receive().concatMap(this::toEvent);
   }
