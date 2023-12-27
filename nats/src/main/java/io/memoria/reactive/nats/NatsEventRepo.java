@@ -30,7 +30,6 @@ public class NatsEventRepo implements EventRepo {
   private final JetStream jetStream;
   private final PullSubscribeOptions subscribeOptions;
   private final String topic;
-  private final String subjectName;
   private final int totalPartitions;
 
   // Polling Config
@@ -64,7 +63,6 @@ public class NatsEventRepo implements EventRepo {
     this.jetStream = connection.jetStream();
     this.subscribeOptions = PullSubscribeOptions.builder().stream(topic).configuration(consumerConfig).build();
     this.topic = topic;
-    this.subjectName = toPartitionedSubjectName(topic);
     this.totalPartitions = totalPartitions;
     this.fetchBatchSize = fetchBatchSize;
     this.fetchMaxWait = fetchMaxWait;
@@ -82,14 +80,16 @@ public class NatsEventRepo implements EventRepo {
 
   @Override
   public Flux<Event> subscribe(int partition) {
-    return Mono.fromCallable(() -> jetStream.subscribe(subjectName, subscribeOptions))
+    var subject = toPartitionedSubjectName(topic,partition);
+    return Mono.fromCallable(() -> jetStream.subscribe(subject, subscribeOptions))
                .flatMapMany(sub -> NatsUtils.fetchMessages(sub, fetchBatchSize, fetchMaxWait))
                .concatMap(this::toEvent);
   }
 
   @Override
   public Mono<Event> last(int partition) {
-    return Mono.fromCallable(() -> jetStream.subscribe(subjectName, subscribeOptions))
+    var subject = toPartitionedSubjectName(topic,partition);
+    return Mono.fromCallable(() -> jetStream.subscribe(subject, subscribeOptions))
                .flatMap(this::fetchLastMessage)
                .flatMap(this::toEvent);
   }
