@@ -9,8 +9,8 @@ import io.memoria.atom.eventsourcing.EventMeta;
 import io.memoria.atom.eventsourcing.State;
 import io.memoria.atom.eventsourcing.StateId;
 import io.memoria.atom.eventsourcing.exceptions.InvalidEvolution;
-import io.memoria.reactive.eventsourcing.stream.CommandStream;
-import io.memoria.reactive.eventsourcing.stream.EventStream;
+import io.memoria.reactive.eventsourcing.stream.CommandRepo;
+import io.memoria.reactive.eventsourcing.stream.EventRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -31,9 +31,10 @@ public class PartitionPipeline {
   public final Domain domain;
 
   // Infra
-  private final CommandStream commandStream;
-  private final EventStream eventStream;
-  private final int partition;
+  public final CommandRepo commandRepo;
+  public final EventRepo eventRepo;
+  public final int partition;
+
   // In memory
   private final Map<StateId, State> aggregates;
   private final Set<CommandId> processedCommands;
@@ -43,13 +44,13 @@ public class PartitionPipeline {
   /**
    * The Ids cache (sagaSources and processedCommands) size of 1Million ~= 16Megabyte, since UUID is 32bit -> 16byte
    */
-  public PartitionPipeline(Domain domain, CommandStream commandStream, EventStream eventStream, int partition) {
+  public PartitionPipeline(Domain domain, CommandRepo commandRepo, EventRepo eventRepo, int partition) {
     // Core
     this.domain = domain;
 
     // Infra
-    this.commandStream = commandStream;
-    this.eventStream = eventStream;
+    this.commandRepo = commandRepo;
+    this.eventRepo = eventRepo;
     this.partition = partition;
 
     // In memory
@@ -63,35 +64,19 @@ public class PartitionPipeline {
     var handleCommands = commands.concatMap(this::decide)
                                  .doOnNext(this::evolve)
                                  .concatMap(this::saga)
-                                 .concatMap(this::publish);
+                                 .concatMap(eventRepo::publish);
     return initialize().concatWith(handleCommands);
-  }
-
-  public Mono<Command> publish(Command cmd) {
-    return commandStream.pub(cmd);
-  }
-
-  public Flux<Event> subToEvents() {
-    return eventStream.sub(partition);
-  }
-
-  public Flux<Event> subToEventsUntil(EventId eventId) {
-    return eventStream.subUntil(partition, eventId);
-  }
-
-  Mono<Event> publish(Event event) {
-    return eventStream.pub(event);
   }
 
   /**
    * Load previous events and build the state
    */
   Flux<Event> initialize() {
-    return this.eventStream.last(partition)
-                           .map(Event::meta)
-                           .map(EventMeta::eventId)
-                           .flatMapMany(this::subToEventsUntil)
-                           .doOnNext(this::evolve);
+    return this.eventRepo.last(partition)
+                         .map(Event::meta)
+                         .map(EventMeta::eventId)
+                         .flatMapMany(eId -> eventRepo.subUntil(partition, eId))
+                         .doOnNext(this::evolve);
   }
 
   Mono<Event> decide(Command cmd) {
@@ -113,7 +98,7 @@ public class PartitionPipeline {
     return Mono.defer(() -> {
       var opt = domain.saga().apply(e);
       if (opt.isDefined()) {
-        return this.publish(opt.get()).map(_ -> e);
+        return commandRepo.publish(opt.get()).map(_ -> e);
       } else {
         return Mono.just(e);
       }

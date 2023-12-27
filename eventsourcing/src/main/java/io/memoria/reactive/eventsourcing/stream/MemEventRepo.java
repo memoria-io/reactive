@@ -10,16 +10,19 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicReference;
 
-public class MemEventStream implements EventStream {
+public class MemEventRepo implements EventRepo {
   private final int totalPartitions;
   private final Map<Integer, Many<Event>> events;
   private final Map<Integer, AtomicReference<Event>> lastEvent;
 
-  public MemEventStream(int totalPartitions) {
+  public MemEventRepo(int totalPartitions) {
     this(totalPartitions, Integer.MAX_VALUE);
   }
 
-  public MemEventStream(int totalPartitions, int historySize) {
+  public MemEventRepo(int totalPartitions, int historySize) {
+    if (totalPartitions < 1 || historySize < 1) {
+      throw new IllegalArgumentException("total partitions or history size can't be less than 1");
+    }
     this.totalPartitions = totalPartitions;
     this.events = new ConcurrentHashMap<>();
     this.lastEvent = new ConcurrentHashMap<>();
@@ -30,7 +33,7 @@ public class MemEventStream implements EventStream {
   }
 
   @Override
-  public Mono<Event> pub(Event event) {
+  public Mono<Event> publish(Event event) {
     var partition = event.partition(totalPartitions);
     return Mono.fromRunnable(() -> {
       lastEvent.computeIfPresent(partition, (k, v) -> {
@@ -45,7 +48,7 @@ public class MemEventStream implements EventStream {
   }
 
   @Override
-  public Flux<Event> sub(int partition) {
+  public Flux<Event> subscribe(int partition) {
     return events.get(partition).asFlux();
   }
 

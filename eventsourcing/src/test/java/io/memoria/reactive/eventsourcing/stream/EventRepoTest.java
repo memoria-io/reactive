@@ -15,13 +15,12 @@ import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-class EventStreamTest {
+class EventRepoTest {
   private static final Duration timeout = Duration.ofSeconds(5);
   private static final int ELEMENTS_SIZE = 1000;
   private static final StateId s0 = StateId.of(0L);
-  private static final String topic = "commands";
-  private static final int totalPartitions = 1;
-  private final EventStream stream = EventStream.inMemory();
+  private static final int partition = 0;
+  private final EventRepo stream = EventRepo.inMemory(partition);
 
   @Test
   void publishAndSubscribe() {
@@ -33,11 +32,11 @@ class EventStreamTest {
                                                          CommandId.of(UUID.randomUUID()))));
 
     // When
-    StepVerifier.create(cmds.flatMap(c -> stream.pub(topic, 0, c))).expectNextCount(ELEMENTS_SIZE).verifyComplete();
+    StepVerifier.create(cmds.flatMap(stream::publish)).expectNextCount(ELEMENTS_SIZE).verifyComplete();
 
     // Then
     var latch0 = new AtomicInteger();
-    stream.sub(topic, 0).take(ELEMENTS_SIZE).doOnNext(event -> {
+    stream.subscribe(0).take(ELEMENTS_SIZE).doOnNext(event -> {
       verify(event);
       latch0.incrementAndGet();
     }).subscribe();
@@ -46,6 +45,6 @@ class EventStreamTest {
 
   private static void verify(Event event) {
     Assertions.assertThat(event.meta().stateId()).isEqualTo(s0);
-    Assertions.assertThat(event.meta().partition(totalPartitions)).isZero();
+    Assertions.assertThat(event.meta().partition(partition)).isZero();
   }
 }

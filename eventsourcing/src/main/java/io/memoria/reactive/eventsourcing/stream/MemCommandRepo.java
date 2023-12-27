@@ -6,24 +6,24 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.core.publisher.Sinks.Many;
 
-class MemCommandStream implements CommandStream {
+class MemCommandRepo implements CommandRepo {
   private final Many<Command> commands;
 
-  public MemCommandStream() {
+  public MemCommandRepo() {
     this(Integer.MAX_VALUE);
   }
 
-  public MemCommandStream(int historySize) {
+  public MemCommandRepo(int historySize) {
     this.commands = Sinks.many().replay().limit(historySize);
   }
 
   @Override
-  public Mono<Command> pub(Command command) {
+  public Mono<Command> publish(Command command) {
     return Mono.fromRunnable(() -> commands.tryEmitNext(command).orThrow()).thenReturn(command);
   }
 
   @Override
-  public Flux<Command> sub() {
+  public Flux<Command> subscribe() {
     return this.commands.asFlux();
   }
 

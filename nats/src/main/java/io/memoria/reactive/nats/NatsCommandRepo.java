@@ -3,7 +3,7 @@ package io.memoria.reactive.nats;
 import io.memoria.atom.core.text.TextTransformer;
 import io.memoria.atom.eventsourcing.Command;
 import io.memoria.reactive.core.reactor.ReactorUtils;
-import io.memoria.reactive.eventsourcing.stream.CommandStream;
+import io.memoria.reactive.eventsourcing.stream.CommandRepo;
 import io.nats.client.Connection;
 import io.nats.client.JetStream;
 import io.nats.client.JetStreamSubscription;
@@ -27,8 +27,8 @@ import java.util.function.Function;
 import static io.memoria.reactive.nats.NatsUtils.toPartitionedSubjectName;
 import static io.memoria.reactive.nats.NatsUtils.toSubscriptionName;
 
-public class NatsCommandStream implements CommandStream {
-  private static final Logger log = LoggerFactory.getLogger(NatsCommandStream.class.getName());
+public class NatsCommandRepo implements CommandRepo {
+  private static final Logger log = LoggerFactory.getLogger(NatsCommandRepo.class.getName());
   private final JetStream jetStream;
   private final PullSubscribeOptions subscribeOptions;
   private final String topic;
@@ -46,7 +46,7 @@ public class NatsCommandStream implements CommandStream {
   /**
    * Constructor with default settings
    */
-  public NatsCommandStream(Connection connection, String topic, int totalPartitions, TextTransformer transformer)
+  public NatsCommandRepo(Connection connection, String topic, int totalPartitions, TextTransformer transformer)
           throws IOException {
     this(connection,
          NatsUtils.defaultCommandConsumerConfigs(toSubscriptionName(topic)).build(),
@@ -58,14 +58,14 @@ public class NatsCommandStream implements CommandStream {
          transformer);
   }
 
-  public NatsCommandStream(Connection connection,
-                           ConsumerConfiguration consumerConfig,
-                           String topic,
-                           int totalPartitions,
-                           Duration pollTimeout,
-                           int fetchBatchSize,
-                           Duration fetchMaxWait,
-                           TextTransformer transformer) throws IOException {
+  public NatsCommandRepo(Connection connection,
+                         ConsumerConfiguration consumerConfig,
+                         String topic,
+                         int totalPartitions,
+                         Duration pollTimeout,
+                         int fetchBatchSize,
+                         Duration fetchMaxWait,
+                         TextTransformer transformer) throws IOException {
     this.jetStream = connection.jetStream();
     this.subscribeOptions = PullSubscribeOptions.builder().stream(topic).configuration(consumerConfig).build();
     this.topic = topic;
@@ -78,7 +78,7 @@ public class NatsCommandStream implements CommandStream {
   }
 
   @Override
-  public Mono<Command> pub(Command command) {
+  public Mono<Command> publish(Command command) {
     var cmdId = command.meta().commandId().value();
     var opts = PublishOptions.builder().clearExpected().messageId(cmdId).build();
     return Mono.fromCallable(() -> toNatsMessage(command))
@@ -87,7 +87,7 @@ public class NatsCommandStream implements CommandStream {
   }
 
   @Override
-  public Flux<Command> sub() {
+  public Flux<Command> subscribe() {
     return Mono.fromCallable(() -> jetStream.subscribe(subjectName, subscribeOptions)).flatMapMany(this::fetchMessages);
   }
 

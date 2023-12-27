@@ -14,13 +14,12 @@ import java.time.Duration;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
-class CommandStreamTest {
+class CommandRepoTest {
   private static final Duration timeout = Duration.ofSeconds(5);
   private static final int ELEMENTS_SIZE = 1000;
   private static final StateId s0 = StateId.of(0);
-  private static final String topic = "commands";
   private static final int totalPartitions = 1;
-  private final CommandStream stream = CommandStream.inMemory();
+  private final CommandRepo stream = CommandRepo.inMemory();
 
   @Test
   void publishAndSubscribe() {
@@ -29,11 +28,11 @@ class CommandStreamTest {
                    .map(i -> new SomeCommand(new CommandMeta(CommandId.of(UUID.randomUUID()), s0)));
 
     // When
-    StepVerifier.create(cmds.flatMap(c -> stream.pub(topic, 0, c))).expectNextCount(ELEMENTS_SIZE).verifyComplete();
+    StepVerifier.create(cmds.flatMap(stream::publish)).expectNextCount(ELEMENTS_SIZE).verifyComplete();
 
     // Then
     var latch0 = new AtomicInteger();
-    stream.sub(topic, 0).take(ELEMENTS_SIZE).doOnNext(cmd -> {
+    stream.subscribe().take(ELEMENTS_SIZE).doOnNext(cmd -> {
       verify(cmd);
       latch0.incrementAndGet();
     }).subscribe();

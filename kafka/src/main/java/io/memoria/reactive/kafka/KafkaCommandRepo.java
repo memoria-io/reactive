@@ -3,7 +3,7 @@ package io.memoria.reactive.kafka;
 import io.memoria.atom.core.text.TextTransformer;
 import io.memoria.atom.eventsourcing.Command;
 import io.memoria.reactive.core.reactor.ReactorUtils;
-import io.memoria.reactive.eventsourcing.stream.CommandStream;
+import io.memoria.reactive.eventsourcing.stream.CommandRepo;
 import io.vavr.collection.Map;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -17,18 +17,18 @@ import reactor.kafka.sender.SenderResult;
 
 import static java.util.Collections.singleton;
 
-public class KafkaCommandStream implements CommandStream {
+public class KafkaCommandRepo implements CommandRepo {
   private final KafkaSender<String, String> producer;
   private final Map<String, Object> consumerConfig;
   private final String topic;
   private final int totalPartitions;
   private final TextTransformer transformer;
 
-  public KafkaCommandStream(Map<String, Object> producerConfig,
-                            Map<String, Object> consumerConfig,
-                            String topic,
-                            int totalPartitions,
-                            TextTransformer transformer) {
+  public KafkaCommandRepo(Map<String, Object> producerConfig,
+                          Map<String, Object> consumerConfig,
+                          String topic,
+                          int totalPartitions,
+                          TextTransformer transformer) {
     this.consumerConfig = consumerConfig;
     this.topic = topic;
     this.totalPartitions = totalPartitions;
@@ -38,12 +38,12 @@ public class KafkaCommandStream implements CommandStream {
   }
 
   @Override
-  public Mono<Command> pub(Command command) {
+  public Mono<Command> publish(Command command) {
     return producer.send(Mono.fromCallable(() -> toRecord(command))).map(SenderResult::correlationMetadata).single();
   }
 
   @Override
-  public Flux<Command> sub() {
+  public Flux<Command> subscribe() {
     var receiverOptions = ReceiverOptions.<String, String>create(consumerConfig.toJavaMap())
                                          .subscription(singleton(topic))
                                          .addAssignListener(partitions -> partitions.forEach(p -> p.seek(0)));

@@ -1,99 +1,19 @@
 package io.memoria.reactive.testsuite;
 
-import io.memoria.atom.core.id.Id;
-import io.memoria.atom.core.text.SerializableTransformer;
-import io.memoria.atom.eventsourcing.Domain;
-import io.memoria.atom.testsuite.eventsourcing.AccountDecider;
-import io.memoria.atom.testsuite.eventsourcing.AccountEvolver;
-import io.memoria.atom.testsuite.eventsourcing.AccountSaga;
-import io.memoria.reactive.core.stream.MsgStream;
-import io.memoria.reactive.eventsourcing.pipeline.CommandRoute;
-import io.memoria.reactive.eventsourcing.pipeline.EventRoute;
-import io.memoria.reactive.eventsourcing.pipeline.PartitionPipeline;
-import io.memoria.reactive.eventsourcing.stream.CommandStream;
-import io.memoria.reactive.eventsourcing.stream.EventStream;
-import io.memoria.reactive.kafka.KafkaCommandStream;
-import io.memoria.reactive.nats.NatsConfig;
-import io.memoria.reactive.nats.NatsCommandStream;
-import io.nats.client.api.StorageType;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.Map;
-import io.vavr.control.Try;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.scheduler.Schedulers;
 
 import java.time.Duration;
-import java.util.function.Supplier;
-
-import static io.memoria.reactive.testsuite.Infra.StreamType.KAFKA;
-import static io.memoria.reactive.testsuite.Infra.StreamType.MEMORY;
-import static io.memoria.reactive.testsuite.Infra.StreamType.NATS;
 
 public class Infra {
-  private static final Logger log = LoggerFactory.getLogger(Infra.class.getName());
-  public static final Duration TIMEOUT = Duration.ofMillis(500);
-
-  public enum StreamType {
-    KAFKA,
-    NATS,
-    MEMORY
-  }
-
   public static final String NATS_URL = "nats://localhost:4222";
-  public static final NatsConfig NATS_CONFIG = NatsConfig.appendOnly(NATS_URL,
-                                                                     StorageType.File,
-                                                                     1,
-                                                                     100,
-                                                                     Duration.ofMillis(100),
-                                                                     Duration.ofMillis(300));
-  public static final MsgStream inMemoryStream = msgStream(MEMORY).get();
-  public static final MsgStream kafkaStream = msgStream(KAFKA).get();
-  public static final MsgStream natsStream = msgStream(NATS).get();
-
-  public static PartitionPipeline pipeline(Supplier<Id> idSupplier,
-                                           Supplier<Long> timeSupplier,
-                                           CommandRoute commandRoute,
-                                           EventRoute eventRoute,
-                                           MsgStream msgStream) {
-    // Stream
-    var transformer = new SerializableTransformer();
-    var commandStream = CommandStream.commandStream(msgStream, transformer);
-    var eventStream = EventStream.msgStream(msgStream, transformer);
-
-    // Pipeline
-    var domain = domain(idSupplier, timeSupplier);
-    return new PartitionPipeline(domain, commandStream, commandRoute, eventStream, eventRoute);
-
-  }
-
-  public static Try<MsgStream> msgStream(StreamType streamType) {
-    return Try.of(() -> switch (streamType) {
-      case KAFKA -> new KafkaCommandStream(kafkaProducerConfigs(), kafkaConsumerConfigs(), transformer);
-      case NATS -> new NatsCommandStream(NATS_CONFIG, Schedulers.boundedElastic());
-      case MEMORY -> MsgStream.inMemory();
-    });
-  }
-
-  public static Domain domain(Supplier<Id> idSupplier, Supplier<Long> timeSupplier) {
-    return new Domain(new AccountDecider(idSupplier, timeSupplier),
-                      new AccountEvolver(),
-                      new AccountSaga(idSupplier, timeSupplier));
-  }
-
-  public static String randomTopicName(String postfix) {
-    return STR. "topic\{ System.currentTimeMillis() }_\{ postfix }" ;
-  }
-
-  public static void printRates(String methodName, long start, long msgCount) {
-    long totalElapsed = System.currentTimeMillis() - start;
-    log.info("{}: Finished processing {} events, in {} millis %n", methodName, msgCount, totalElapsed);
-    log.info("{}: Average {} events per second %n", methodName, (long) eventsPerSec(msgCount, totalElapsed));
-  }
+  public static final Duration TIMEOUT = Duration.ofMillis(500);
 
   public static Map<String, Object> kafkaConsumerConfigs() {
     return HashMap.of(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
@@ -121,8 +41,12 @@ public class Infra {
                       StringSerializer.class);
   }
 
-  private static double eventsPerSec(long msgCount, long totalElapsedMillis) {
-    return msgCount / (totalElapsedMillis / 1000d);
+
+
+  public enum StreamType {
+    KAFKA,
+    NATS,
+    MEMORY
   }
 
   private Infra() {}

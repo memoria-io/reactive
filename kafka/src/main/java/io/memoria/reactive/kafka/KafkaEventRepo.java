@@ -3,7 +3,7 @@ package io.memoria.reactive.kafka;
 import io.memoria.atom.core.text.TextTransformer;
 import io.memoria.atom.eventsourcing.Event;
 import io.memoria.reactive.core.reactor.ReactorUtils;
-import io.memoria.reactive.eventsourcing.stream.EventStream;
+import io.memoria.reactive.eventsourcing.stream.EventRepo;
 import io.vavr.collection.Map;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import reactor.core.publisher.Flux;
@@ -19,7 +19,7 @@ import java.time.Duration;
 
 import static java.util.Collections.singleton;
 
-public class KafkaEventStream implements EventStream {
+public class KafkaEventRepo implements EventRepo {
   private final KafkaSender<String, String> producer;
   private final Map<String, Object> consumerConfig;
   private final String topic;
@@ -27,12 +27,12 @@ public class KafkaEventStream implements EventStream {
   private final Duration lastEventTimeout;
   private final TextTransformer transformer;
 
-  public KafkaEventStream(Map<String, Object> producerConfig,
-                          Map<String, Object> consumerConfig,
-                          String topic,
-                          int totalPartitions,
-                          Duration lastEventTimeout,
-                          TextTransformer transformer) {
+  public KafkaEventRepo(Map<String, Object> producerConfig,
+                        Map<String, Object> consumerConfig,
+                        String topic,
+                        int totalPartitions,
+                        Duration lastEventTimeout,
+                        TextTransformer transformer) {
     this.consumerConfig = consumerConfig;
     this.topic = topic;
     this.totalPartitions = totalPartitions;
@@ -43,12 +43,12 @@ public class KafkaEventStream implements EventStream {
   }
 
   @Override
-  public Mono<Event> pub(Event event) {
+  public Mono<Event> publish(Event event) {
     return producer.send(Mono.fromCallable(() -> toRecord(event))).map(SenderResult::correlationMetadata).single();
   }
 
   @Override
-  public Flux<Event> sub(int partition) {
+  public Flux<Event> subscribe(int partition) {
     var receiverOptions = ReceiverOptions.<String, String>create(consumerConfig.toJavaMap())
                                          .subscription(singleton(topic))
                                          .addAssignListener(partitions -> partitions.forEach(p -> p.seek(0)));
