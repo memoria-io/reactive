@@ -1,27 +1,17 @@
 package io.memoria.reactive.eventsourcing.stream;
 
-import io.memoria.atom.core.text.SerializableTransformer;
-import io.memoria.atom.core.text.TextTransformer;
 import io.memoria.atom.eventsourcing.Command;
-import io.memoria.reactive.core.stream.MsgStream;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public interface CommandStream {
-  Mono<Command> pub(String topic, int partition, Command cmd);
 
-  Flux<Command> sub(String topic, int partition);
+  Mono<Command> pub(Command cmd);
 
-  static CommandStream msgStream(MsgStream msgStream, TextTransformer transformer) {
-    return new MsgCommandStream(msgStream, transformer);
-  }
+  Flux<Command> sub();
 
   static CommandStream inMemory() {
-    return CommandStream.msgStream(MsgStream.inMemory(), new SerializableTransformer());
-  }
-
-  static CommandStream inMemory(int history) {
-    return CommandStream.msgStream(MsgStream.inMemory(history), new SerializableTransformer());
+    return new MemCommandStream();
   }
 }
 

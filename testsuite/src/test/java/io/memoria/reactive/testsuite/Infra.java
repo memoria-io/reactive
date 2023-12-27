@@ -12,9 +12,9 @@ import io.memoria.reactive.eventsourcing.pipeline.EventRoute;
 import io.memoria.reactive.eventsourcing.pipeline.PartitionPipeline;
 import io.memoria.reactive.eventsourcing.stream.CommandStream;
 import io.memoria.reactive.eventsourcing.stream.EventStream;
-import io.memoria.reactive.kafka.KafkaMsgStream;
+import io.memoria.reactive.kafka.KafkaCommandStream;
 import io.memoria.reactive.nats.NatsConfig;
-import io.memoria.reactive.nats.NatsMsgStream;
+import io.memoria.reactive.nats.NatsCommandStream;
 import io.nats.client.api.StorageType;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.Map;
@@ -62,7 +62,7 @@ public class Infra {
                                            MsgStream msgStream) {
     // Stream
     var transformer = new SerializableTransformer();
-    var commandStream = CommandStream.msgStream(msgStream, transformer);
+    var commandStream = CommandStream.commandStream(msgStream, transformer);
     var eventStream = EventStream.msgStream(msgStream, transformer);
 
     // Pipeline
@@ -73,8 +73,8 @@ public class Infra {
 
   public static Try<MsgStream> msgStream(StreamType streamType) {
     return Try.of(() -> switch (streamType) {
-      case KAFKA -> new KafkaMsgStream(kafkaProducerConfigs(), kafkaConsumerConfigs(), Duration.ofMillis(500));
-      case NATS -> new NatsMsgStream(NATS_CONFIG, Schedulers.boundedElastic());
+      case KAFKA -> new KafkaCommandStream(kafkaProducerConfigs(), kafkaConsumerConfigs(), transformer);
+      case NATS -> new NatsCommandStream(NATS_CONFIG, Schedulers.boundedElastic());
       case MEMORY -> MsgStream.inMemory();
     });
   }
