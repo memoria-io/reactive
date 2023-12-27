@@ -87,7 +87,7 @@ class SimpleDebitScenarioIT {
   }
 
   private static Stream<Arguments> adapters() {
-    return Stream.of(Arguments.of(Named.of("In Memory", Infra.inMemoryPipeline(configs, data.domain()))),
+    return Stream.of(Arguments.of(Named.of("In memory", Infra.inMemoryPipeline(configs, data.domain()))),
                      Arguments.of(Named.of("Kafka", Infra.kafkaPipeline(configs, data.domain()))),
                      Arguments.of(Named.of("Nats", Infra.natsPipeline(configs, data.domain()))));
   }

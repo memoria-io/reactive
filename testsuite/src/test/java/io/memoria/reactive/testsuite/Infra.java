@@ -53,7 +53,7 @@ public class Infra {
 
   public static PartitionPipeline inMemoryPipeline(Configs configs, Domain domain) {
     var commandRepo = CommandRepo.inMemory();
-    var eventRepo = EventRepo.inMemory(0);
+    var eventRepo = EventRepo.inMemory(configs.totalEventPartitions);
     return new PartitionPipeline(domain, commandRepo, eventRepo, configs.eventPartition);
   }
 }

@@ -54,6 +54,6 @@ public class MemEventRepo implements EventRepo {
 
   @Override
   public Mono<Event> last(int partition) {
-    return Mono.defer(() -> Mono.justOrEmpty(lastEvent.get(partition))).map(AtomicReference::get);
+    return Mono.justOrEmpty(this.lastEvent.get(partition).get());
   }
 }

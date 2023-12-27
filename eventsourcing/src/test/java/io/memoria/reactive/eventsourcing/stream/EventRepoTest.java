@@ -19,24 +19,25 @@ class EventRepoTest {
   private static final Duration timeout = Duration.ofSeconds(5);
   private static final int ELEMENTS_SIZE = 1000;
   private static final StateId s0 = StateId.of(0L);
-  private static final int partition = 0;
-  private final EventRepo stream = EventRepo.inMemory(partition);
+  private static final int totalPartitions = 1;
+  private final EventRepo eventRepo = EventRepo.inMemory(totalPartitions);
 
   @Test
   void publishAndSubscribe() {
+    StepVerifier.create(eventRepo.last(0)).expectComplete().verify();
     // Given
-    var cmds = Flux.range(0, ELEMENTS_SIZE)
-                   .map(i -> new SomeEvent(new EventMeta(EventId.of(UUID.randomUUID()),
-                                                         0,
-                                                         s0,
-                                                         CommandId.of(UUID.randomUUID()))));
+    var commands = Flux.range(0, ELEMENTS_SIZE)
+                       .map(i -> new SomeEvent(new EventMeta(EventId.of(UUID.randomUUID()),
+                                                             i,
+                                                             s0,
+                                                             CommandId.of(UUID.randomUUID()))));
 
     // When
-    StepVerifier.create(cmds.flatMap(stream::publish)).expectNextCount(ELEMENTS_SIZE).verifyComplete();
+    StepVerifier.create(commands.flatMap(eventRepo::publish)).expectNextCount(ELEMENTS_SIZE).verifyComplete();
 
     // Then
     var latch0 = new AtomicInteger();
-    stream.subscribe(0).take(ELEMENTS_SIZE).doOnNext(event -> {
+    eventRepo.subscribe(0).take(ELEMENTS_SIZE).doOnNext(event -> {
       verify(event);
       latch0.incrementAndGet();
     }).subscribe();
@@ -45,6 +46,6 @@ class EventRepoTest {
 
   private static void verify(Event event) {
     Assertions.assertThat(event.meta().stateId()).isEqualTo(s0);
-    Assertions.assertThat(event.meta().partition(partition)).isZero();
+    Assertions.assertThat(event.meta().partition(totalPartitions)).isZero();
   }
 }
