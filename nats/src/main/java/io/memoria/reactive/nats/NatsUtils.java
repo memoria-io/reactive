@@ -4,6 +4,8 @@ import io.nats.client.Connection;
 import io.nats.client.ErrorListener;
 import io.nats.client.JetStreamApiException;
 import io.nats.client.JetStreamManagement;
+import io.nats.client.JetStreamSubscription;
+import io.nats.client.Message;
 import io.nats.client.Nats;
 import io.nats.client.Options;
 import io.nats.client.api.AckPolicy;
@@ -15,8 +17,15 @@ import io.nats.client.api.RetentionPolicy;
 import io.nats.client.api.StorageType;
 import io.nats.client.api.StreamConfiguration;
 import io.nats.client.api.StreamInfo;
+import io.vavr.collection.List;
+import io.vavr.control.Try;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.SynchronousSink;
+import reactor.core.scheduler.Schedulers;
 
 import java.io.IOException;
+import java.time.Duration;
+import java.util.function.Function;
 
 /**
  * Utility class for directly using nats, this layer is for testing NATS java driver, and ideally it shouldn't have
@@ -73,6 +82,19 @@ public class NatsUtils {
 
   public static String toSubscriptionName(String topic) {
     return "%s_%d_subscription".formatted(topic, System.currentTimeMillis());
+  }
+
+  public static Flux<Message> fetchMessages(JetStreamSubscription sub, int fetchBatchSize, Duration fetchMaxWait) {
+    return Flux.generate((SynchronousSink<Flux<Message>> sink) -> {
+      var tr = Try.of(() -> sub.fetch(fetchBatchSize, fetchMaxWait));
+      if (tr.isSuccess()) {
+        List<Message> messages = List.ofAll(tr.get()).dropWhile(Message::isStatusMessage).peek(Message::ack);
+        System.out.println(messages);
+        sink.next(Flux.fromIterable(messages));
+      } else {
+        sink.error(tr.getCause());
+      }
+    }).concatMap(Function.identity()).subscribeOn(Schedulers.boundedElastic());
   }
 
   private static ErrorListener errorListener() {

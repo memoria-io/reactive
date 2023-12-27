@@ -14,16 +14,13 @@ import io.nats.client.api.ConsumerConfiguration;
 import io.nats.client.impl.NatsMessage;
 import io.vavr.collection.List;
 import io.vavr.collection.Traversable;
-import io.vavr.control.Try;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.SynchronousSink;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.function.Function;
 
 import static io.memoria.reactive.nats.NatsUtils.toPartitionedSubjectName;
 import static io.memoria.reactive.nats.NatsUtils.toSubscriptionName;
@@ -53,7 +50,7 @@ public class NatsEventRepo implements EventRepo {
          NatsUtils.defaultCommandConsumerConfigs(toSubscriptionName(topic)).build(),
          topic,
          totalPartitions,
-         Duration.ofMillis(1000),
+         Duration.ofMillis(100),
          100,
          Duration.ofMillis(100),
          transformer);
@@ -89,7 +86,9 @@ public class NatsEventRepo implements EventRepo {
 
   @Override
   public Flux<Event> subscribe(int partition) {
-    return Mono.fromCallable(() -> jetStream.subscribe(subjectName, subscribeOptions)).flatMapMany(this::fetchMessages);
+    return Mono.fromCallable(() -> jetStream.subscribe(subjectName, subscribeOptions))
+               .flatMapMany(sub -> NatsUtils.fetchMessages(sub, fetchBatchSize, fetchMaxWait))
+               .concatMap(this::toEvent);
   }
 
   @Override
@@ -97,18 +96,6 @@ public class NatsEventRepo implements EventRepo {
     return Mono.fromCallable(() -> jetStream.subscribe(subjectName, subscribeOptions))
                .flatMap(this::fetchLastMessage)
                .flatMap(this::toEvent);
-  }
-
-  private Flux<Event> fetchMessages(JetStreamSubscription sub) {
-    return Flux.generate((SynchronousSink<Flux<Message>> sink) -> {
-      var tr = Try.of(() -> sub.fetch(fetchBatchSize, fetchMaxWait));
-      if (tr.isSuccess()) {
-        List<Message> messages = List.ofAll(tr.get()).dropWhile(Message::isStatusMessage);
-        sink.next(Flux.fromIterable(messages));
-      } else {
-        sink.error(tr.getCause());
-      }
-    }).concatMap(Function.identity()).concatMap(this::toEvent);
   }
 
   private NatsMessage toNatsMessage(Event event) {

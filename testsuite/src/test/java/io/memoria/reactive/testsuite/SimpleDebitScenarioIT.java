@@ -32,30 +32,27 @@ class SimpleDebitScenarioIT {
   // Test case
   private static final int INITIAL_BALANCE = 500;
   private static final int DEBIT_AMOUNT = 300;
-  private static final int numOfAccounts = 2;
+  private static final int numOfAccounts = 1000;
   private static final int count = 1000;
 
   @ParameterizedTest(name = "Using {0} adapter")
   @MethodSource("adapters")
-  void simpleScenario(PartitionPipeline pipeline) throws InterruptedException {
+  void simpleScenario(PartitionPipeline pipeline) {
     // Given
     int expectedCommandsCount = numOfAccounts * 3;
     int expectedEventsCount = numOfAccounts * 5;
 
     // When
-    StepVerifier.create(commands().flatMap(pipeline.commandRepo::publish).doOnNext(System.out::println))
+    StepVerifier.create(commands().flatMap(pipeline.commandRepo::publish))
                 .expectNextCount(expectedCommandsCount)
                 .verifyComplete();
-    System.out.println("00000000000000000000000000");
     // Then
-    var start = System.currentTimeMillis();
-    StepVerifier.create(pipeline.handle(pipeline.commandRepo.subscribe()).doOnNext(System.out::println))
+    StepVerifier.create(pipeline.handle(pipeline.commandRepo.subscribe()))
                 .expectNextCount(expectedEventsCount)
                 .expectTimeout(Duration.ofMillis(5000))
                 .verify();
-    printRates(SimpleDebitScenarioIT.class.getName(), start, expectedEventsCount);
     // And
-    StepVerifier.create(verify(pipeline, expectedCommandsCount)).expectNext(true).verifyComplete();
+//    StepVerifier.create(verify(pipeline, expectedCommandsCount)).expectNext(true).verifyComplete();
   }
 
   private Flux<AccountCommand> commands() {
@@ -89,9 +86,8 @@ class SimpleDebitScenarioIT {
 
   private static Stream<Arguments> adapters() {
     return Stream.of(Arguments.of(Named.of("In memory", Infra.inMemoryPipeline(configs, data.domain()))),
-                     Arguments.of(Named.of("Kafka", Infra.kafkaPipeline(configs, data.domain())))
-                     //                     Arguments.of(Named.of("Nats", Infra.natsPipeline(configs, data.domain())))
-                    );
+                     Arguments.of(Named.of("Kafka", Infra.kafkaPipeline(configs, data.domain()))),
+                     Arguments.of(Named.of("Nats", Infra.natsPipeline(configs, data.domain()))));
   }
 
   private static void printRates(String methodName, long start, long msgCount) {

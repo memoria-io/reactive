@@ -6,23 +6,18 @@ import io.memoria.reactive.core.reactor.ReactorUtils;
 import io.memoria.reactive.eventsourcing.stream.CommandRepo;
 import io.nats.client.Connection;
 import io.nats.client.JetStream;
-import io.nats.client.JetStreamSubscription;
 import io.nats.client.Message;
 import io.nats.client.PublishOptions;
 import io.nats.client.PullSubscribeOptions;
 import io.nats.client.api.ConsumerConfiguration;
 import io.nats.client.impl.NatsMessage;
-import io.vavr.collection.List;
-import io.vavr.control.Try;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.publisher.SynchronousSink;
 
 import java.io.IOException;
 import java.time.Duration;
-import java.util.function.Function;
 
 import static io.memoria.reactive.nats.NatsUtils.toPartitionedSubjectName;
 import static io.memoria.reactive.nats.NatsUtils.toSubscriptionName;
@@ -88,19 +83,9 @@ public class NatsCommandRepo implements CommandRepo {
 
   @Override
   public Flux<Command> subscribe() {
-    return Mono.fromCallable(() -> jetStream.subscribe(subjectName, subscribeOptions)).flatMapMany(this::fetchMessages);
-  }
-
-  private Flux<Command> fetchMessages(JetStreamSubscription sub) {
-    return Flux.generate((SynchronousSink<Flux<Message>> sink) -> {
-      var tr = Try.of(() -> sub.fetch(fetchBatchSize, fetchMaxWait));
-      if (tr.isSuccess()) {
-        List<Message> messages = List.ofAll(tr.get()).dropWhile(Message::isStatusMessage);
-        sink.next(Flux.fromIterable(messages));
-      } else {
-        sink.error(tr.getCause());
-      }
-    }).concatMap(Function.identity()).concatMap(this::toCommand);
+    return Mono.fromCallable(() -> jetStream.subscribe(subjectName, subscribeOptions))
+               .flatMapMany(sub -> NatsUtils.fetchMessages(sub, fetchBatchSize, fetchMaxWait))
+               .concatMap(this::toCommand);
   }
 
   private NatsMessage toNatsMessage(Command command) {
