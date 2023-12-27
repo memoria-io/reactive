@@ -13,5 +13,9 @@ public interface CommandStream {
   static CommandStream inMemory() {
     return new MemCommandStream();
   }
+
+  static CommandStream inMemory(int history) {
+    return new MemCommandStream(history);
+  }
 }
 

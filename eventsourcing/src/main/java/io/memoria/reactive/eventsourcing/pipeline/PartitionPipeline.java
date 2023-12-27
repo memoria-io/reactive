@@ -32,11 +32,8 @@ public class PartitionPipeline {
 
   // Infra
   private final CommandStream commandStream;
-  private final CommandRoute commandRoute;
-
   private final EventStream eventStream;
-  private final EventRoute eventRoute;
-
+  private final int partition;
   // In memory
   private final Map<StateId, State> aggregates;
   private final Set<CommandId> processedCommands;
@@ -46,20 +43,14 @@ public class PartitionPipeline {
   /**
    * The Ids cache (sagaSources and processedCommands) size of 1Million ~= 16Megabyte, since UUID is 32bit -> 16byte
    */
-  public PartitionPipeline(Domain domain,
-                           CommandStream commandStream,
-                           CommandRoute commandRoute,
-                           EventStream eventStream,
-                           EventRoute eventRoute) {
+  public PartitionPipeline(Domain domain, CommandStream commandStream, EventStream eventStream, int partition) {
     // Core
     this.domain = domain;
 
     // Infra
     this.commandStream = commandStream;
-    this.commandRoute = commandRoute;
-
     this.eventStream = eventStream;
-    this.eventRoute = eventRoute;
+    this.partition = partition;
 
     // In memory
     this.aggregates = new HashMap<>();
@@ -68,56 +59,39 @@ public class PartitionPipeline {
     this.prevEvent = new AtomicReference<>();
   }
 
-  public Flux<Event> handle() {
-    return handle(commandStream.sub(commandRoute.name(), commandRoute.partition()));
-  }
-
-  public Flux<Event> handle(Flux<Command> cmds) {
-    var handleCommands = cmds.concatMap(this::redirectIfNeeded)
-                             .concatMap(this::decide)
-                             .doOnNext(this::evolve)
-                             .concatMap(this::saga)
-                             .concatMap(this::publish);
+  public Flux<Event> handle(Flux<Command> commands) {
+    var handleCommands = commands.concatMap(this::decide)
+                                 .doOnNext(this::evolve)
+                                 .concatMap(this::saga)
+                                 .concatMap(this::publish);
     return initialize().concatWith(handleCommands);
   }
 
   public Mono<Command> publish(Command cmd) {
-    return Mono.fromCallable(() -> cmd.meta().partition(commandRoute.totalPartitions()))
-               .flatMap(partition -> commandStream.pub(commandRoute.name(), partition, cmd));
+    return commandStream.pub(cmd);
   }
 
   public Flux<Event> subToEvents() {
-    return eventStream.sub(eventRoute.topicName(), eventRoute.partition());
+    return eventStream.sub(partition);
   }
 
-  public Flux<Event> subToEventsUntil(EventId id) {
-    return eventStream.subUntil(eventRoute.topicName(), eventRoute.partition(), id);
+  public Flux<Event> subToEventsUntil(EventId eventId) {
+    return eventStream.subUntil(partition, eventId);
   }
 
   Mono<Event> publish(Event event) {
-    return eventStream.pub(eventRoute.topicName(), eventRoute.partition(), event);
+    return eventStream.pub(event);
   }
 
   /**
    * Load previous events and build the state
    */
   Flux<Event> initialize() {
-    return this.eventStream.last(eventRoute.topicName(), eventRoute.partition())
+    return this.eventStream.last(partition)
                            .map(Event::meta)
                            .map(EventMeta::eventId)
                            .flatMapMany(this::subToEventsUntil)
                            .doOnNext(this::evolve);
-  }
-
-  /**
-   * Redirection allows location transparency and auto sharding
-   */
-  Mono<Command> redirectIfNeeded(Command cmd) {
-    if (cmd.meta().isInPartition(commandRoute.partition(), commandRoute.totalPartitions())) {
-      return Mono.just(cmd);
-    } else {
-      return this.publish(cmd).flatMap(_ -> Mono.empty());
-    }
   }
 
   Mono<Event> decide(Command cmd) {

@@ -6,7 +6,7 @@ import reactor.core.publisher.Mono;
 import reactor.core.publisher.Sinks;
 import reactor.core.publisher.Sinks.Many;
 
-public class MemCommandStream implements CommandStream {
+class MemCommandStream implements CommandStream {
   private final Many<Command> commands;
 
   public MemCommandStream() {

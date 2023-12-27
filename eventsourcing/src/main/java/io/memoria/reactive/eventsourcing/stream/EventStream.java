@@ -10,21 +10,17 @@ import reactor.core.publisher.Mono;
 
 public interface EventStream {
 
-  Mono<Event> pub(String topic, int partition, Event event);
+  Mono<Event> pub(Event event);
 
-  Flux<Event> sub(String topic, int partition);
+  Flux<Event> sub(int partition);
 
-  Mono<Event> last(String topic, int partition);
+  Mono<Event> last(int partition);
 
   /**
    * @return subscribe until eventId (key) is matched
    */
-  default Flux<Event> subUntil(String topic, int partition, EventId eventId) {
-    return sub(topic, partition).takeUntil(e -> e.meta().eventId().equals(eventId));
-  }
-
-  static EventStream msgStream(MsgStream msgStream, TextTransformer transformer) {
-    return new MsgEventStream(msgStream, transformer);
+  default Flux<Event> subUntil(int partition, EventId eventId) {
+    return sub(partition).takeUntil(e -> e.meta().eventId().equals(eventId));
   }
 
   static EventStream inMemory() {
