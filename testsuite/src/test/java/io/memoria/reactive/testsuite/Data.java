@@ -3,6 +3,7 @@ package io.memoria.reactive.testsuite;
 import io.memoria.atom.core.id.Id;
 import io.memoria.atom.eventsourcing.CommandId;
 import io.memoria.atom.eventsourcing.CommandMeta;
+import io.memoria.atom.eventsourcing.Domain;
 import io.memoria.atom.eventsourcing.StateId;
 import io.memoria.atom.testsuite.eventsourcing.AccountDecider;
 import io.memoria.atom.testsuite.eventsourcing.AccountEvolver;
@@ -37,6 +38,12 @@ public class Data {
     saga = new AccountSaga(idSupplier, timeSupplier);
     decider = new AccountDecider(idSupplier, timeSupplier);
     evolver = new AccountEvolver();
+  }
+
+  public Domain domain() {
+    return new Domain(new AccountDecider(idSupplier, timeSupplier),
+                      new AccountEvolver(),
+                      new AccountSaga(idSupplier, timeSupplier));
   }
 
   public static Data ofSerial() {

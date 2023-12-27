@@ -36,11 +36,11 @@ public class MemEventRepo implements EventRepo {
   public Mono<Event> publish(Event event) {
     var partition = event.partition(totalPartitions);
     return Mono.fromRunnable(() -> {
-      lastEvent.computeIfPresent(partition, (k, v) -> {
+      lastEvent.computeIfPresent(partition, (_, v) -> {
         v.set(event);
         return v;
       });
-      events.computeIfPresent(partition, (k, v) -> {
+      events.computeIfPresent(partition, (_, v) -> {
         v.tryEmitNext(event).orThrow();
         return v;
       });
