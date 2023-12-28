@@ -9,6 +9,7 @@ import io.memoria.atom.eventsourcing.EventMeta;
 import io.memoria.atom.eventsourcing.State;
 import io.memoria.atom.eventsourcing.StateId;
 import io.memoria.atom.eventsourcing.exceptions.InvalidEvolution;
+import io.memoria.atom.eventsourcing.exceptions.MismatchingState;
 import io.memoria.reactive.eventsourcing.stream.CommandRepo;
 import io.memoria.reactive.eventsourcing.stream.EventRepo;
 import org.slf4j.Logger;
@@ -33,7 +34,7 @@ public class PartitionPipeline {
   // Infra
   public final CommandRepo commandRepo;
   public final EventRepo eventRepo;
-  public final int partition;
+  public final EventRoute eventRoute;
 
   // In memory
   private final Map<StateId, State> aggregates;
@@ -44,14 +45,14 @@ public class PartitionPipeline {
   /**
    * The Ids cache (sagaSources and processedCommands) size of 1Million ~= 16Megabyte, since UUID is 32bit -> 16byte
    */
-  public PartitionPipeline(Domain domain, CommandRepo commandRepo, EventRepo eventRepo, int partition) {
+  public PartitionPipeline(Domain domain, CommandRepo commandRepo, EventRepo eventRepo, EventRoute eventRoute) {
     // Core
     this.domain = domain;
 
     // Infra
     this.commandRepo = commandRepo;
     this.eventRepo = eventRepo;
-    this.partition = partition;
+    this.eventRoute = eventRoute;
 
     // In memory
     this.aggregates = new HashMap<>();
@@ -65,32 +66,34 @@ public class PartitionPipeline {
                                  .doOnNext(this::evolve)
                                  .concatMap(this::saga)
                                  .concatMap(eventRepo::publish);
-    //    return initialize().concatWith(handleCommands);
-    return handleCommands;
+    return initialize().concatWith(handleCommands);
   }
 
   /**
    * Load previous events and build the state
    */
   Flux<Event> initialize() {
-    return this.eventRepo.last(partition)
-                         .map(Event::meta)
-                         .map(EventMeta::eventId)
-                         .flatMapMany(eId -> eventRepo.subUntil(partition, eId))
-                         .doOnNext(this::evolve);
+    return eventRepo.last(eventRoute.partition())
+                    .map(Event::meta)
+                    .map(EventMeta::eventId)
+                    .flatMapMany(eId -> eventRepo.subUntil(eventRoute.partition(), eId))
+                    .doOnNext(this::evolve);
   }
 
   Mono<Event> decide(Command cmd) {
     return Mono.defer(() -> {
+      if (!cmd.isInPartition(eventRoute.partition(), eventRoute.totalPartitions())) {
+        return Mono.error(MismatchingState.shardKey(cmd));
+      }
       if (isHandledCommand(cmd) || isHandledSagaCommand(cmd)) {
         return Mono.empty();
+      }
+
+      cmd.meta().sagaSource().forEach(sagaSources::add);
+      if (aggregates.containsKey(cmd.meta().stateId())) {
+        return tryToMono(() -> domain.decider().apply(aggregates.get(cmd.meta().stateId()), cmd));
       } else {
-        cmd.meta().sagaSource().forEach(this.sagaSources::add);
-        if (aggregates.containsKey(cmd.meta().stateId())) {
-          return tryToMono(() -> domain.decider().apply(aggregates.get(cmd.meta().stateId()), cmd));
-        } else {
-          return tryToMono(() -> domain.decider().apply(cmd));
-        }
+        return tryToMono(() -> domain.decider().apply(cmd));
       }
     });
   }

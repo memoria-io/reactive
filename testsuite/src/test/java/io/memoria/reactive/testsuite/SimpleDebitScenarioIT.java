@@ -1,9 +1,9 @@
 package io.memoria.reactive.testsuite;
 
-import io.memoria.atom.eventsourcing.StateId;
-import io.memoria.atom.testsuite.eventsourcing.command.AccountCommand;
 import io.memoria.atom.testsuite.eventsourcing.state.OpenAccount;
 import io.memoria.reactive.eventsourcing.Utils;
+import io.memoria.reactive.eventsourcing.pipeline.CommandRoute;
+import io.memoria.reactive.eventsourcing.pipeline.EventRoute;
 import io.memoria.reactive.eventsourcing.pipeline.PartitionPipeline;
 import io.vavr.collection.Map;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
@@ -26,13 +26,12 @@ class SimpleDebitScenarioIT {
 
   // Infra
   private static final Data data = Data.ofUUID();
-  private static final Configs configs = new Configs(System.currentTimeMillis() + "", 1, 1, 0);
+  private static final Infra infra = configs();
 
   // Test case
   private static final int INITIAL_BALANCE = 500;
   private static final int DEBIT_AMOUNT = 300;
   private static final int numOfAccounts = 100;
-  private static final int count = 1000;
 
   @ParameterizedTest(name = "Using {0} adapter")
   @MethodSource("adapters")
@@ -42,7 +41,8 @@ class SimpleDebitScenarioIT {
     int expectedEventsCount = numOfAccounts * 5;
 
     // When
-    StepVerifier.create(commands().flatMap(pipeline.commandRepo::publish))
+    var commands = data.simpleDebitProcess(numOfAccounts, INITIAL_BALANCE, DEBIT_AMOUNT);
+    StepVerifier.create(commands.flatMap(pipeline.commandRepo::publish))
                 .expectNextCount(expectedCommandsCount)
                 .verifyComplete();
     // Then
@@ -50,21 +50,12 @@ class SimpleDebitScenarioIT {
                 .expectNextCount(expectedEventsCount)
                 .verifyComplete();
     // And
-    //    StepVerifier.create(verify(pipeline, expectedCommandsCount)).expectNext(true).verifyComplete();
-  }
-
-  private Flux<AccountCommand> commands() {
-    var debitedIds = data.createIds(0, numOfAccounts).map(StateId::of);
-    var creditedIds = data.createIds(numOfAccounts, numOfAccounts).map(StateId::of);
-    var createDebitedAcc = data.createAccountCmd(debitedIds, INITIAL_BALANCE);
-    var createCreditedAcc = data.createAccountCmd(creditedIds, INITIAL_BALANCE);
-    var debitTheAccounts = data.debitCmd(debitedIds.zipWith(creditedIds), DEBIT_AMOUNT);
-    return createDebitedAcc.concatWith(createCreditedAcc).concatWith(debitTheAccounts);
+    StepVerifier.create(verify(pipeline, expectedCommandsCount)).expectNext(true).verifyComplete();
   }
 
   private Mono<Boolean> verify(PartitionPipeline pipeline, int expectedEventsCount) {
     return Utils.reduce(pipeline.domain.evolver(),
-                        pipeline.eventRepo.subscribe(configs.eventPartition).take(expectedEventsCount))
+                        pipeline.eventRepo.subscribe(infra.eventRoute.partition()).take(expectedEventsCount))
                 .map(Map::values)
                 .flatMapMany(Flux::fromIterable)
                 .map(OpenAccount.class::cast)
@@ -83,9 +74,9 @@ class SimpleDebitScenarioIT {
   }
 
   private static Stream<Arguments> adapters() {
-    return Stream.of(Arguments.of(Named.of("In memory", Infra.inMemoryPipeline(configs, data.domain()))),
-                     Arguments.of(Named.of("Kafka", Infra.kafkaPipeline(configs, data.domain()))),
-                     Arguments.of(Named.of("Nats", Infra.natsPipeline(configs, data.domain()))));
+    return Stream.of(Arguments.of(Named.of("In memory", infra.inMemoryPipeline(data.domain()))),
+                     Arguments.of(Named.of("Kafka", infra.kafkaPipeline(data.domain()))),
+                     Arguments.of(Named.of("Nats", infra.natsPipeline(data.domain()))));
   }
 
   private static void printRates(String methodName, long start, long msgCount) {
@@ -93,5 +84,11 @@ class SimpleDebitScenarioIT {
     log.info("{}: Finished processing {} events, in {} millis %n", methodName, msgCount, totalElapsed);
     var eventsPerSec = msgCount / (totalElapsed / 1000d);
     log.info("{}: Average {} events per second %n", methodName, (long) eventsPerSec);
+  }
+
+  private static Infra configs() {
+    return new Infra(new CommandRoute("commands" + System.currentTimeMillis()),
+                     new EventRoute("events" + System.currentTimeMillis()),
+                     "testGroup");
   }
 }
