@@ -2,11 +2,11 @@ package io.memoria.reactive.testsuite;
 
 import io.memoria.atom.core.text.SerializableTransformer;
 import io.memoria.atom.eventsourcing.Domain;
-import io.memoria.reactive.eventsourcing.pipeline.CommandRoute;
-import io.memoria.reactive.eventsourcing.pipeline.EventRoute;
 import io.memoria.reactive.eventsourcing.pipeline.PartitionPipeline;
 import io.memoria.reactive.eventsourcing.stream.CommandRepo;
+import io.memoria.reactive.eventsourcing.stream.CommandRoute;
 import io.memoria.reactive.eventsourcing.stream.EventRepo;
+import io.memoria.reactive.eventsourcing.stream.EventRoute;
 import io.memoria.reactive.kafka.KafkaCommandRepo;
 import io.memoria.reactive.kafka.KafkaEventRepo;
 import io.memoria.reactive.nats.NatsCommandRepo;
@@ -24,45 +24,37 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import java.io.IOException;
 import java.time.Duration;
 
+import static io.memoria.reactive.nats.NatsUtils.defaultCommandStreamConfig;
+
 public class Infra {
 
   public final String NATS_URL = "nats://localhost:4222";
   public final SerializableTransformer transformer = new SerializableTransformer();
-
-  public final CommandRoute commandRoute;
-  public final EventRoute eventRoute;
   public final String groupId;
 
-  public Infra(CommandRoute commandRoute, EventRoute eventRoute, String groupId) {
-    this.commandRoute = commandRoute;
-    this.eventRoute = eventRoute;
+  public Infra(String groupId) {
     this.groupId = groupId;
   }
 
-  public PartitionPipeline kafkaPipeline(Domain domain) {
-    var commandRepo = new KafkaCommandRepo(kafkaProducerConfigs(),
-                                           kafkaConsumerConfigs(),
-                                           commandRoute.topic(),
-                                           commandRoute.totalPartitions(),
-                                           transformer);
+  public PartitionPipeline kafkaPipeline(Domain domain, CommandRoute commandRoute, EventRoute eventRoute) {
+    var commandRepo = new KafkaCommandRepo(kafkaProducerConfigs(), kafkaConsumerConfigs(), commandRoute, transformer);
     var eventRepo = new KafkaEventRepo(kafkaProducerConfigs(),
                                        kafkaConsumerConfigs(),
-                                       eventRoute.topic(),
-                                       eventRoute.totalPartitions(),
+                                       eventRoute,
                                        Duration.ofMillis(1000),
                                        transformer);
-    return new PartitionPipeline(domain, commandRepo, eventRepo, eventRoute);
+    return new PartitionPipeline(domain, commandRepo, eventRepo);
   }
 
-  public PartitionPipeline natsPipeline(Domain domain) {
+  public PartitionPipeline natsPipeline(Domain domain, CommandRoute commandRoute, EventRoute eventRoute) {
     try {
       var nc = NatsUtils.createConnection(NATS_URL);
       JetStreamManagement jsManagement = nc.jetStreamManagement();
-      var commandRepo = new NatsCommandRepo(nc, commandRoute.topic(), commandRoute.totalPartitions(), transformer);
-      var eventRepo = new NatsEventRepo(nc, eventRoute.topic(), eventRoute.totalPartitions(), transformer);
-      NatsUtils.createOrUpdateStream(jsManagement, commandRoute.topic(), 1);
-      NatsUtils.createOrUpdateStream(jsManagement, eventRoute.topic(), 1);
-      return new PartitionPipeline(domain, commandRepo, eventRepo, eventRoute);
+      var commandRepo = new NatsCommandRepo(nc, commandRoute, transformer);
+      var eventRepo = new NatsEventRepo(nc, eventRoute, transformer);
+      NatsUtils.createOrUpdateStream(jsManagement, defaultCommandStreamConfig(eventRoute.topic(), 1).build());
+      NatsUtils.createOrUpdateStream(jsManagement, defaultCommandStreamConfig(commandRoute.topic(), 1).build());
+      return new PartitionPipeline(domain, commandRepo, eventRepo);
     } catch (IOException | InterruptedException | JetStreamApiException e) {
       throw new RuntimeException(e);
     }
@@ -70,8 +62,8 @@ public class Infra {
 
   public PartitionPipeline inMemoryPipeline(Domain domain) {
     var commandRepo = CommandRepo.inMemory();
-    var eventRepo = EventRepo.inMemory(eventRoute.totalPartitions());
-    return new PartitionPipeline(domain, commandRepo, eventRepo, eventRoute);
+    var eventRepo = EventRepo.inMemory();
+    return new PartitionPipeline(domain, commandRepo, eventRepo);
   }
 
   public Map<String, Object> kafkaConsumerConfigs() {

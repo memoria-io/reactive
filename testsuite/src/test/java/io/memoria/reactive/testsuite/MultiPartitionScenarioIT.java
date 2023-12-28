@@ -21,8 +21,8 @@ import reactor.test.StepVerifier;
 import java.util.stream.Stream;
 
 @TestMethodOrder(OrderAnnotation.class)
-class SimpleDebitScenarioIT {
-  private static final Logger log = LoggerFactory.getLogger(SimpleDebitScenarioIT.class.getName());
+class MultiPartitionScenarioIT {
+  private static final Logger log = LoggerFactory.getLogger(MultiPartitionScenarioIT.class.getName());
 
   // Infra
   private static final Data data = Data.ofUUID();

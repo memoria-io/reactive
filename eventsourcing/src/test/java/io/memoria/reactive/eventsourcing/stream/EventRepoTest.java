@@ -24,7 +24,7 @@ class EventRepoTest {
 
   @Test
   void publishAndSubscribe() {
-    StepVerifier.create(eventRepo.last(0)).expectComplete().verify();
+    StepVerifier.create(eventRepo.last()).expectComplete().verify();
     // Given
     var commands = Flux.range(0, ELEMENTS_SIZE)
                        .map(i -> new SomeEvent(new EventMeta(EventId.of(UUID.randomUUID()),
@@ -37,7 +37,7 @@ class EventRepoTest {
 
     // Then
     var latch0 = new AtomicInteger();
-    eventRepo.subscribe(0).take(ELEMENTS_SIZE).doOnNext(event -> {
+    eventRepo.subscribe().take(ELEMENTS_SIZE).doOnNext(event -> {
       verify(event);
       latch0.incrementAndGet();
     }).subscribe();

@@ -4,6 +4,7 @@ import io.memoria.atom.core.text.TextTransformer;
 import io.memoria.atom.eventsourcing.Event;
 import io.memoria.reactive.core.reactor.ReactorUtils;
 import io.memoria.reactive.eventsourcing.stream.EventRepo;
+import io.memoria.reactive.eventsourcing.stream.EventRoute;
 import io.nats.client.Connection;
 import io.nats.client.JetStream;
 import io.nats.client.JetStreamSubscription;
@@ -23,14 +24,12 @@ import java.io.IOException;
 import java.time.Duration;
 
 import static io.memoria.reactive.nats.NatsUtils.toPartitionedSubjectName;
-import static io.memoria.reactive.nats.NatsUtils.toSubscriptionName;
 
 public class NatsEventRepo implements EventRepo {
   private static final Logger log = LoggerFactory.getLogger(NatsEventRepo.class.getName());
   private final JetStream jetStream;
   private final PullSubscribeOptions subscribeOptions;
-  private final String topic;
-  private final int totalPartitions;
+  private final EventRoute route;
 
   // Polling Config
   private final int fetchBatchSize;
@@ -42,12 +41,10 @@ public class NatsEventRepo implements EventRepo {
   /**
    * Constructor with default settings
    */
-  public NatsEventRepo(Connection connection, String topic, int totalPartitions, TextTransformer transformer)
-          throws IOException {
+  public NatsEventRepo(Connection connection, EventRoute route, TextTransformer transformer) throws IOException {
     this(connection,
-         NatsUtils.defaultCommandConsumerConfigs(toSubscriptionName(topic)).build(),
-         topic,
-         totalPartitions,
+         NatsUtils.defaultCommandConsumerConfigs(route.topic()).build(),
+         route,
          100,
          Duration.ofMillis(100),
          transformer);
@@ -55,15 +52,13 @@ public class NatsEventRepo implements EventRepo {
 
   public NatsEventRepo(Connection connection,
                        ConsumerConfiguration consumerConfig,
-                       String topic,
-                       int totalPartitions,
+                       EventRoute route,
                        int fetchBatchSize,
                        Duration fetchMaxWait,
                        TextTransformer transformer) throws IOException {
     this.jetStream = connection.jetStream();
-    this.subscribeOptions = PullSubscribeOptions.builder().stream(topic).configuration(consumerConfig).build();
-    this.topic = topic;
-    this.totalPartitions = totalPartitions;
+    this.route = route;
+    this.subscribeOptions = PullSubscribeOptions.builder().configuration(consumerConfig).build();
     this.fetchBatchSize = fetchBatchSize;
     this.fetchMaxWait = fetchMaxWait;
     this.transformer = transformer;
@@ -79,24 +74,24 @@ public class NatsEventRepo implements EventRepo {
   }
 
   @Override
-  public Flux<Event> subscribe(int partition) {
-    var subject = toPartitionedSubjectName(topic, partition);
+  public Flux<Event> subscribe() {
+    var subject = toPartitionedSubjectName(route.topic(), route.partition());
     return Mono.fromCallable(() -> jetStream.subscribe(subject, subscribeOptions))
                .flatMapMany(sub -> NatsUtils.fetchMessages(sub, fetchBatchSize, fetchMaxWait))
                .concatMap(this::toEvent);
   }
 
   @Override
-  public Mono<Event> last(int partition) {
-    var subject = toPartitionedSubjectName(topic, partition);
+  public Mono<Event> last() {
+    var subject = toPartitionedSubjectName(route.topic(), route.partition());
     return Mono.fromCallable(() -> jetStream.subscribe(subject, subscribeOptions))
                .flatMap(this::fetchLastMessage)
                .flatMap(this::toEvent);
   }
 
   private NatsMessage toNatsMessage(Event event) {
-    var partition = event.partition(totalPartitions);
-    var subject = toPartitionedSubjectName(topic, partition);
+    var partition = event.partition(route.totalPartitions());
+    var subject = toPartitionedSubjectName(route.topic(), partition);
     var payload = transformer.serialize(event).get();
     return NatsMessage.builder().subject(subject).data(payload).build();
   }

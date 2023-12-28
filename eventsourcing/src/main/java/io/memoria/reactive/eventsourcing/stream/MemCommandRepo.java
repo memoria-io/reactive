@@ -26,9 +26,4 @@ class MemCommandRepo implements CommandRepo {
   public Flux<Command> subscribe() {
     return this.commands.asFlux();
   }
-
-  //  @Override
-  //  public Mono<Msg> last(String topic, int partition) {
-  //    return Mono.defer(() -> Mono.justOrEmpty(lastMsg.get(topic))).flatMap(tp -> Mono.justOrEmpty(tp.get(partition)));
-  //  }
 }

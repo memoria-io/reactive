@@ -37,11 +37,6 @@ public class NatsUtils {
     return Nats.connect(Options.builder().server(url).errorListener(errorListener()).build());
   }
 
-  public static StreamInfo createOrUpdateStream(JetStreamManagement jsManagement, String topic, int replication)
-          throws JetStreamApiException, IOException {
-    return createOrUpdateStream(jsManagement, defaultCommandStreamConfig(topic, replication).build());
-  }
-
   public static StreamInfo createOrUpdateStream(JetStreamManagement jsManagement,
                                                 StreamConfiguration streamConfiguration)
           throws IOException, JetStreamApiException {

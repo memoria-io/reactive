@@ -1,4 +1,4 @@
-package io.memoria.reactive.eventsourcing.pipeline;
+package io.memoria.reactive.eventsourcing.stream;
 
 public record EventRoute(String topic, int partition, int totalPartitions) {
   public EventRoute(String topic) {

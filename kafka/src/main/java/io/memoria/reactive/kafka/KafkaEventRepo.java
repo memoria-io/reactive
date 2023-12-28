@@ -4,6 +4,7 @@ import io.memoria.atom.core.text.TextTransformer;
 import io.memoria.atom.eventsourcing.Event;
 import io.memoria.reactive.core.reactor.ReactorUtils;
 import io.memoria.reactive.eventsourcing.stream.EventRepo;
+import io.memoria.reactive.eventsourcing.stream.EventRoute;
 import io.vavr.collection.Map;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import reactor.core.publisher.Flux;
@@ -22,20 +23,17 @@ import static java.util.Collections.singleton;
 public class KafkaEventRepo implements EventRepo {
   private final KafkaSender<String, String> producer;
   private final Map<String, Object> consumerConfig;
-  private final String topic;
-  private final int totalPartitions;
+  private final EventRoute route;
   private final Duration lastEventTimeout;
   private final TextTransformer transformer;
 
   public KafkaEventRepo(Map<String, Object> producerConfig,
                         Map<String, Object> consumerConfig,
-                        String topic,
-                        int totalPartitions,
+                        EventRoute route,
                         Duration lastEventTimeout,
                         TextTransformer transformer) {
     this.consumerConfig = consumerConfig;
-    this.topic = topic;
-    this.totalPartitions = totalPartitions;
+    this.route = route;
     this.lastEventTimeout = lastEventTimeout;
     this.transformer = transformer;
     var senderOptions = SenderOptions.<String, String>create(producerConfig.toJavaMap());
@@ -48,25 +46,28 @@ public class KafkaEventRepo implements EventRepo {
   }
 
   @Override
-  public Flux<Event> subscribe(int partition) {
+  public Flux<Event> subscribe() {
     var receiverOptions = ReceiverOptions.<String, String>create(consumerConfig.toJavaMap())
-                                         .subscription(singleton(topic));
+                                         .subscription(singleton(route.topic()));
     var receiver = KafkaReceiver.create(receiverOptions);
     return receiver.receive().concatMap(this::toEvent);
   }
 
   @Override
-  public Mono<Event> last(int partition) {
-    return Mono.fromCallable(() -> KafkaUtils.lastKey(topic, partition, lastEventTimeout, consumerConfig))
+  public Mono<Event> last() {
+    return Mono.fromCallable(() -> KafkaUtils.lastKey(route.topic(),
+                                                      route.partition(),
+                                                      lastEventTimeout,
+                                                      consumerConfig))
                .flatMap(ReactorUtils::optionToMono)
                .flatMap(this::toEvent);
   }
 
   private SenderRecord<String, String, Event> toRecord(Event event) {
-    var partition = event.partition(totalPartitions);
+    var partition = event.partition(route.totalPartitions());
     var key = event.meta().eventId().value();
     var payload = transformer.serialize(event).get();
-    return SenderRecord.create(topic, partition, null, key, payload, event);
+    return SenderRecord.create(route.topic(), partition, null, key, payload, event);
   }
 
   private Mono<Event> toEvent(ConsumerRecord<String, String> record) {
