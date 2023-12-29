@@ -23,7 +23,9 @@ import reactor.core.publisher.Mono;
 import java.io.IOException;
 import java.time.Duration;
 
+import static io.memoria.reactive.nats.NatsUtils.defaultConsumerConfigs;
 import static io.memoria.reactive.nats.NatsUtils.toPartitionedSubjectName;
+import static io.memoria.reactive.nats.NatsUtils.toSubscriptionName;
 
 public class NatsEventRepo implements EventRepo {
   private static final Logger log = LoggerFactory.getLogger(NatsEventRepo.class.getName());
@@ -43,7 +45,7 @@ public class NatsEventRepo implements EventRepo {
    */
   public NatsEventRepo(Connection connection, EventRoute route, TextTransformer transformer) throws IOException {
     this(connection,
-         NatsUtils.defaultCommandConsumerConfigs(route.topic()).build(),
+         defaultConsumerConfigs(toSubscriptionName(route.topic(), route.partition())).build(),
          route,
          100,
          Duration.ofMillis(100),
@@ -65,7 +67,7 @@ public class NatsEventRepo implements EventRepo {
   }
 
   @Override
-  public Mono<Event> publish(Event event) {
+  public Mono<Event> pub(Event event) {
     var cmdId = event.meta().eventId().value();
     var opts = PublishOptions.builder().clearExpected().messageId(cmdId).build();
     return Mono.fromCallable(() -> toNatsMessage(event))
@@ -74,7 +76,7 @@ public class NatsEventRepo implements EventRepo {
   }
 
   @Override
-  public Flux<Event> subscribe() {
+  public Flux<Event> sub() {
     var subject = toPartitionedSubjectName(route.topic(), route.partition());
     return Mono.fromCallable(() -> jetStream.subscribe(subject, subscribeOptions))
                .flatMapMany(sub -> NatsUtils.fetchMessages(sub, fetchBatchSize, fetchMaxWait))

@@ -20,13 +20,15 @@ import reactor.core.publisher.Mono;
 import java.io.IOException;
 import java.time.Duration;
 
+import static io.memoria.reactive.nats.NatsUtils.defaultConsumerConfigs;
 import static io.memoria.reactive.nats.NatsUtils.toPartitionedSubjectName;
+import static io.memoria.reactive.nats.NatsUtils.toSubscriptionName;
 
 public class NatsCommandRepo implements CommandRepo {
   private static final Logger log = LoggerFactory.getLogger(NatsCommandRepo.class.getName());
   private final JetStream jetStream;
   private final PullSubscribeOptions subscribeOptions;
-  private final CommandRoute route;
+  private final CommandRoute eventRoute;
 
   // Polling Config
   private final int fetchBatchSize;
@@ -40,7 +42,7 @@ public class NatsCommandRepo implements CommandRepo {
    */
   public NatsCommandRepo(Connection connection, CommandRoute route, TextTransformer transformer) throws IOException {
     this(connection,
-         NatsUtils.defaultCommandConsumerConfigs(route.topic()).build(),
+         defaultConsumerConfigs(toSubscriptionName(route.topic(), route.partition())).build(),
          route,
          100,
          Duration.ofMillis(100),
@@ -49,20 +51,20 @@ public class NatsCommandRepo implements CommandRepo {
 
   public NatsCommandRepo(Connection connection,
                          ConsumerConfiguration consumerConfig,
-                         CommandRoute route,
+                         CommandRoute eventRoute,
                          int fetchBatchSize,
                          Duration fetchMaxWait,
                          TextTransformer transformer) throws IOException {
     this.jetStream = connection.jetStream();
     this.subscribeOptions = PullSubscribeOptions.builder().configuration(consumerConfig).build();
-    this.route = route;
+    this.eventRoute = eventRoute;
     this.fetchBatchSize = fetchBatchSize;
     this.fetchMaxWait = fetchMaxWait;
     this.transformer = transformer;
   }
 
   @Override
-  public Mono<Command> publish(Command command) {
+  public Mono<Command> pub(Command command) {
     var cmdId = command.meta().commandId().value();
     var opts = PublishOptions.builder().clearExpected().messageId(cmdId).build();
     return Mono.fromCallable(() -> toNatsMessage(command))
@@ -71,16 +73,16 @@ public class NatsCommandRepo implements CommandRepo {
   }
 
   @Override
-  public Flux<Command> subscribe() {
-    var subjectName = toPartitionedSubjectName(route.topic());
+  public Flux<Command> sub() {
+    var subjectName = toPartitionedSubjectName(eventRoute.topic(), eventRoute.partition());
     return Mono.fromCallable(() -> jetStream.subscribe(subjectName, subscribeOptions))
                .flatMapMany(sub -> NatsUtils.fetchMessages(sub, fetchBatchSize, fetchMaxWait))
                .concatMap(this::toCommand);
   }
 
   private NatsMessage toNatsMessage(Command command) {
-    var partition = command.partition(route.totalPartitions());
-    var subject = toPartitionedSubjectName(route.topic(), partition);
+    var partition = command.partition(eventRoute.totalPartitions());
+    var subject = toPartitionedSubjectName(eventRoute.topic(), partition);
     var payload = transformer.serialize(command).get();
     return NatsMessage.builder().subject(subject).data(payload).build();
   }

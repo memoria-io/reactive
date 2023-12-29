@@ -58,11 +58,15 @@ public class PartitionPipeline {
     this.prevEvent = new AtomicReference<>();
   }
 
+  public Flux<Event> handle() {
+    return handle(commandRepo.sub());
+  }
+
   public Flux<Event> handle(Flux<Command> commands) {
     var handleCommands = commands.concatMap(this::decide)
                                  .doOnNext(this::evolve)
                                  .concatMap(this::saga)
-                                 .concatMap(eventRepo::publish);
+                                 .concatMap(eventRepo::pub);
     return initialize().concatWith(handleCommands);
   }
 
@@ -96,7 +100,7 @@ public class PartitionPipeline {
     return Mono.defer(() -> {
       var opt = domain.saga().apply(e);
       if (opt.isDefined()) {
-        return commandRepo.publish(opt.get()).map(_ -> e);
+        return commandRepo.pub(opt.get()).map(_ -> e);
       } else {
         return Mono.just(e);
       }

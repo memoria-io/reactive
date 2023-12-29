@@ -18,12 +18,12 @@ class MemCommandRepo implements CommandRepo {
   }
 
   @Override
-  public Mono<Command> publish(Command command) {
+  public Mono<Command> pub(Command command) {
     return Mono.fromRunnable(() -> commands.tryEmitNext(command).orThrow()).thenReturn(command);
   }
 
   @Override
-  public Flux<Command> subscribe() {
+  public Flux<Command> sub() {
     return this.commands.asFlux();
   }
 }

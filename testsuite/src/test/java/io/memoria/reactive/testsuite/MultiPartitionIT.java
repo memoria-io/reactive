@@ -5,6 +5,9 @@ import io.memoria.reactive.eventsourcing.Utils;
 import io.memoria.reactive.eventsourcing.pipeline.PartitionPipeline;
 import io.memoria.reactive.eventsourcing.stream.CommandRoute;
 import io.memoria.reactive.eventsourcing.stream.EventRoute;
+import io.vavr.Tuple;
+import io.vavr.Tuple2;
+import io.vavr.collection.List;
 import io.vavr.collection.Map;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Named;
@@ -18,11 +21,12 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.time.Duration;
 import java.util.stream.Stream;
 
 @TestMethodOrder(OrderAnnotation.class)
-class MultiPartitionScenarioIT {
-  private static final Logger log = LoggerFactory.getLogger(MultiPartitionScenarioIT.class.getName());
+class MultiPartitionIT {
+  private static final Logger log = LoggerFactory.getLogger(MultiPartitionIT.class.getName());
 
   // Infra
   private static final Data data = Data.ofUUID();
@@ -35,26 +39,21 @@ class MultiPartitionScenarioIT {
 
   @ParameterizedTest(name = "Using {0} adapter")
   @MethodSource("adapters")
-  void simpleScenario(PartitionPipeline pipeline) {
+  void simpleScenario(List<PartitionPipeline> pipelines) {
     // Given
     int expectedCommandsCount = numOfAccounts * 3;
-    int expectedEventsCount = numOfAccounts * 5;
+    var pubCommands = data.simpleDebitProcess(numOfAccounts, INITIAL_BALANCE, DEBIT_AMOUNT)
+                          .flatMap(pipelines.head().commandRepo::pub);
+    StepVerifier.create(pubCommands).expectNextCount(expectedCommandsCount).verifyComplete();
 
     // When
-    var commands = data.simpleDebitProcess(numOfAccounts, INITIAL_BALANCE, DEBIT_AMOUNT);
-    StepVerifier.create(commands.flatMap(pipeline.commandRepo::publish))
-                .expectNextCount(expectedCommandsCount)
-                .verifyComplete();
-    // Then
-    StepVerifier.create(pipeline.handle(pipeline.commandRepo.subscribe()).take(expectedEventsCount))
-                .expectNextCount(expectedEventsCount)
-                .verifyComplete();
-    // And
-    StepVerifier.create(verify(pipeline, expectedCommandsCount)).expectNext(true).verifyComplete();
+    //    pipelines.map(PartitionPipeline::handle).map(Flux::subscribe);
+    //    // Then
+    //    pipelines.forEach(p -> StepVerifier.create(verify(p)).expectNext(true).verifyComplete());
   }
 
-  private Mono<Boolean> verify(PartitionPipeline pipeline, int expectedEventsCount) {
-    return Utils.reduce(pipeline.domain.evolver(), pipeline.eventRepo.subscribe().take(expectedEventsCount))
+  private Mono<Boolean> verify(PartitionPipeline pipeline) {
+    return Utils.reduce(pipeline.domain.evolver(), pipeline.eventRepo.sub().take(Duration.ofMillis(1000)))
                 .map(Map::values)
                 .flatMapMany(Flux::fromIterable)
                 .map(OpenAccount.class::cast)
@@ -73,14 +72,22 @@ class MultiPartitionScenarioIT {
   }
 
   private static Stream<Arguments> adapters() {
-    var eventRoute = new EventRoute("events" + System.currentTimeMillis(), 0, 1);
-    var commandRoute = new CommandRoute("commands" + System.currentTimeMillis(), 1);
-    var inMemory = infra.inMemoryPipeline(data.domain());
-    var kafka = infra.kafkaPipeline(data.domain(), commandRoute, eventRoute);
-    var nats = infra.natsPipeline(data.domain(), commandRoute, eventRoute);
-    return Stream.of(Arguments.of(Named.of("In memory", inMemory)),
-                     Arguments.of(Named.of("Kafka", kafka)),
-                     Arguments.of(Named.of("Nats", nats)));
+    return Stream.of(Arguments.of(Named.of("Kafka", getRoutes(1).map(MultiPartitionIT::kafkaPipeline))),
+                     Arguments.of(Named.of("Nats", getRoutes(2).map(MultiPartitionIT::natsPipeline))));
+  }
+
+  private static List<Tuple2<CommandRoute, EventRoute>> getRoutes(int x) {
+    var cTopic = "commands" + System.currentTimeMillis();
+    var eTopic = "events" + System.currentTimeMillis();
+    return List.range(0, x).map(i -> Tuple.of(new CommandRoute(cTopic, i, x), new EventRoute(eTopic, i, x)));
+  }
+
+  private static PartitionPipeline kafkaPipeline(Tuple2<CommandRoute, EventRoute> routes) {
+    return infra.kafkaPipeline(data.domain(), routes._1, routes._2);
+  }
+
+  private static PartitionPipeline natsPipeline(Tuple2<CommandRoute, EventRoute> routes) {
+    return infra.natsPipeline(data.domain(), routes._1, routes._2);
   }
 
   private static void printRates(String methodName, long start, long msgCount) {

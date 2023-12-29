@@ -47,10 +47,10 @@ public class NatsUtils {
       return jsManagement.addStream(streamConfiguration);
   }
 
-  public static StreamConfiguration.Builder defaultCommandStreamConfig(String topic, int replication) {
+  public static StreamConfiguration.Builder defaultStreamConfig(String topic, int replication) {
     return StreamConfiguration.builder()
                               .name(topic)
-                              .subjects(toPartitionedSubjectName(topic))
+                              .subjects(topic + ".*")
                               .replicas(replication)
                               .storageType(StorageType.File)
                               .retentionPolicy(RetentionPolicy.WorkQueue)
@@ -58,7 +58,7 @@ public class NatsUtils {
                               .denyPurge(false);
   }
 
-  public static Builder defaultCommandConsumerConfigs(String name) {
+  public static Builder defaultConsumerConfigs(String name) {
     return ConsumerConfiguration.builder()
                                 .name(name)
                                 .ackPolicy(AckPolicy.Explicit)
@@ -66,16 +66,12 @@ public class NatsUtils {
                                 .replayPolicy(ReplayPolicy.Instant);
   }
 
-  public static String toPartitionedSubjectName(String topic) {
-    return topic + ".*";
-  }
-
   public static String toPartitionedSubjectName(String topic, int partition) {
     return topic + "." + partition;
   }
 
-  public static String toSubscriptionName(String topic) {
-    return "%s_%d_subscription".formatted(topic, System.currentTimeMillis());
+  public static String toSubscriptionName(String topic, int partition) {
+    return "%s-%d-%d-subscription".formatted(topic, partition, System.currentTimeMillis());
   }
 
   public static Flux<Message> fetchMessages(JetStreamSubscription sub, int fetchBatchSize, Duration fetchMaxWait) {

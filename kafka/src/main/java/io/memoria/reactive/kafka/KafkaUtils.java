@@ -6,8 +6,11 @@ import io.vavr.control.Option;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
+import reactor.kafka.receiver.ReceiverOptions;
 
 import java.time.Duration;
+
+import static java.util.Collections.singleton;
 
 public class KafkaUtils {
   private KafkaUtils() {}
@@ -44,5 +47,14 @@ public class KafkaUtils {
         return Option.none();
       }
     }
+  }
+
+  public static ReceiverOptions<String, String> receiveOptions(String topic,
+                                                               int partition,
+                                                               Map<String, Object> consumerConfig) {
+    var tp = singleton(new TopicPartition(topic, partition));
+    return ReceiverOptions.<String, String>create(consumerConfig.toJavaMap())
+                          .assignment(tp)
+                          .addAssignListener(p -> p.forEach(r -> r.seek(0)));
   }
 }

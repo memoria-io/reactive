@@ -10,15 +10,12 @@ import org.apache.kafka.clients.consumer.ConsumerRecord;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.kafka.receiver.KafkaReceiver;
-import reactor.kafka.receiver.ReceiverOptions;
 import reactor.kafka.sender.KafkaSender;
 import reactor.kafka.sender.SenderOptions;
 import reactor.kafka.sender.SenderRecord;
 import reactor.kafka.sender.SenderResult;
 
 import java.time.Duration;
-
-import static java.util.Collections.singleton;
 
 public class KafkaEventRepo implements EventRepo {
   private final KafkaSender<String, String> producer;
@@ -41,15 +38,13 @@ public class KafkaEventRepo implements EventRepo {
   }
 
   @Override
-  public Mono<Event> publish(Event event) {
+  public Mono<Event> pub(Event event) {
     return producer.send(Mono.fromCallable(() -> toRecord(event))).map(SenderResult::correlationMetadata).single();
   }
 
   @Override
-  public Flux<Event> subscribe() {
-    var receiverOptions = ReceiverOptions.<String, String>create(consumerConfig.toJavaMap())
-                                         .subscription(singleton(route.topic()));
-    var receiver = KafkaReceiver.create(receiverOptions);
+  public Flux<Event> sub() {
+    var receiver = KafkaReceiver.create(KafkaUtils.receiveOptions(route.topic(), route.partition(), consumerConfig));
     return receiver.receive().concatMap(this::toEvent);
   }
 

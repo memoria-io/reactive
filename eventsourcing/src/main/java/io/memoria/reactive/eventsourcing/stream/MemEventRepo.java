@@ -22,7 +22,7 @@ public class MemEventRepo implements EventRepo {
   }
 
   @Override
-  public Mono<Event> publish(Event event) {
+  public Mono<Event> pub(Event event) {
     return Mono.fromRunnable(() -> {
       lastEvent.set(event);
       events.tryEmitNext(event).orThrow();
@@ -30,7 +30,7 @@ public class MemEventRepo implements EventRepo {
   }
 
   @Override
-  public Flux<Event> subscribe() {
+  public Flux<Event> sub() {
     return events.asFlux();
   }
 

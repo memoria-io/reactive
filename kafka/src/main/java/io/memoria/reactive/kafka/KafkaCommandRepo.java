@@ -9,14 +9,11 @@ import io.vavr.collection.Map;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.kafka.receiver.KafkaReceiver;
-import reactor.kafka.receiver.ReceiverOptions;
 import reactor.kafka.receiver.ReceiverRecord;
 import reactor.kafka.sender.KafkaSender;
 import reactor.kafka.sender.SenderOptions;
 import reactor.kafka.sender.SenderRecord;
 import reactor.kafka.sender.SenderResult;
-
-import static java.util.Collections.singleton;
 
 public class KafkaCommandRepo implements CommandRepo {
   private final KafkaSender<String, String> producer;
@@ -36,15 +33,13 @@ public class KafkaCommandRepo implements CommandRepo {
   }
 
   @Override
-  public Mono<Command> publish(Command command) {
+  public Mono<Command> pub(Command command) {
     return producer.send(Mono.fromCallable(() -> toRecord(command))).map(SenderResult::correlationMetadata).single();
   }
 
   @Override
-  public Flux<Command> subscribe() {
-    var receiverOptions = ReceiverOptions.<String, String>create(consumerConfig.toJavaMap())
-                                         .subscription(singleton(route.topic()));
-    var receiver = KafkaReceiver.create(receiverOptions);
+  public Flux<Command> sub() {
+    var receiver = KafkaReceiver.create(KafkaUtils.receiveOptions(route.topic(), route.partition(), consumerConfig));
     return receiver.receive().concatMap(this::toCommand);
   }
 

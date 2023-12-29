@@ -7,9 +7,9 @@ import reactor.core.publisher.Mono;
 
 public interface EventRepo {
 
-  Mono<Event> publish(Event event);
+  Mono<Event> pub(Event event);
 
-  Flux<Event> subscribe();
+  Flux<Event> sub();
 
   Mono<Event> last();
 
@@ -17,7 +17,7 @@ public interface EventRepo {
    * @return subscribe until eventId (key) is matched
    */
   default Flux<Event> subUntil(EventId eventId) {
-    return subscribe().takeUntil(e -> e.meta().eventId().equals(eventId));
+    return sub().takeUntil(e -> e.meta().eventId().equals(eventId));
   }
 
   static EventRepo inMemory() {

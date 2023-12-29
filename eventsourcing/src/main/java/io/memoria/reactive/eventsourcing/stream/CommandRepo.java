@@ -6,9 +6,9 @@ import reactor.core.publisher.Mono;
 
 public interface CommandRepo {
 
-  Mono<Command> publish(Command cmd);
+  Mono<Command> pub(Command cmd);
 
-  Flux<Command> subscribe();
+  Flux<Command> sub();
 
   static CommandRepo inMemory() {
     return new MemCommandRepo();

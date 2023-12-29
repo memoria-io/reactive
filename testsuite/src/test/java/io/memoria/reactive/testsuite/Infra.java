@@ -13,7 +13,6 @@ import io.memoria.reactive.nats.NatsCommandRepo;
 import io.memoria.reactive.nats.NatsEventRepo;
 import io.memoria.reactive.nats.NatsUtils;
 import io.nats.client.JetStreamApiException;
-import io.nats.client.JetStreamManagement;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.Map;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -24,7 +23,7 @@ import org.apache.kafka.common.serialization.StringSerializer;
 import java.io.IOException;
 import java.time.Duration;
 
-import static io.memoria.reactive.nats.NatsUtils.defaultCommandStreamConfig;
+import static io.memoria.reactive.nats.NatsUtils.defaultStreamConfig;
 
 public class Infra {
 
@@ -49,11 +48,14 @@ public class Infra {
   public PartitionPipeline natsPipeline(Domain domain, CommandRoute commandRoute, EventRoute eventRoute) {
     try {
       var nc = NatsUtils.createConnection(NATS_URL);
-      JetStreamManagement jsManagement = nc.jetStreamManagement();
       var commandRepo = new NatsCommandRepo(nc, commandRoute, transformer);
       var eventRepo = new NatsEventRepo(nc, eventRoute, transformer);
-      NatsUtils.createOrUpdateStream(jsManagement, defaultCommandStreamConfig(eventRoute.topic(), 1).build());
-      NatsUtils.createOrUpdateStream(jsManagement, defaultCommandStreamConfig(commandRoute.topic(), 1).build());
+
+      NatsUtils.createOrUpdateStream(nc.jetStreamManagement(),
+                                     defaultStreamConfig(eventRoute.topic(), 1).build());
+      NatsUtils.createOrUpdateStream(nc.jetStreamManagement(),
+                                     defaultStreamConfig(commandRoute.topic(), 1).build());
+
       return new PartitionPipeline(domain, commandRepo, eventRepo);
     } catch (IOException | InterruptedException | JetStreamApiException e) {
       throw new RuntimeException(e);

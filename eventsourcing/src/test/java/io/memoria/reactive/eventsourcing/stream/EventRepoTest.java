@@ -33,11 +33,11 @@ class EventRepoTest {
                                                              CommandId.of(UUID.randomUUID()))));
 
     // When
-    StepVerifier.create(commands.flatMap(eventRepo::publish)).expectNextCount(ELEMENTS_SIZE).verifyComplete();
+    StepVerifier.create(commands.flatMap(eventRepo::pub)).expectNextCount(ELEMENTS_SIZE).verifyComplete();
 
     // Then
     var latch0 = new AtomicInteger();
-    eventRepo.subscribe().take(ELEMENTS_SIZE).doOnNext(event -> {
+    eventRepo.sub().take(ELEMENTS_SIZE).doOnNext(event -> {
       verify(event);
       latch0.incrementAndGet();
     }).subscribe();

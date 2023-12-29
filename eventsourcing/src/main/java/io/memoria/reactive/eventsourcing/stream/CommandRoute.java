@@ -1,16 +1,16 @@
 package io.memoria.reactive.eventsourcing.stream;
 
-public record CommandRoute(String topic, int totalPartitions) {
+public record CommandRoute(String topic, int partition, int totalPartitions) {
   public CommandRoute(String topic) {
-    this(topic, 1);
+    this(topic, 0, 1);
   }
 
   public CommandRoute {
     if (topic == null || topic.isBlank()) {
       throw new IllegalArgumentException("Invalid topic name");
     }
-    if (totalPartitions < 1) {
-      String msg = "Invalid total partitions %d value".formatted(totalPartitions);
+    if (partition < 0 || partition >= totalPartitions) {
+      String msg = "Invalid partition number %d or total partitions %d".formatted(partition, totalPartitions);
       throw new IllegalArgumentException(msg);
     }
   }

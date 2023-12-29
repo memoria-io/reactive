@@ -28,11 +28,11 @@ class CommandRepoTest {
                    .map(i -> new SomeCommand(new CommandMeta(CommandId.of(UUID.randomUUID()), s0)));
 
     // When
-    StepVerifier.create(cmds.flatMap(stream::publish)).expectNextCount(ELEMENTS_SIZE).verifyComplete();
+    StepVerifier.create(cmds.flatMap(stream::pub)).expectNextCount(ELEMENTS_SIZE).verifyComplete();
 
     // Then
     var latch0 = new AtomicInteger();
-    stream.subscribe().take(ELEMENTS_SIZE).doOnNext(cmd -> {
+    stream.sub().take(ELEMENTS_SIZE).doOnNext(cmd -> {
       verify(cmd);
       latch0.incrementAndGet();
     }).subscribe();
