@@ -9,7 +9,6 @@ import io.vavr.collection.Map;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.kafka.receiver.KafkaReceiver;
 import reactor.kafka.sender.KafkaSender;
 import reactor.kafka.sender.SenderOptions;
 import reactor.kafka.sender.SenderRecord;
@@ -44,8 +43,7 @@ public class KafkaEventRepo implements EventRepo {
 
   @Override
   public Flux<Event> sub() {
-    var receiver = KafkaReceiver.create(KafkaUtils.receiveOptions(route.topic(), route.partition(), consumerConfig));
-    return receiver.receive().concatMap(this::toEvent);
+    return KafkaUtils.subscribe(route.topic(), route.partition(), consumerConfig).concatMap(this::toEvent);
   }
 
   @Override

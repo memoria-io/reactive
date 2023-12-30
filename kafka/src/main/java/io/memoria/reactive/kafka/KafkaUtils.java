@@ -6,7 +6,10 @@ import io.vavr.control.Option;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
+import reactor.core.publisher.Flux;
+import reactor.kafka.receiver.KafkaReceiver;
 import reactor.kafka.receiver.ReceiverOptions;
+import reactor.kafka.receiver.ReceiverRecord;
 
 import java.time.Duration;
 
@@ -56,5 +59,12 @@ public class KafkaUtils {
     return ReceiverOptions.<String, String>create(consumerConfig.toJavaMap())
                           .assignment(tp)
                           .addAssignListener(p -> p.forEach(r -> r.seek(0)));
+  }
+
+  public static Flux<ReceiverRecord<String, String>> subscribe(String topic,
+                                                               int partition,
+                                                               Map<String, Object> consumerConfig) {
+    var options = receiveOptions(topic, partition, consumerConfig);
+    return KafkaReceiver.create(options).receive();
   }
 }

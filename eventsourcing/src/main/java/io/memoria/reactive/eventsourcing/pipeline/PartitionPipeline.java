@@ -62,7 +62,7 @@ public class PartitionPipeline {
     return handle(commandRepo.sub());
   }
 
-  public Flux<Event> handle(Flux<Command> commands) {
+  Flux<Event> handle(Flux<Command> commands) {
     var handleCommands = commands.concatMap(this::decide)
                                  .doOnNext(this::evolve)
                                  .concatMap(this::saga)

@@ -6,6 +6,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public interface EventRepo {
+  EventRoute route();
 
   Mono<Event> pub(Event event);
 

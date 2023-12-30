@@ -51,15 +51,6 @@ public class Data {
     return new Data(() -> Id.of(UUID.randomUUID()), System::currentTimeMillis);
   }
 
-  public Flux<AccountCommand> simpleDebitProcess(int numOfAccounts, int initBalance, int debitAmount) {
-    var debitedIds = createIds(0, numOfAccounts).map(StateId::of);
-    var creditedIds = createIds(numOfAccounts, numOfAccounts).map(StateId::of);
-    var createDebitedAcc = createAccountCmd(debitedIds, initBalance);
-    var createCreditedAcc = createAccountCmd(creditedIds, initBalance);
-    var debitTheAccounts = debitCmd(debitedIds.zipWith(creditedIds), debitAmount);
-    return createDebitedAcc.concatWith(createCreditedAcc).concatWith(debitTheAccounts);
-  }
-
   public Id createId(int i) {
     return Id.of(i);
   }

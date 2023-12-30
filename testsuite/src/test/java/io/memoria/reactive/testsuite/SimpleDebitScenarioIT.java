@@ -1,5 +1,7 @@
 package io.memoria.reactive.testsuite;
 
+import io.memoria.atom.eventsourcing.StateId;
+import io.memoria.atom.testsuite.eventsourcing.command.AccountCommand;
 import io.memoria.atom.testsuite.eventsourcing.state.OpenAccount;
 import io.memoria.reactive.eventsourcing.Utils;
 import io.memoria.reactive.eventsourcing.pipeline.PartitionPipeline;
@@ -18,6 +20,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
+import java.util.concurrent.CountDownLatch;
 import java.util.stream.Stream;
 
 @TestMethodOrder(OrderAnnotation.class)
@@ -31,34 +34,37 @@ class SimpleDebitScenarioIT {
   // Test case
   private static final int INITIAL_BALANCE = 500;
   private static final int DEBIT_AMOUNT = 300;
-  private static final int numOfAccounts = 100;
+  private static final int NUM_OF_DEBITORS = 10;
+  private static final int NUM_OF_CREDITORS = NUM_OF_DEBITORS;
+  private static final int EXPECTED_COMMANDS_COUNT = NUM_OF_DEBITORS * 3;
+  private static final int EXPECTED_EVENTS_COUNT = NUM_OF_DEBITORS * 5;
 
   @ParameterizedTest(name = "Using {0} adapter")
   @MethodSource("adapters")
   void simpleScenario(PartitionPipeline pipeline) {
     // Given
-    int expectedCommandsCount = numOfAccounts * 3;
-    int expectedEventsCount = numOfAccounts * 5;
 
     // When
-    var commands = data.simpleDebitProcess(numOfAccounts, INITIAL_BALANCE, DEBIT_AMOUNT);
-    StepVerifier.create(commands.flatMap(pipeline.commandRepo::pub))
-                .expectNextCount(expectedCommandsCount)
+    StepVerifier.create(simpleDebitProcess().flatMap(pipeline.commandRepo::pub))
+                .expectNextCount(EXPECTED_COMMANDS_COUNT)
                 .verifyComplete();
     // Then
-    //    StepVerifier.create(pipeline.handle().take(expectedEventsCount))
-    //                .expectNextCount(expectedEventsCount)
-    //                .verifyComplete();
-    //    // And
-    //    StepVerifier.create(verify(pipeline, expectedCommandsCount)).expectNext(true).verifyComplete();
+    StepVerifier.create(pipeline.handle().take(EXPECTED_EVENTS_COUNT))
+                .expectNextCount(EXPECTED_EVENTS_COUNT)
+                .verifyComplete();
+    // And
+    var latch = new CountDownLatch(NUM_OF_DEBITORS + NUM_OF_CREDITORS);
+    StepVerifier.create(verify(pipeline, latch)).expectNext(true).verifyComplete();
   }
 
-  private Mono<Boolean> verify(PartitionPipeline pipeline, int expectedEventsCount) {
-    return Utils.reduce(pipeline.domain.evolver(), pipeline.eventRepo.sub().take(expectedEventsCount))
+  private Mono<Boolean> verify(PartitionPipeline pipeline, CountDownLatch latch) {
+    return Utils.reduce(pipeline.domain.evolver(), pipeline.eventRepo.sub().take(EXPECTED_EVENTS_COUNT))
                 .map(Map::values)
                 .flatMapMany(Flux::fromIterable)
                 .map(OpenAccount.class::cast)
                 .map(this::verify)
+                .doOnNext(_ -> latch.countDown())
+                .doOnNext(_ -> System.out.println(latch.getCount()))
                 .reduce((a, b) -> a && b);
   }
 
@@ -81,6 +87,15 @@ class SimpleDebitScenarioIT {
     return Stream.of(Arguments.of(Named.of("In memory", inMemory)),
                      Arguments.of(Named.of("Kafka", kafka)),
                      Arguments.of(Named.of("Nats", nats)));
+  }
+
+  public Flux<AccountCommand> simpleDebitProcess() {
+    var debitedIds = data.createIds(0, NUM_OF_DEBITORS).map(StateId::of);
+    var creditedIds = data.createIds(NUM_OF_CREDITORS, NUM_OF_CREDITORS).map(StateId::of);
+    var createDebitedAcc = data.createAccountCmd(debitedIds, INITIAL_BALANCE);
+    var createCreditedAcc = data.createAccountCmd(creditedIds, INITIAL_BALANCE);
+    var debitTheAccounts = data.debitCmd(debitedIds.zipWith(creditedIds), DEBIT_AMOUNT);
+    return createDebitedAcc.concatWith(createCreditedAcc).concatWith(debitTheAccounts);
   }
 
   private static void printRates(String methodName, long start, long msgCount) {

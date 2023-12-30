@@ -8,7 +8,6 @@ import io.memoria.reactive.eventsourcing.stream.CommandRoute;
 import io.vavr.collection.Map;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.kafka.receiver.KafkaReceiver;
 import reactor.kafka.receiver.ReceiverRecord;
 import reactor.kafka.sender.KafkaSender;
 import reactor.kafka.sender.SenderOptions;
@@ -39,8 +38,7 @@ public class KafkaCommandRepo implements CommandRepo {
 
   @Override
   public Flux<Command> sub() {
-    var receiver = KafkaReceiver.create(KafkaUtils.receiveOptions(route.topic(), route.partition(), consumerConfig));
-    return receiver.receive().concatMap(this::toCommand);
+    return KafkaUtils.subscribe(route.topic(), route.partition(), consumerConfig).concatMap(this::toCommand);
   }
 
   private SenderRecord<String, String, Command> toRecord(Command command) {
