@@ -19,7 +19,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.util.concurrent.CountDownLatch;
 import java.util.stream.Stream;
 
 @TestMethodOrder(OrderAnnotation.class)
@@ -33,7 +32,7 @@ class SimpleDebitScenarioIT {
   // Test case
   private static final int INITIAL_BALANCE = 500;
   private static final int DEBIT_AMOUNT = 300;
-  private static final int NUM_OF_DEBITORS = 10;
+  private static final int NUM_OF_DEBITORS = 1000;
   private static final int NUM_OF_CREDITORS = NUM_OF_DEBITORS;
   private static final int EXPECTED_COMMANDS_COUNT = NUM_OF_DEBITORS * 3;
   private static final int EXPECTED_EVENTS_COUNT = NUM_OF_DEBITORS * 5;
@@ -50,18 +49,15 @@ class SimpleDebitScenarioIT {
                 .expectNextCount(EXPECTED_EVENTS_COUNT)
                 .verifyComplete();
     // Then
-    var latch = new CountDownLatch(NUM_OF_DEBITORS + NUM_OF_CREDITORS);
-    StepVerifier.create(verify(pipeline, latch)).expectNext(true).verifyComplete();
+    StepVerifier.create(verify(pipeline)).expectNext(true).verifyComplete();
   }
 
-  private Mono<Boolean> verify(PartitionPipeline pipeline, CountDownLatch latch) {
+  private Mono<Boolean> verify(PartitionPipeline pipeline) {
     return Utils.reduce(pipeline.domain.evolver(), pipeline.subscribeToEvents().take(EXPECTED_EVENTS_COUNT))
                 .map(Map::values)
                 .flatMapMany(Flux::fromIterable)
                 .map(OpenAccount.class::cast)
                 .map(this::verify)
-                .doOnNext(_ -> latch.countDown())
-                .doOnNext(_ -> System.out.println(latch.getCount()))
                 .reduce((a, b) -> a && b);
   }
 
