@@ -2,15 +2,12 @@ package io.memoria.reactive.testsuite;
 
 import io.memoria.atom.core.text.SerializableTransformer;
 import io.memoria.atom.eventsourcing.Domain;
+import io.memoria.reactive.eventsourcing.pipeline.CommandRoute;
+import io.memoria.reactive.eventsourcing.pipeline.EventRoute;
 import io.memoria.reactive.eventsourcing.pipeline.PartitionPipeline;
-import io.memoria.reactive.eventsourcing.stream.CommandRepo;
-import io.memoria.reactive.eventsourcing.stream.CommandRoute;
-import io.memoria.reactive.eventsourcing.stream.EventRepo;
-import io.memoria.reactive.eventsourcing.stream.EventRoute;
-import io.memoria.reactive.kafka.KafkaCommandRepo;
-import io.memoria.reactive.kafka.KafkaEventRepo;
-import io.memoria.reactive.nats.NatsCommandRepo;
-import io.memoria.reactive.nats.NatsEventRepo;
+import io.memoria.reactive.eventsourcing.stream.MsgStream;
+import io.memoria.reactive.kafka.KafkaMsgStream;
+import io.memoria.reactive.nats.NatsMsgStream;
 import io.memoria.reactive.nats.NatsUtils;
 import io.nats.client.JetStreamApiException;
 import io.vavr.collection.HashMap;
@@ -19,14 +16,16 @@ import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.common.serialization.StringDeserializer;
 import org.apache.kafka.common.serialization.StringSerializer;
+import org.junit.jupiter.api.Named;
+import org.junit.jupiter.params.provider.Arguments;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.stream.Stream;
 
 import static io.memoria.reactive.nats.NatsUtils.defaultStreamConfig;
 
 public class Infra {
-
   public final String NATS_URL = "nats://localhost:4222";
   public final SerializableTransformer transformer = new SerializableTransformer();
   public final String groupId;
@@ -35,40 +34,40 @@ public class Infra {
     this.groupId = groupId;
   }
 
-  public PartitionPipeline kafkaPipeline(Domain domain, CommandRoute commandRoute, EventRoute eventRoute) {
-    var commandRepo = new KafkaCommandRepo(kafkaProducerConfigs(), kafkaConsumerConfigs(), commandRoute, transformer);
-    var eventRepo = new KafkaEventRepo(kafkaProducerConfigs(),
-                                       kafkaConsumerConfigs(),
-                                       eventRoute,
-                                       Duration.ofMillis(1000),
-                                       transformer);
-    return new PartitionPipeline(domain, commandRepo, eventRepo);
+  public Stream<Arguments> pipelines(Domain domain, CommandRoute commandRoute, EventRoute eventRoute) {
+    var inMemory = inMemoryPipeline(domain, commandRoute, eventRoute);
+    var kafka = kafkaPipeline(domain, commandRoute, eventRoute);
+    var nats = natsPipeline(domain, commandRoute, eventRoute);
+    return Stream.of(Arguments.of(Named.of("In memory", inMemory)),
+                     Arguments.of(Named.of("Kafka", kafka)),
+                     Arguments.of(Named.of("Nats", nats)));
   }
 
-  public PartitionPipeline natsPipeline(Domain domain, CommandRoute commandRoute, EventRoute eventRoute) {
+  private PartitionPipeline kafkaPipeline(Domain domain, CommandRoute commandRoute, EventRoute eventRoute) {
+    var repo = new KafkaMsgStream(kafkaProducerConfigs(), kafkaConsumerConfigs(), Duration.ofMillis(1000));
+    return new PartitionPipeline(domain, repo, commandRoute, eventRoute, new SerializableTransformer());
+  }
+
+  private PartitionPipeline natsPipeline(Domain domain, CommandRoute commandRoute, EventRoute eventRoute) {
     try {
       var nc = NatsUtils.createConnection(NATS_URL);
-      var commandRepo = new NatsCommandRepo(nc, commandRoute, transformer);
-      var eventRepo = new NatsEventRepo(nc, eventRoute, transformer);
+      var repo = new NatsMsgStream(nc, eventRoute, transformer);
 
-      NatsUtils.createOrUpdateStream(nc.jetStreamManagement(),
-                                     defaultStreamConfig(eventRoute.topic(), 1).build());
-      NatsUtils.createOrUpdateStream(nc.jetStreamManagement(),
-                                     defaultStreamConfig(commandRoute.topic(), 1).build());
+      NatsUtils.createOrUpdateStream(nc.jetStreamManagement(), defaultStreamConfig(eventRoute.topic(), 1).build());
+      NatsUtils.createOrUpdateStream(nc.jetStreamManagement(), defaultStreamConfig(commandRoute.topic(), 1).build());
 
-      return new PartitionPipeline(domain, commandRepo, eventRepo);
+      return new PartitionPipeline(domain, repo, commandRoute, eventRoute, new SerializableTransformer());
     } catch (IOException | InterruptedException | JetStreamApiException e) {
       throw new RuntimeException(e);
     }
   }
 
-  public PartitionPipeline inMemoryPipeline(Domain domain) {
-    var commandRepo = CommandRepo.inMemory();
-    var eventRepo = EventRepo.inMemory();
-    return new PartitionPipeline(domain, commandRepo, eventRepo);
+  private PartitionPipeline inMemoryPipeline(Domain domain, CommandRoute commandRoute, EventRoute eventRoute) {
+    var repo = MsgStream.inMemory();
+    return new PartitionPipeline(domain, repo, commandRoute, eventRoute, new SerializableTransformer());
   }
 
-  public Map<String, Object> kafkaConsumerConfigs() {
+  private Map<String, Object> kafkaConsumerConfigs() {
     return HashMap.of(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG,
                       "localhost:9092",
                       ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG,
@@ -83,7 +82,7 @@ public class Infra {
                       groupId);
   }
 
-  public Map<String, Object> kafkaProducerConfigs() {
+  private Map<String, Object> kafkaProducerConfigs() {
     return HashMap.of(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG,
                       "localhost:9092",
                       ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG,

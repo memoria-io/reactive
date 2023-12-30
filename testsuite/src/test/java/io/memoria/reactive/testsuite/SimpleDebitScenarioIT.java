@@ -4,12 +4,11 @@ import io.memoria.atom.eventsourcing.StateId;
 import io.memoria.atom.testsuite.eventsourcing.command.AccountCommand;
 import io.memoria.atom.testsuite.eventsourcing.state.OpenAccount;
 import io.memoria.reactive.eventsourcing.Utils;
+import io.memoria.reactive.eventsourcing.pipeline.CommandRoute;
+import io.memoria.reactive.eventsourcing.pipeline.EventRoute;
 import io.memoria.reactive.eventsourcing.pipeline.PartitionPipeline;
-import io.memoria.reactive.eventsourcing.stream.CommandRoute;
-import io.memoria.reactive.eventsourcing.stream.EventRoute;
 import io.vavr.collection.Map;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
-import org.junit.jupiter.api.Named;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -43,22 +42,20 @@ class SimpleDebitScenarioIT {
   @MethodSource("adapters")
   void simpleScenario(PartitionPipeline pipeline) {
     // Given
-
-    // When
-    StepVerifier.create(simpleDebitProcess().flatMap(pipeline.commandRepo::pub))
+    StepVerifier.create(simpleDebitProcess().flatMap(pipeline::publishCommand))
                 .expectNextCount(EXPECTED_COMMANDS_COUNT)
                 .verifyComplete();
-    // Then
+    // When
     StepVerifier.create(pipeline.handle().take(EXPECTED_EVENTS_COUNT))
                 .expectNextCount(EXPECTED_EVENTS_COUNT)
                 .verifyComplete();
-    // And
+    // Then
     var latch = new CountDownLatch(NUM_OF_DEBITORS + NUM_OF_CREDITORS);
     StepVerifier.create(verify(pipeline, latch)).expectNext(true).verifyComplete();
   }
 
   private Mono<Boolean> verify(PartitionPipeline pipeline, CountDownLatch latch) {
-    return Utils.reduce(pipeline.domain.evolver(), pipeline.eventRepo.sub().take(EXPECTED_EVENTS_COUNT))
+    return Utils.reduce(pipeline.domain.evolver(), pipeline.subscribeToEvents().take(EXPECTED_EVENTS_COUNT))
                 .map(Map::values)
                 .flatMapMany(Flux::fromIterable)
                 .map(OpenAccount.class::cast)
@@ -78,17 +75,6 @@ class SimpleDebitScenarioIT {
     }
   }
 
-  private static Stream<Arguments> adapters() {
-    var commandRoute = new CommandRoute("commands" + System.currentTimeMillis(), 0, 1);
-    var eventRoute = new EventRoute("events" + System.currentTimeMillis(), 0, 1);
-    var inMemory = infra.inMemoryPipeline(data.domain());
-    var kafka = infra.kafkaPipeline(data.domain(), commandRoute, eventRoute);
-    var nats = infra.natsPipeline(data.domain(), commandRoute, eventRoute);
-    return Stream.of(Arguments.of(Named.of("In memory", inMemory)),
-                     Arguments.of(Named.of("Kafka", kafka)),
-                     Arguments.of(Named.of("Nats", nats)));
-  }
-
   public Flux<AccountCommand> simpleDebitProcess() {
     var debitedIds = data.createIds(0, NUM_OF_DEBITORS).map(StateId::of);
     var creditedIds = data.createIds(NUM_OF_CREDITORS, NUM_OF_CREDITORS).map(StateId::of);
@@ -98,11 +84,10 @@ class SimpleDebitScenarioIT {
     return createDebitedAcc.concatWith(createCreditedAcc).concatWith(debitTheAccounts);
   }
 
-  private static void printRates(String methodName, long start, long msgCount) {
-    long totalElapsed = System.currentTimeMillis() - start;
-    log.info("{}: Finished processing {} events, in {} millis %n", methodName, msgCount, totalElapsed);
-    var eventsPerSec = msgCount / (totalElapsed / 1000d);
-    log.info("{}: Average {} events per second %n", methodName, (long) eventsPerSec);
+  private static Stream<Arguments> adapters() {
+    var commandRoute = new CommandRoute("commands" + System.currentTimeMillis(), 0, 1);
+    var eventRoute = new EventRoute("events" + System.currentTimeMillis(), 0, 1);
+    return infra.pipelines(data.domain(), commandRoute, eventRoute);
   }
 
   private static Infra configs() {

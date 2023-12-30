@@ -1,11 +1,11 @@
-package io.memoria.reactive.eventsourcing.stream;
+package io.memoria.reactive.eventsourcing.pipeline;
 
-public record EventRoute(String topic, int partition, int totalPartitions) {
-  public EventRoute(String topic) {
+public record CommandRoute(String topic, int partition, int totalPartitions) {
+  public CommandRoute(String topic) {
     this(topic, 0, 1);
   }
 
-  public EventRoute {
+  public CommandRoute {
     if (topic == null || topic.isBlank()) {
       throw new IllegalArgumentException("Invalid topic name");
     }

@@ -1,10 +1,10 @@
 package io.memoria.reactive.nats;
 
 import io.memoria.atom.core.text.TextTransformer;
-import io.memoria.atom.eventsourcing.Event;
 import io.memoria.reactive.core.reactor.ReactorUtils;
-import io.memoria.reactive.eventsourcing.stream.EventRepo;
-import io.memoria.reactive.eventsourcing.stream.EventRoute;
+import io.memoria.reactive.eventsourcing.pipeline.EventRoute;
+import io.memoria.reactive.eventsourcing.stream.Msg;
+import io.memoria.reactive.eventsourcing.stream.MsgStream;
 import io.nats.client.Connection;
 import io.nats.client.JetStream;
 import io.nats.client.JetStreamSubscription;
@@ -12,6 +12,7 @@ import io.nats.client.Message;
 import io.nats.client.PublishOptions;
 import io.nats.client.PullSubscribeOptions;
 import io.nats.client.api.ConsumerConfiguration;
+import io.nats.client.impl.Headers;
 import io.nats.client.impl.NatsMessage;
 import io.vavr.collection.List;
 import io.vavr.collection.Traversable;
@@ -21,86 +22,78 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 
 import static io.memoria.reactive.nats.NatsUtils.defaultConsumerConfigs;
 import static io.memoria.reactive.nats.NatsUtils.toPartitionedSubjectName;
 import static io.memoria.reactive.nats.NatsUtils.toSubscriptionName;
 
-public class NatsEventRepo implements EventRepo {
-  private static final Logger log = LoggerFactory.getLogger(NatsEventRepo.class.getName());
+public class NatsMsgStream implements MsgStream {
+  private static final Logger log = LoggerFactory.getLogger(NatsMsgStream.class.getName());
+  public static final String ID_HEADER = "ID_HEADER";
   private final JetStream jetStream;
   private final PullSubscribeOptions subscribeOptions;
-  private final EventRoute route;
 
   // Polling Config
   private final int fetchBatchSize;
   private final Duration fetchMaxWait;
 
-  // SerDes
-  private final TextTransformer transformer;
-
   /**
    * Constructor with default settings
    */
-  public NatsEventRepo(Connection connection, EventRoute route, TextTransformer transformer) throws IOException {
+  public NatsMsgStream(Connection connection, EventRoute route, TextTransformer transformer) throws IOException {
     this(connection,
          defaultConsumerConfigs(toSubscriptionName(route.topic(), route.partition())).build(),
-         route,
          100,
-         Duration.ofMillis(100),
-         transformer);
+         Duration.ofMillis(100));
   }
 
-  public NatsEventRepo(Connection connection,
+  public NatsMsgStream(Connection connection,
                        ConsumerConfiguration consumerConfig,
-                       EventRoute route,
                        int fetchBatchSize,
-                       Duration fetchMaxWait,
-                       TextTransformer transformer) throws IOException {
+                       Duration fetchMaxWait) throws IOException {
     this.jetStream = connection.jetStream();
-    this.route = route;
     this.subscribeOptions = PullSubscribeOptions.builder().configuration(consumerConfig).build();
     this.fetchBatchSize = fetchBatchSize;
     this.fetchMaxWait = fetchMaxWait;
-    this.transformer = transformer;
   }
 
   @Override
-  public Mono<Event> pub(Event event) {
-    var cmdId = event.meta().eventId().value();
-    var opts = PublishOptions.builder().clearExpected().messageId(cmdId).build();
-    return Mono.fromCallable(() -> toNatsMessage(event))
+  public Mono<Msg> pub(String topic, int partition, Msg msg) {
+    var opts = PublishOptions.builder().clearExpected().messageId(msg.key()).build();
+    return Mono.fromCallable(() -> toNatsMessage(topic, partition, msg))
                .flatMap(nm -> Mono.fromFuture(jetStream.publishAsync(nm, opts)))
-               .map(_ -> event);
+               .map(_ -> msg);
   }
 
   @Override
-  public Flux<Event> sub() {
-    var subject = toPartitionedSubjectName(route.topic(), route.partition());
+  public Flux<Msg> sub(String topic, int partition) {
+    var subject = toPartitionedSubjectName(topic, partition);
     return Mono.fromCallable(() -> jetStream.subscribe(subject, subscribeOptions))
                .flatMapMany(sub -> NatsUtils.fetchMessages(sub, fetchBatchSize, fetchMaxWait))
-               .concatMap(this::toEvent);
+               .map(this::toMsg);
   }
 
   @Override
-  public Mono<Event> last() {
-    var subject = toPartitionedSubjectName(route.topic(), route.partition());
+  public Mono<Msg> last(String topic, int partition) {
+    var subject = toPartitionedSubjectName(topic, partition);
     return Mono.fromCallable(() -> jetStream.subscribe(subject, subscribeOptions))
                .flatMap(this::fetchLastMessage)
-               .flatMap(this::toEvent);
+               .map(this::toMsg);
   }
 
-  private NatsMessage toNatsMessage(Event event) {
-    var partition = event.partition(route.totalPartitions());
-    var subject = toPartitionedSubjectName(route.topic(), partition);
-    var payload = transformer.serialize(event).get();
-    return NatsMessage.builder().subject(subject).data(payload).build();
+  static NatsMessage toNatsMessage(String topic, int partition, Msg msg) {
+    var subjectName = toPartitionedSubjectName(topic, partition);
+    var headers = new Headers();
+    headers.add(ID_HEADER, msg.key());
+    return NatsMessage.builder().subject(subjectName).headers(headers).data(msg.value()).build();
   }
 
-  private Mono<Event> toEvent(Message message) {
-    var payload = new String(message.getData());
-    return ReactorUtils.tryToMono(() -> transformer.deserialize(payload, Event.class));
+  private Msg toMsg(Message message) {
+    String key = message.getHeaders().getFirst(ID_HEADER);
+    var value = new String(message.getData(), StandardCharsets.UTF_8);
+    return new Msg(key, value);
 
   }
 

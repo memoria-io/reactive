@@ -1,5 +1,6 @@
 package io.memoria.reactive.eventsourcing.pipeline;
 
+import io.memoria.atom.core.text.TextTransformer;
 import io.memoria.atom.eventsourcing.Command;
 import io.memoria.atom.eventsourcing.CommandId;
 import io.memoria.atom.eventsourcing.Domain;
@@ -9,8 +10,9 @@ import io.memoria.atom.eventsourcing.EventMeta;
 import io.memoria.atom.eventsourcing.State;
 import io.memoria.atom.eventsourcing.StateId;
 import io.memoria.atom.eventsourcing.exceptions.InvalidEvolution;
-import io.memoria.reactive.eventsourcing.stream.CommandRepo;
-import io.memoria.reactive.eventsourcing.stream.EventRepo;
+import io.memoria.reactive.core.reactor.ReactorUtils;
+import io.memoria.reactive.eventsourcing.stream.Msg;
+import io.memoria.reactive.eventsourcing.stream.MsgStream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -31,8 +33,10 @@ public class PartitionPipeline {
   public final Domain domain;
 
   // Infra
-  public final CommandRepo commandRepo;
-  public final EventRepo eventRepo;
+  private final MsgStream msgStream;
+  private final CommandRoute commandRoute;
+  private final EventRoute eventRoute;
+  private final TextTransformer transformer;
 
   // In memory
   private final Map<StateId, State> aggregates;
@@ -43,13 +47,19 @@ public class PartitionPipeline {
   /**
    * The Ids cache (sagaSources and processedCommands) size of 1Million ~= 16Megabyte, since UUID is 32bit -> 16byte
    */
-  public PartitionPipeline(Domain domain, CommandRepo commandRepo, EventRepo eventRepo) {
+  public PartitionPipeline(Domain domain,
+                           MsgStream msgStream,
+                           CommandRoute commandRoute,
+                           EventRoute eventRoute,
+                           TextTransformer transformer) {
     // Core
     this.domain = domain;
 
     // Infra
-    this.commandRepo = commandRepo;
-    this.eventRepo = eventRepo;
+    this.msgStream = msgStream;
+    this.commandRoute = commandRoute;
+    this.eventRoute = eventRoute;
+    this.transformer = transformer;
 
     // In memory
     this.aggregates = new HashMap<>();
@@ -59,14 +69,26 @@ public class PartitionPipeline {
   }
 
   public Flux<Event> handle() {
-    return handle(commandRepo.sub());
+    return handle(msgStream.sub(commandRoute.topic(), commandRoute.partition()).concatMap(this::toCommand));
+  }
+
+  public Flux<Event> subscribeToEvents() {
+    return msgStream.sub(eventRoute.topic(), eventRoute.partition()).concatMap(this::toEvent);
+  }
+
+  public Flux<Msg> subToEventsUntil(String key) {
+    return msgStream.subUntil(eventRoute.topic(), eventRoute.partition(), key);
+  }
+
+  public Mono<Msg> publishCommand(Command command) {
+    return toMsg(command).flatMap(this::publishCommandMsg);
   }
 
   Flux<Event> handle(Flux<Command> commands) {
     var handleCommands = commands.concatMap(this::decide)
                                  .doOnNext(this::evolve)
                                  .concatMap(this::saga)
-                                 .concatMap(eventRepo::pub);
+                                 .concatMap(this::publishEvent);
     return initialize().concatWith(handleCommands);
   }
 
@@ -74,10 +96,13 @@ public class PartitionPipeline {
    * Load previous events and build the state
    */
   Flux<Event> initialize() {
-    return eventRepo.last()
+    return msgStream.last(eventRoute.topic(), eventRoute.partition())
+                    .flatMap(this::toEvent)
                     .map(Event::meta)
                     .map(EventMeta::eventId)
-                    .flatMapMany(eventRepo::subUntil)
+                    .map(EventId::value)
+                    .flatMapMany(this::subToEventsUntil)
+                    .concatMap(this::toEvent)
                     .doOnNext(this::evolve);
   }
 
@@ -100,7 +125,7 @@ public class PartitionPipeline {
     return Mono.defer(() -> {
       var opt = domain.saga().apply(e);
       if (opt.isDefined()) {
-        return commandRepo.pub(opt.get()).map(_ -> e);
+        return publishCommand(opt.get()).map(_ -> e);
       } else {
         return Mono.just(e);
       }
@@ -126,25 +151,51 @@ public class PartitionPipeline {
     }
   }
 
-  boolean hasExpectedVersion(Event event, State currentState) {
+  private Mono<Msg> publishCommandMsg(Msg msg) {
+    return msgStream.pub(commandRoute.topic(), commandRoute.partition(), msg);
+  }
+
+  private Mono<Event> publishEvent(Event event) {
+    return toMsg(event).flatMap(msg -> msgStream.pub(eventRoute.topic(), eventRoute.partition(), msg)).map(_ -> event);
+  }
+
+  private boolean hasExpectedVersion(Event event, State currentState) {
     return event.meta().version() == currentState.meta().version() + 1;
   }
 
-  boolean isDuplicate(Event e) {
+  private boolean isDuplicate(Event e) {
     return prevEvent.get() == null && prevEvent.get().equals(e.meta().eventId());
   }
 
-  void update(Event e, State newState) {
+  private void update(Event e, State newState) {
     aggregates.put(e.meta().stateId(), newState);
     processedCommands.add(e.meta().commandId());
     prevEvent.set(e.meta().eventId());
   }
 
-  boolean isHandledCommand(Command cmd) {
+  private boolean isHandledCommand(Command cmd) {
     return processedCommands.contains(cmd.meta().commandId());
   }
 
-  boolean isHandledSagaCommand(Command cmd) {
+  private boolean isHandledSagaCommand(Command cmd) {
     return cmd.meta().sagaSource().map(sagaSources::contains).getOrElse(false);
+  }
+
+  private Mono<Command> toCommand(Msg msg) {
+    return ReactorUtils.tryToMono(() -> transformer.deserialize(msg.value(), Command.class));
+  }
+
+  private Mono<Event> toEvent(Msg msg) {
+    return ReactorUtils.tryToMono(() -> transformer.deserialize(msg.value(), Event.class));
+  }
+
+  private Mono<Msg> toMsg(Event event) {
+    return ReactorUtils.tryToMono(() -> transformer.serialize(event))
+                       .map(payload -> new Msg(event.meta().eventId().value(), payload));
+  }
+
+  private Mono<Msg> toMsg(Command command) {
+    return ReactorUtils.tryToMono(() -> transformer.serialize(command))
+                       .map(payload -> new Msg(command.meta().commandId().value(), payload));
   }
 }
