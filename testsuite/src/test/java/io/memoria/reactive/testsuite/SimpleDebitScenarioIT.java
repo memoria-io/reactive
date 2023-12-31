@@ -9,6 +9,7 @@ import io.memoria.reactive.eventsourcing.pipeline.EventRoute;
 import io.memoria.reactive.eventsourcing.pipeline.PartitionPipeline;
 import io.vavr.collection.Map;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
+import org.junit.jupiter.api.Named;
 import org.junit.jupiter.api.TestMethodOrder;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
@@ -80,10 +81,15 @@ class SimpleDebitScenarioIT {
     return createDebitedAcc.concatWith(createCreditedAcc).concatWith(debitTheAccounts);
   }
 
-  private static Stream<Arguments> adapters() {
+  public static Stream<Arguments> adapters() {
     var commandRoute = new CommandRoute("commands" + System.currentTimeMillis(), 0, 1);
     var eventRoute = new EventRoute("events" + System.currentTimeMillis(), 0, 1);
-    return infra.pipelines(data.domain(), commandRoute, eventRoute);
+    var inMemory = infra.inMemoryPipeline(data.domain(), commandRoute, eventRoute);
+    var kafka = infra.kafkaPipeline(data.domain(), commandRoute, eventRoute);
+    var nats = infra.natsPipeline(data.domain(), commandRoute, eventRoute);
+    return Stream.of(Arguments.of(Named.of("In memory", inMemory)),
+                     Arguments.of(Named.of("Kafka", kafka)),
+                     Arguments.of(Named.of("Nats", nats)));
   }
 
   private static Infra configs() {

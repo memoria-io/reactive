@@ -81,7 +81,8 @@ public class PartitionPipeline {
   }
 
   public Mono<Msg> publishCommand(Command command) {
-    return toMsg(command).flatMap(this::publishCommandMsg);
+    var partition = command.partition(commandRoute.totalPartitions());
+    return toMsg(command).flatMap(msg -> msgStream.pub(commandRoute.topic(), partition, msg));
   }
 
   Flux<Event> handle(Flux<Command> commands) {
@@ -149,10 +150,6 @@ public class PartitionPipeline {
     } else {
       throw InvalidEvolution.of(event);
     }
-  }
-
-  private Mono<Msg> publishCommandMsg(Msg msg) {
-    return msgStream.pub(commandRoute.topic(), commandRoute.partition(), msg);
   }
 
   private Mono<Event> publishEvent(Event event) {
