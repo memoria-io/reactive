@@ -1,8 +1,8 @@
 package io.memoria.reactive.eventsourcing.stream;
 
-public record Msg(String key, String value) {
-  public Msg(long key, String value) {
-    this(String.valueOf(key), value);
+public record Msg(String topic, int partition, String key, String value) {
+  public Msg(String topic, int partition, long key, String value) {
+    this(topic, partition, String.valueOf(key), value);
   }
 
   public Msg {

@@ -10,9 +10,9 @@ import io.memoria.atom.eventsourcing.EventMeta;
 import io.memoria.atom.eventsourcing.State;
 import io.memoria.atom.eventsourcing.StateId;
 import io.memoria.atom.eventsourcing.exceptions.InvalidEvolution;
-import io.memoria.reactive.core.reactor.ReactorUtils;
 import io.memoria.reactive.eventsourcing.stream.Msg;
 import io.memoria.reactive.eventsourcing.stream.MsgStream;
+import io.vavr.control.Try;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
@@ -69,11 +69,13 @@ public class PartitionPipeline {
   }
 
   public Flux<Event> handle() {
-    return handle(msgStream.sub(commandRoute.topic(), commandRoute.partition()).concatMap(this::toCommand));
+    var commands = msgStream.sub(commandRoute.topic(), commandRoute.partition())
+                            .concatMap(msg -> tryToMono(() -> toCommand(msg)));
+    return handle(commands);
   }
 
   public Flux<Event> subscribeToEvents() {
-    return msgStream.sub(eventRoute.topic(), eventRoute.partition()).concatMap(this::toEvent);
+    return msgStream.sub(eventRoute.topic(), eventRoute.partition()).concatMap(msg -> tryToMono(() -> toEvent(msg)));
   }
 
   public Flux<Msg> subToEventsUntil(String key) {
@@ -81,8 +83,7 @@ public class PartitionPipeline {
   }
 
   public Mono<Msg> publishCommand(Command command) {
-    var partition = command.partition(commandRoute.totalPartitions());
-    return toMsg(command).flatMap(msg -> msgStream.pub(commandRoute.topic(), partition, msg));
+    return tryToMono(() -> toMsg(command)).flatMap(msgStream::pub);
   }
 
   Flux<Event> handle(Flux<Command> commands) {
@@ -99,12 +100,13 @@ public class PartitionPipeline {
    */
   Flux<Event> initialize() {
     return msgStream.last(eventRoute.topic(), eventRoute.partition())
-                    .flatMap(this::toEvent)
+                    .map(this::toEvent)
+                    .flatMap(e -> tryToMono(() -> e))
                     .map(Event::meta)
                     .map(EventMeta::eventId)
                     .map(EventId::value)
                     .flatMapMany(this::subToEventsUntil)
-                    .concatMap(this::toEvent)
+                    .concatMap(msg -> tryToMono(() -> toEvent(msg)))
                     .doOnNext(this::evolve);
   }
 
@@ -165,7 +167,7 @@ public class PartitionPipeline {
   }
 
   private Mono<Event> publishEvent(Event event) {
-    return toMsg(event).flatMap(msg -> msgStream.pub(eventRoute.topic(), eventRoute.partition(), msg)).map(_ -> event);
+    return tryToMono(() -> toMsg(event)).flatMap(msgStream::pub).map(_ -> event);
   }
 
   private boolean hasExpectedVersion(Event event, State currentState) {
@@ -190,21 +192,28 @@ public class PartitionPipeline {
     return cmd.meta().sagaSource().map(sagaSources::contains).getOrElse(false);
   }
 
-  private Mono<Command> toCommand(Msg msg) {
-    return ReactorUtils.tryToMono(() -> transformer.deserialize(msg.value(), Command.class));
+  private Try<Command> toCommand(Msg msg) {
+    return transformer.deserialize(msg.value(), Command.class);
   }
 
-  private Mono<Event> toEvent(Msg msg) {
-    return ReactorUtils.tryToMono(() -> transformer.deserialize(msg.value(), Event.class));
+  private Try<Event> toEvent(Msg msg) {
+    return transformer.deserialize(msg.value(), Event.class);
   }
 
-  private Mono<Msg> toMsg(Event event) {
-    return ReactorUtils.tryToMono(() -> transformer.serialize(event))
-                       .map(payload -> new Msg(event.meta().eventId().value(), payload));
+  private Try<Msg> toMsg(Event event) {
+    return transformer.serialize(event)
+                      .map(payload -> new Msg(eventRoute.topic(),
+                                              eventRoute.partition(),
+                                              event.meta().eventId().value(),
+                                              payload));
   }
 
-  private Mono<Msg> toMsg(Command command) {
-    return ReactorUtils.tryToMono(() -> transformer.serialize(command))
-                       .map(payload -> new Msg(command.meta().commandId().value(), payload));
+  private Try<Msg> toMsg(Command command) {
+    var partition = command.partition(commandRoute.totalPartitions());
+    return transformer.serialize(command)
+                      .map(payload -> new Msg(commandRoute.topic(),
+                                              partition,
+                                              command.meta().commandId().value(),
+                                              payload));
   }
 }

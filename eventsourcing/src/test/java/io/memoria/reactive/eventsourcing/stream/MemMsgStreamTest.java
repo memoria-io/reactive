@@ -17,12 +17,10 @@ class MemMsgStreamTest {
   void publishAndSubscribe() {
     StepVerifier.create(msgStream.last(topic, partition)).expectComplete().verify();
     // Given
-    var messages = Flux.range(0, ELEMENTS_SIZE).map(i -> new Msg(i, "hello"));
+    var messages = Flux.range(0, ELEMENTS_SIZE).map(i -> new Msg(topic, partition, i, "hello"));
 
     // When
-    StepVerifier.create(messages.concatMap(msg -> msgStream.pub(topic, partition, msg)))
-                .expectNextCount(ELEMENTS_SIZE)
-                .verifyComplete();
+    StepVerifier.create(messages.concatMap(msgStream::pub)).expectNextCount(ELEMENTS_SIZE).verifyComplete();
 
     // Then
     var idx = new AtomicInteger();

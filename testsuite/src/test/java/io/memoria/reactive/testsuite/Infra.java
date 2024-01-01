@@ -79,7 +79,7 @@ public class Infra {
 
   public PartitionPipeline natsPipeline(Domain domain, CommandRoute commandRoute, EventRoute eventRoute) {
     try {
-      var repo = new NatsMsgStream(nc, eventRoute, transformer);
+      var repo = new NatsMsgStream(nc, eventRoute);
       return new PartitionPipeline(domain, repo, commandRoute, eventRoute, new SerializableTransformer());
     } catch (IOException e) {
       throw new RuntimeException(e);

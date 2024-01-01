@@ -8,7 +8,7 @@ import java.util.Map;
 import java.util.concurrent.atomic.AtomicReference;
 
 public interface MsgStream {
-  Mono<Msg> pub(String topic, int partition, Msg msg);
+  Mono<Msg> pub(Msg msg);
 
   Flux<Msg> sub(String topic, int partition);
 

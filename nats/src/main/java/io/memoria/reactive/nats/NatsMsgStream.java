@@ -1,6 +1,5 @@
 package io.memoria.reactive.nats;
 
-import io.memoria.atom.core.text.TextTransformer;
 import io.memoria.reactive.core.reactor.ReactorUtils;
 import io.memoria.reactive.eventsourcing.pipeline.EventRoute;
 import io.memoria.reactive.eventsourcing.stream.Msg;
@@ -42,7 +41,7 @@ public class NatsMsgStream implements MsgStream {
   /**
    * Constructor with default settings
    */
-  public NatsMsgStream(Connection connection, EventRoute route, TextTransformer transformer) throws IOException {
+  public NatsMsgStream(Connection connection, EventRoute route) throws IOException {
     this(connection,
          defaultConsumerConfigs(toSubscriptionName(route.topic(), route.partition())).build(),
          100,
@@ -60,9 +59,9 @@ public class NatsMsgStream implements MsgStream {
   }
 
   @Override
-  public Mono<Msg> pub(String topic, int partition, Msg msg) {
+  public Mono<Msg> pub(Msg msg) {
     var opts = PublishOptions.builder().clearExpected().messageId(msg.key()).build();
-    return Mono.fromCallable(() -> toNatsMessage(topic, partition, msg))
+    return Mono.fromCallable(() -> toNatsMessage(msg))
                .flatMap(nm -> Mono.fromFuture(jetStream.publishAsync(nm, opts)))
                .map(_ -> msg);
   }
@@ -72,7 +71,7 @@ public class NatsMsgStream implements MsgStream {
     var subject = toPartitionedSubjectName(topic, partition);
     return Mono.fromCallable(() -> jetStream.subscribe(subject, subscribeOptions))
                .flatMapMany(sub -> NatsUtils.fetchMessages(sub, fetchBatchSize, fetchMaxWait))
-               .map(this::toMsg);
+               .map(m -> toMsg(topic, partition, m));
   }
 
   @Override
@@ -80,20 +79,20 @@ public class NatsMsgStream implements MsgStream {
     var subject = toPartitionedSubjectName(topic, partition);
     return Mono.fromCallable(() -> jetStream.subscribe(subject, subscribeOptions))
                .flatMap(this::fetchLastMessage)
-               .map(this::toMsg);
+               .map(m -> toMsg(topic, partition, m));
   }
 
-  static NatsMessage toNatsMessage(String topic, int partition, Msg msg) {
-    var subjectName = toPartitionedSubjectName(topic, partition);
+  static NatsMessage toNatsMessage(Msg msg) {
+    var subjectName = toPartitionedSubjectName(msg.topic(), msg.partition());
     var headers = new Headers();
     headers.add(ID_HEADER, msg.key());
     return NatsMessage.builder().subject(subjectName).headers(headers).data(msg.value()).build();
   }
 
-  private Msg toMsg(Message message) {
+  private Msg toMsg(String topic, int partition, Message message) {
     String key = message.getHeaders().getFirst(ID_HEADER);
     var value = new String(message.getData(), StandardCharsets.UTF_8);
-    return new Msg(key, value);
+    return new Msg(topic, partition, key, value);
 
   }
 

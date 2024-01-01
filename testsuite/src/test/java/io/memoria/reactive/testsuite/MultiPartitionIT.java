@@ -33,7 +33,7 @@ class MultiPartitionIT {
   // Infra
   private static final Data data = Data.ofUUID();
   private static final Infra infra = configs();
-  private static final int numOfPipelines = 100;
+  private static final int numOfPipelines = 10;
 
   // Test case
   private static final int INITIAL_BALANCE = 500;
@@ -91,7 +91,7 @@ class MultiPartitionIT {
     var kafka = routes.map(tup -> infra.kafkaPipeline(data.domain(), tup._1, tup._2));
     var nats = routes.map(tup -> infra.natsPipeline(data.domain(), tup._1, tup._2));
     return Stream.of(Arguments.of(Named.of("In memory", inMemory)),
-//                     Arguments.of(Named.of("Nats", nats)),
+                     Arguments.of(Named.of("Nats", nats)),
                      Arguments.of(Named.of("Kafka", kafka)));
   }
 

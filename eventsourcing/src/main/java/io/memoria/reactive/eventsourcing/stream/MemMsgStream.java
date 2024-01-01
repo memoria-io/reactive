@@ -27,15 +27,15 @@ public class MemMsgStream implements MsgStream {
   }
 
   @Override
-  public Mono<Msg> pub(String topic, int partition, Msg msg) {
-    return Mono.fromRunnable(() -> emit(topic, partition, msg)).thenReturn(msg);
+  public Mono<Msg> pub(Msg msg) {
+    return Mono.fromRunnable(() -> emit(msg)).thenReturn(msg);
   }
 
-  private void emit(String topic, int partition, Msg msg) {
-    messages.computeIfAbsent(topic, _ -> new ConcurrentHashMap<>());
-    messages.computeIfPresent(topic, (_, topicStream) -> {
-      topicStream.computeIfAbsent(partition, _ -> Sinks.many().replay().limit(historySize));
-      topicStream.computeIfPresent(partition, (_, v) -> {
+  private void emit(Msg msg) {
+    messages.computeIfAbsent(msg.topic(), _ -> new ConcurrentHashMap<>());
+    messages.computeIfPresent(msg.topic(), (_, topicStream) -> {
+      topicStream.computeIfAbsent(msg.partition(), _ -> Sinks.many().replay().limit(historySize));
+      topicStream.computeIfPresent(msg.partition(), (_, v) -> {
         v.tryEmitNext(msg).orThrow();
         return v;
       });

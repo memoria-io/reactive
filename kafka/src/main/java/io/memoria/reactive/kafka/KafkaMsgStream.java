@@ -27,29 +27,27 @@ public class KafkaMsgStream implements MsgStream {
   }
 
   @Override
-  public Mono<Msg> pub(String topic, int partition, Msg msg) {
-    return producer.send(Mono.fromCallable(() -> toRecord(topic, partition, msg)))
-                   .map(SenderResult::correlationMetadata)
-                   .single();
+  public Mono<Msg> pub(Msg msg) {
+    return producer.send(Mono.fromCallable(() -> toRecord(msg))).map(SenderResult::correlationMetadata).single();
   }
 
   @Override
   public Flux<Msg> sub(String topic, int partition) {
-    return KafkaUtils.subscribe(topic, partition, consumerConfig).map(this::toMsg);
+    return KafkaUtils.subscribe(topic, partition, consumerConfig).map(record -> toMsg(topic, partition, record));
   }
 
   @Override
   public Mono<Msg> last(String topic, int partition) {
     return Mono.fromCallable(() -> KafkaUtils.lastKey(topic, partition, timeout, consumerConfig))
                .flatMap(ReactorUtils::optionToMono)
-               .map(this::toMsg);
+               .map(record -> toMsg(topic, partition, record));
   }
 
-  private SenderRecord<String, String, Msg> toRecord(String topic, int partition, Msg msg) {
-    return SenderRecord.create(topic, partition, null, msg.key(), msg.value(), msg);
+  private SenderRecord<String, String, Msg> toRecord(Msg msg) {
+    return SenderRecord.create(msg.topic(), msg.partition(), null, msg.key(), msg.value(), msg);
   }
 
-  private Msg toMsg(ConsumerRecord<String, String> record) {
-    return new Msg(record.key(), record.value());
+  private Msg toMsg(String topic, int partition, ConsumerRecord<String, String> record) {
+    return new Msg(topic, partition, record.key(), record.value());
   }
 }
