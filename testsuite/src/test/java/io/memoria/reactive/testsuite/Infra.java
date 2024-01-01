@@ -10,6 +10,7 @@ import io.memoria.reactive.kafka.KafkaMsgStream;
 import io.memoria.reactive.kafka.KafkaUtils;
 import io.memoria.reactive.nats.NatsMsgStream;
 import io.memoria.reactive.nats.NatsUtils;
+import io.nats.client.Connection;
 import io.nats.client.JetStreamApiException;
 import io.vavr.collection.HashMap;
 import io.vavr.collection.Map;
@@ -28,13 +29,40 @@ import java.util.concurrent.TimeoutException;
 import static io.memoria.reactive.nats.NatsUtils.defaultStreamConfig;
 
 public class Infra {
-  public final String KAFKA_URL = "localhost:9092";
-  public final String NATS_URL = "nats://localhost:4222";
-  public final SerializableTransformer transformer = new SerializableTransformer();
-  public final String groupId;
+  private final String KAFKA_URL;
+  private final String groupId;
+  private final Duration timeout;
+  private final Connection nc;
+  private final SerializableTransformer transformer;
 
   public Infra(String groupId) {
-    this.groupId = groupId;
+    try {
+      this.groupId = groupId;
+      KAFKA_URL = "localhost:9092";
+      timeout = Duration.ofMillis(1000);
+      nc = NatsUtils.createConnection("nats://localhost:4222");
+      transformer = new SerializableTransformer();
+    } catch (IOException | InterruptedException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public void createKafkaTopics(CommandRoute commandRoute, EventRoute eventRoute) {
+    try {
+      KafkaUtils.createTopic(kafkaAdminConfigs(), eventRoute.topic(), eventRoute.totalPartitions(), timeout);
+      KafkaUtils.createTopic(kafkaAdminConfigs(), commandRoute.topic(), commandRoute.totalPartitions(), timeout);
+    } catch (ExecutionException | InterruptedException | TimeoutException e) {
+      throw new RuntimeException(e);
+    }
+  }
+
+  public void createNatsTopics(CommandRoute commandRoute, EventRoute eventRoute) {
+    try {
+      NatsUtils.createOrUpdateStream(nc.jetStreamManagement(), defaultStreamConfig(eventRoute.topic(), 1).build());
+      NatsUtils.createOrUpdateStream(nc.jetStreamManagement(), defaultStreamConfig(commandRoute.topic(), 1).build());
+    } catch (IOException | JetStreamApiException e) {
+      throw new RuntimeException(e);
+    }
   }
 
   public PartitionPipeline inMemoryPipeline(Domain domain,
@@ -45,27 +73,15 @@ public class Infra {
   }
 
   public PartitionPipeline kafkaPipeline(Domain domain, CommandRoute commandRoute, EventRoute eventRoute) {
-    try {
-      Duration timeout = Duration.ofMillis(1000);
-      KafkaUtils.createTopic(kafkaAdminConfigs(), eventRoute.topic(), eventRoute.totalPartitions(), timeout);
-      KafkaUtils.createTopic(kafkaAdminConfigs(), commandRoute.topic(), commandRoute.totalPartitions(), timeout);
-      var repo = new KafkaMsgStream(kafkaProducerConfigs(), kafkaConsumerConfigs(), timeout);
-      return new PartitionPipeline(domain, repo, commandRoute, eventRoute, new SerializableTransformer());
-    } catch (ExecutionException | InterruptedException | TimeoutException e) {
-      throw new RuntimeException(e);
-    }
+    var repo = new KafkaMsgStream(kafkaProducerConfigs(), kafkaConsumerConfigs(), timeout);
+    return new PartitionPipeline(domain, repo, commandRoute, eventRoute, new SerializableTransformer());
   }
 
   public PartitionPipeline natsPipeline(Domain domain, CommandRoute commandRoute, EventRoute eventRoute) {
     try {
-      var nc = NatsUtils.createConnection(NATS_URL);
       var repo = new NatsMsgStream(nc, eventRoute, transformer);
-
-      NatsUtils.createOrUpdateStream(nc.jetStreamManagement(), defaultStreamConfig(eventRoute.topic(), 1).build());
-      NatsUtils.createOrUpdateStream(nc.jetStreamManagement(), defaultStreamConfig(commandRoute.topic(), 1).build());
-
       return new PartitionPipeline(domain, repo, commandRoute, eventRoute, new SerializableTransformer());
-    } catch (IOException | InterruptedException | JetStreamApiException e) {
+    } catch (IOException e) {
       throw new RuntimeException(e);
     }
   }

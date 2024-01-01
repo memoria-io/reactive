@@ -34,8 +34,8 @@ public class PartitionPipeline {
 
   // Infra
   private final MsgStream msgStream;
-  private final CommandRoute commandRoute;
-  private final EventRoute eventRoute;
+  public final CommandRoute commandRoute;
+  public final EventRoute eventRoute;
   private final TextTransformer transformer;
 
   // In memory
@@ -69,9 +69,7 @@ public class PartitionPipeline {
   }
 
   public Flux<Event> handle() {
-    return handle(msgStream.sub(commandRoute.topic(), commandRoute.partition())
-                           .concatMap(this::toCommand)
-                           .doOnNext(System.out::println));
+    return handle(msgStream.sub(commandRoute.topic(), commandRoute.partition()).concatMap(this::toCommand));
   }
 
   public Flux<Event> subscribeToEvents() {

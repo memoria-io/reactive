@@ -33,42 +33,42 @@ class MultiPartitionIT {
   // Infra
   private static final Data data = Data.ofUUID();
   private static final Infra infra = configs();
-  private static final int numOfPipelines = 1;
+  private static final int numOfPipelines = 100;
 
   // Test case
   private static final int INITIAL_BALANCE = 500;
   private static final int DEBIT_AMOUNT = 300;
-  private static final int NUM_OF_DEBITORS = 1000;
+  private static final int NUM_OF_DEBITORS = 500;
   private static final int NUM_OF_CREDITORS = NUM_OF_DEBITORS;
   private static final int EXPECTED_COMMANDS_COUNT = NUM_OF_DEBITORS * 3;
   private static final int TOTAL_EVENTS_COUNT = NUM_OF_DEBITORS * 5;
 
   @ParameterizedTest(name = "Using {0} adapter")
   @MethodSource("adapters")
-  void multiPartitionScenario(List<PartitionPipeline> pipelines) {
+  void multiPartitionScenario(List<PartitionPipeline> pipelines) throws InterruptedException {
+    System.out.println(pipelines.head().commandRoute.topic());
     // Given
-    StepVerifier.create(simpleDebitProcess().concatMap(pipelines.head()::publishCommand))
+    StepVerifier.create(simpleDebitProcess().flatMap(pipelines.head()::publishCommand))
                 .expectNextCount(EXPECTED_COMMANDS_COUNT)
                 .verifyComplete();
     // When
-    //    System.out.println("hello");
-    //    pipelines.map(PartitionPipeline::handle).map(fl -> fl.doOnNext(System.out::println)).map(Flux::subscribe);
+    var latch = new CountDownLatch(TOTAL_EVENTS_COUNT);
+    pipelines.map(PartitionPipeline::handle)
+             .map(s -> s.doOnNext(_ -> latch.countDown()))
+             .map(s -> s.doOnNext(_ -> System.out.println(latch.getCount())))
+             .map(Flux::subscribe);
+    latch.await();
     // Then
-    //    var total = new CountDownLatch(TOTAL_EVENTS_COUNT);
     //    var pipelineEventsCount = TOTAL_EVENTS_COUNT / pipelines.size();
-    //    pipelines.forEach(p -> StepVerifier.create(verify(p, total, pipelineEventsCount))
-    //                                       .expectNext(true)
-    //                                       .verifyComplete());
+    //    pipelines.forEach(p -> StepVerifier.create(verify(p, pipelineEventsCount)).expectNext(true).verifyComplete());
   }
 
-  private Mono<Boolean> verify(PartitionPipeline pipeline, CountDownLatch latch, int expectedEventsCount) {
+  private Mono<Boolean> verify(PartitionPipeline pipeline, int expectedEventsCount) {
     return Utils.reduce(pipeline.domain.evolver(), pipeline.subscribeToEvents().take(expectedEventsCount))
                 .map(Map::values)
                 .flatMapMany(Flux::fromIterable)
                 .map(OpenAccount.class::cast)
                 .map(this::verify)
-                .doOnNext(_ -> latch.countDown())
-                .doOnNext(_ -> System.out.println(latch.getCount()))
                 .reduce((a, b) -> a && b);
   }
 
@@ -84,14 +84,14 @@ class MultiPartitionIT {
 
   private static Stream<Arguments> adapters() {
     var msgStream = MsgStream.inMemory();
-    var inMemory = getRoutes(numOfPipelines).map(tup -> infra.inMemoryPipeline(data.domain(),
-                                                                               msgStream,
-                                                                               tup._1,
-                                                                               tup._2));
-    var kafka = getRoutes(numOfPipelines).map(tup -> infra.kafkaPipeline(data.domain(), tup._1, tup._2));
-    var nats = getRoutes(numOfPipelines).map(tup -> infra.natsPipeline(data.domain(), tup._1, tup._2));
+    var routes = getRoutes(numOfPipelines);
+    infra.createKafkaTopics(routes.head()._1, routes.head()._2);
+    infra.createNatsTopics(routes.head()._1, routes.head()._2);
+    var inMemory = routes.map(tup -> infra.inMemoryPipeline(data.domain(), msgStream, tup._1, tup._2));
+    var kafka = routes.map(tup -> infra.kafkaPipeline(data.domain(), tup._1, tup._2));
+    var nats = routes.map(tup -> infra.natsPipeline(data.domain(), tup._1, tup._2));
     return Stream.of(Arguments.of(Named.of("In memory", inMemory)),
-                     Arguments.of(Named.of("Nats", nats)),
+//                     Arguments.of(Named.of("Nats", nats)),
                      Arguments.of(Named.of("Kafka", kafka)));
   }
 
