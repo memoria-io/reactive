@@ -69,7 +69,9 @@ public class PartitionPipeline {
   }
 
   public Flux<Event> handle() {
-    return handle(msgStream.sub(commandRoute.topic(), commandRoute.partition()).concatMap(this::toCommand));
+    return handle(msgStream.sub(commandRoute.topic(), commandRoute.partition())
+                           .concatMap(this::toCommand)
+                           .doOnNext(System.out::println));
   }
 
   public Flux<Event> subscribeToEvents() {
@@ -86,7 +88,8 @@ public class PartitionPipeline {
   }
 
   Flux<Event> handle(Flux<Command> commands) {
-    var handleCommands = commands.concatMap(this::decide)
+    var handleCommands = commands.concatMap(this::redirectIfNeeded)
+                                 .concatMap(this::decide)
                                  .doOnNext(this::evolve)
                                  .concatMap(this::saga)
                                  .concatMap(this::publishEvent);
@@ -105,6 +108,17 @@ public class PartitionPipeline {
                     .flatMapMany(this::subToEventsUntil)
                     .concatMap(this::toEvent)
                     .doOnNext(this::evolve);
+  }
+
+  /**
+   * Redirection allows location transparency and auto sharding
+   */
+  Mono<Command> redirectIfNeeded(Command cmd) {
+    if (cmd.meta().isInPartition(commandRoute.partition(), commandRoute.totalPartitions())) {
+      return Mono.just(cmd);
+    } else {
+      return this.publishCommand(cmd).flatMap(_ -> Mono.empty());
+    }
   }
 
   Mono<Event> decide(Command cmd) {

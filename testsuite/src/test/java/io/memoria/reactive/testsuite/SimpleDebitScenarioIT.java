@@ -7,6 +7,7 @@ import io.memoria.reactive.eventsourcing.Utils;
 import io.memoria.reactive.eventsourcing.pipeline.CommandRoute;
 import io.memoria.reactive.eventsourcing.pipeline.EventRoute;
 import io.memoria.reactive.eventsourcing.pipeline.PartitionPipeline;
+import io.memoria.reactive.eventsourcing.stream.MsgStream;
 import io.vavr.collection.Map;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
 import org.junit.jupiter.api.Named;
@@ -82,9 +83,10 @@ class SimpleDebitScenarioIT {
   }
 
   public static Stream<Arguments> adapters() {
+    var msgStream = MsgStream.inMemory();
     var commandRoute = new CommandRoute("commands" + System.currentTimeMillis(), 0, 1);
     var eventRoute = new EventRoute("events" + System.currentTimeMillis(), 0, 1);
-    var inMemory = infra.inMemoryPipeline(data.domain(), commandRoute, eventRoute);
+    var inMemory = infra.inMemoryPipeline(data.domain(), msgStream, commandRoute, eventRoute);
     var kafka = infra.kafkaPipeline(data.domain(), commandRoute, eventRoute);
     var nats = infra.natsPipeline(data.domain(), commandRoute, eventRoute);
     return Stream.of(Arguments.of(Named.of("In memory", inMemory)),

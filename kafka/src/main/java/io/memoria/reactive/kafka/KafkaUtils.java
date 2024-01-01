@@ -3,20 +3,45 @@ package io.memoria.reactive.kafka;
 import io.vavr.collection.List;
 import io.vavr.collection.Map;
 import io.vavr.control.Option;
+import org.apache.kafka.clients.admin.KafkaAdminClient;
+import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.errors.TopicExistsException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.kafka.receiver.KafkaReceiver;
 import reactor.kafka.receiver.ReceiverOptions;
 import reactor.kafka.receiver.ReceiverRecord;
 
 import java.time.Duration;
+import java.util.Optional;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeoutException;
 
 import static java.util.Collections.singleton;
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 public class KafkaUtils {
+  private static final Logger log = LoggerFactory.getLogger(KafkaUtils.class.getName());
+
   private KafkaUtils() {}
+
+  public static void createTopic(Map<String, Object> adminConfig, String topic, int numOfPartition, Duration timeout)
+          throws ExecutionException, InterruptedException, TimeoutException {
+    try (var client = KafkaAdminClient.create(adminConfig.toJavaMap())) {
+      var tp = new NewTopic(topic, Optional.of(numOfPartition), Optional.empty());
+      client.createTopics(List.of(tp).toJavaList()).all().get(timeout.toMillis(), MILLISECONDS);
+    } catch (ExecutionException e) {
+      if (e.getCause() instanceof TopicExistsException ex) {
+        log.warn(e.getMessage());
+      } else {
+        throw e;
+      }
+    }
+  }
 
   public static long topicSize(String topic, int partition, Map<String, Object> conf) {
     try (var consumer = new KafkaConsumer<String, String>(conf.toJavaMap())) {

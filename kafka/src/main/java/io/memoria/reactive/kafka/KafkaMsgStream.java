@@ -17,22 +17,13 @@ import java.time.Duration;
 public class KafkaMsgStream implements MsgStream {
   private final KafkaSender<String, String> producer;
   private final Map<String, Object> consumerConfig;
-  private final Duration lastEventTimeout;
+  private final Duration timeout;
 
-  public KafkaMsgStream(Map<String, Object> producerConfig,
-                        Map<String, Object> consumerConfig,
-                        Duration lastEventTimeout) {
+  public KafkaMsgStream(Map<String, Object> producerConfig, Map<String, Object> consumerConfig, Duration timeout) {
     this.consumerConfig = consumerConfig;
-    this.lastEventTimeout = lastEventTimeout;
+    this.timeout = timeout;
     var senderOptions = SenderOptions.<String, String>create(producerConfig.toJavaMap());
     this.producer = KafkaSender.create(senderOptions);
-  }
-
-  @Override
-  public Mono<Msg> last(String topic, int partition) {
-    return Mono.fromCallable(() -> KafkaUtils.lastKey(topic, partition, lastEventTimeout, consumerConfig))
-               .flatMap(ReactorUtils::optionToMono)
-               .map(this::toMsg);
   }
 
   @Override
@@ -45,6 +36,13 @@ public class KafkaMsgStream implements MsgStream {
   @Override
   public Flux<Msg> sub(String topic, int partition) {
     return KafkaUtils.subscribe(topic, partition, consumerConfig).map(this::toMsg);
+  }
+
+  @Override
+  public Mono<Msg> last(String topic, int partition) {
+    return Mono.fromCallable(() -> KafkaUtils.lastKey(topic, partition, timeout, consumerConfig))
+               .flatMap(ReactorUtils::optionToMono)
+               .map(this::toMsg);
   }
 
   private SenderRecord<String, String, Msg> toRecord(String topic, int partition, Msg msg) {

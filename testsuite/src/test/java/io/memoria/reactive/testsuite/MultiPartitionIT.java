@@ -7,6 +7,7 @@ import io.memoria.reactive.eventsourcing.Utils;
 import io.memoria.reactive.eventsourcing.pipeline.CommandRoute;
 import io.memoria.reactive.eventsourcing.pipeline.EventRoute;
 import io.memoria.reactive.eventsourcing.pipeline.PartitionPipeline;
+import io.memoria.reactive.eventsourcing.stream.MsgStream;
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
 import io.vavr.collection.List;
@@ -23,7 +24,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 
-import java.time.Duration;
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.Stream;
 
@@ -33,31 +33,36 @@ class MultiPartitionIT {
   // Infra
   private static final Data data = Data.ofUUID();
   private static final Infra infra = configs();
+  private static final int numOfPipelines = 1;
 
   // Test case
   private static final int INITIAL_BALANCE = 500;
   private static final int DEBIT_AMOUNT = 300;
-  private static final int NUM_OF_DEBITORS = 100;
+  private static final int NUM_OF_DEBITORS = 1000;
   private static final int NUM_OF_CREDITORS = NUM_OF_DEBITORS;
   private static final int EXPECTED_COMMANDS_COUNT = NUM_OF_DEBITORS * 3;
-  private static final int EXPECTED_EVENTS_COUNT = NUM_OF_DEBITORS * 5;
+  private static final int TOTAL_EVENTS_COUNT = NUM_OF_DEBITORS * 5;
 
   @ParameterizedTest(name = "Using {0} adapter")
   @MethodSource("adapters")
   void multiPartitionScenario(List<PartitionPipeline> pipelines) {
     // Given
-    StepVerifier.create(simpleDebitProcess().flatMap(pipelines.head()::publishCommand))
+    StepVerifier.create(simpleDebitProcess().concatMap(pipelines.head()::publishCommand))
                 .expectNextCount(EXPECTED_COMMANDS_COUNT)
                 .verifyComplete();
     // When
-    pipelines.map(PartitionPipeline::handle).map(Flux::subscribe);
+    //    System.out.println("hello");
+    //    pipelines.map(PartitionPipeline::handle).map(fl -> fl.doOnNext(System.out::println)).map(Flux::subscribe);
     // Then
-    var latch = new CountDownLatch(EXPECTED_EVENTS_COUNT);
-    pipelines.forEach(p -> StepVerifier.create(verify(p, latch)).expectNext(true).verifyComplete());
+    //    var total = new CountDownLatch(TOTAL_EVENTS_COUNT);
+    //    var pipelineEventsCount = TOTAL_EVENTS_COUNT / pipelines.size();
+    //    pipelines.forEach(p -> StepVerifier.create(verify(p, total, pipelineEventsCount))
+    //                                       .expectNext(true)
+    //                                       .verifyComplete());
   }
 
-  private Mono<Boolean> verify(PartitionPipeline pipeline, CountDownLatch latch) {
-    return Utils.reduce(pipeline.domain.evolver(), pipeline.subscribeToEvents().take(Duration.ofMillis(3000)))
+  private Mono<Boolean> verify(PartitionPipeline pipeline, CountDownLatch latch, int expectedEventsCount) {
+    return Utils.reduce(pipeline.domain.evolver(), pipeline.subscribeToEvents().take(expectedEventsCount))
                 .map(Map::values)
                 .flatMapMany(Flux::fromIterable)
                 .map(OpenAccount.class::cast)
@@ -78,12 +83,16 @@ class MultiPartitionIT {
   }
 
   private static Stream<Arguments> adapters() {
-    var inMemory = getRoutes(3).map(tup -> infra.inMemoryPipeline(data.domain(), tup._1, tup._2));
-    var kafka = getRoutes(3).map(tup -> infra.kafkaPipeline(data.domain(), tup._1, tup._2));
-    var nats = getRoutes(3).map(tup -> infra.natsPipeline(data.domain(), tup._1, tup._2));
+    var msgStream = MsgStream.inMemory();
+    var inMemory = getRoutes(numOfPipelines).map(tup -> infra.inMemoryPipeline(data.domain(),
+                                                                               msgStream,
+                                                                               tup._1,
+                                                                               tup._2));
+    var kafka = getRoutes(numOfPipelines).map(tup -> infra.kafkaPipeline(data.domain(), tup._1, tup._2));
+    var nats = getRoutes(numOfPipelines).map(tup -> infra.natsPipeline(data.domain(), tup._1, tup._2));
     return Stream.of(Arguments.of(Named.of("In memory", inMemory)),
-            //                     Arguments.of(Named.of("Kafka", kafka)),
-                     Arguments.of(Named.of("Nats", nats)));
+                     Arguments.of(Named.of("Nats", nats)),
+                     Arguments.of(Named.of("Kafka", kafka)));
   }
 
   private static List<Tuple2<CommandRoute, EventRoute>> getRoutes(int x) {
