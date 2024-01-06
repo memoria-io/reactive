@@ -21,7 +21,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.test.StepVerifier;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.Stream;
@@ -48,9 +47,9 @@ class MultiPartitionIT {
     System.out.println(pipelines.head().commandRoute.topic());
     // Given
     simpleDebitProcess().flatMap(pipelines.head()::publishCommand).subscribe();
-//    StepVerifier.create(simpleDebitProcess().flatMap(pipelines.head()::publishCommand))
-//                .expectNextCount(EXPECTED_COMMANDS_COUNT)
-//                .verifyComplete();
+    //    StepVerifier.create(simpleDebitProcess().flatMap(pipelines.head()::publishCommand))
+    //                .expectNextCount(EXPECTED_COMMANDS_COUNT)
+    //                .verifyComplete();
     // When
     var latch = new CountDownLatch(TOTAL_EVENTS_COUNT);
     pipelines.map(PartitionPipeline::handle)
@@ -90,7 +89,7 @@ class MultiPartitionIT {
     var nats = routes.map(tup -> infra.natsPipeline(data.domain(), tup._1, tup._2));
     var kafka = routes.map(tup -> infra.kafkaPipeline(data.domain(), tup._1, tup._2));
     return Stream.of(Arguments.of(Named.of("In memory", inMemory)),
-//                     Arguments.of(Named.of("Nats", nats)),
+            //                     Arguments.of(Named.of("Nats", nats)),
                      Arguments.of(Named.of("Kafka", kafka)));
   }
 
