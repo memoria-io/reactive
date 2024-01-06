@@ -22,6 +22,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static io.memoria.reactive.core.reactor.ReactorUtils.tryToMono;
@@ -69,7 +70,11 @@ public class PartitionPipeline {
   }
 
   public Flux<Event> handle() {
+    var i = new AtomicInteger();
     var commands = msgStream.sub(commandRoute.topic(), commandRoute.partition())
+                            .doOnNext(s -> System.out.printf("Partition(%d):idx(%d)%n",
+                                                             commandRoute.partition(),
+                                                             i.getAndIncrement()))
                             .concatMap(msg -> tryToMono(() -> toCommand(msg)));
     return handle(commands);
   }

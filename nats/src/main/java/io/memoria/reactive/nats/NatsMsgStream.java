@@ -1,7 +1,6 @@
 package io.memoria.reactive.nats;
 
 import io.memoria.reactive.core.reactor.ReactorUtils;
-import io.memoria.reactive.eventsourcing.pipeline.EventRoute;
 import io.memoria.reactive.eventsourcing.stream.Msg;
 import io.memoria.reactive.eventsourcing.stream.MsgStream;
 import io.nats.client.Connection;
@@ -10,7 +9,6 @@ import io.nats.client.JetStreamSubscription;
 import io.nats.client.Message;
 import io.nats.client.PublishOptions;
 import io.nats.client.PullSubscribeOptions;
-import io.nats.client.api.ConsumerConfiguration;
 import io.nats.client.impl.Headers;
 import io.nats.client.impl.NatsMessage;
 import io.vavr.collection.List;
@@ -32,7 +30,6 @@ public class NatsMsgStream implements MsgStream {
   private static final Logger log = LoggerFactory.getLogger(NatsMsgStream.class.getName());
   public static final String ID_HEADER = "ID_HEADER";
   private final JetStream jetStream;
-  private final PullSubscribeOptions subscribeOptions;
 
   // Polling Config
   private final int fetchBatchSize;
@@ -41,19 +38,12 @@ public class NatsMsgStream implements MsgStream {
   /**
    * Constructor with default settings
    */
-  public NatsMsgStream(Connection connection, EventRoute route) throws IOException {
-    this(connection,
-         defaultConsumerConfigs(toSubscriptionName(route.topic(), route.partition())).build(),
-         100,
-         Duration.ofMillis(100));
+  public NatsMsgStream(Connection connection) throws IOException {
+    this(connection, 100, Duration.ofMillis(100));
   }
 
-  public NatsMsgStream(Connection connection,
-                       ConsumerConfiguration consumerConfig,
-                       int fetchBatchSize,
-                       Duration fetchMaxWait) throws IOException {
+  public NatsMsgStream(Connection connection, int fetchBatchSize, Duration fetchMaxWait) throws IOException {
     this.jetStream = connection.jetStream();
-    this.subscribeOptions = PullSubscribeOptions.builder().configuration(consumerConfig).build();
     this.fetchBatchSize = fetchBatchSize;
     this.fetchMaxWait = fetchMaxWait;
   }
@@ -68,16 +58,20 @@ public class NatsMsgStream implements MsgStream {
 
   @Override
   public Flux<Msg> sub(String topic, int partition) {
+    var consumerConfig = defaultConsumerConfigs(toSubscriptionName(topic, partition)).build();
+    var pullOpts = PullSubscribeOptions.builder().configuration(consumerConfig).build();
     var subject = toPartitionedSubjectName(topic, partition);
-    return Mono.fromCallable(() -> jetStream.subscribe(subject, subscribeOptions))
+    return Mono.fromCallable(() -> jetStream.subscribe(subject, pullOpts))
                .flatMapMany(sub -> NatsUtils.fetchMessages(sub, fetchBatchSize, fetchMaxWait))
                .map(m -> toMsg(topic, partition, m));
   }
 
   @Override
   public Mono<Msg> last(String topic, int partition) {
+    var consumerConfig = defaultConsumerConfigs(toSubscriptionName(topic, partition)).build();
+    var pullOpts = PullSubscribeOptions.builder().configuration(consumerConfig).build();
     var subject = toPartitionedSubjectName(topic, partition);
-    return Mono.fromCallable(() -> jetStream.subscribe(subject, subscribeOptions))
+    return Mono.fromCallable(() -> jetStream.subscribe(subject, pullOpts))
                .flatMap(this::fetchLastMessage)
                .map(m -> toMsg(topic, partition, m));
   }

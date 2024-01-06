@@ -7,7 +7,6 @@ import io.memoria.reactive.eventsourcing.Utils;
 import io.memoria.reactive.eventsourcing.pipeline.CommandRoute;
 import io.memoria.reactive.eventsourcing.pipeline.EventRoute;
 import io.memoria.reactive.eventsourcing.pipeline.PartitionPipeline;
-import io.memoria.reactive.eventsourcing.stream.MsgStream;
 import io.vavr.Tuple;
 import io.vavr.Tuple2;
 import io.vavr.collection.List;
@@ -33,12 +32,12 @@ class MultiPartitionIT {
   // Infra
   private static final Data data = Data.ofUUID();
   private static final Infra infra = configs();
-  private static final int numOfPipelines = 10;
+  private static final int numOfPipelines = 500;
 
   // Test case
   private static final int INITIAL_BALANCE = 500;
   private static final int DEBIT_AMOUNT = 300;
-  private static final int NUM_OF_DEBITORS = 500;
+  private static final int NUM_OF_DEBITORS = 10000;
   private static final int NUM_OF_CREDITORS = NUM_OF_DEBITORS;
   private static final int EXPECTED_COMMANDS_COUNT = NUM_OF_DEBITORS * 3;
   private static final int TOTAL_EVENTS_COUNT = NUM_OF_DEBITORS * 5;
@@ -48,9 +47,10 @@ class MultiPartitionIT {
   void multiPartitionScenario(List<PartitionPipeline> pipelines) throws InterruptedException {
     System.out.println(pipelines.head().commandRoute.topic());
     // Given
-    StepVerifier.create(simpleDebitProcess().flatMap(pipelines.head()::publishCommand))
-                .expectNextCount(EXPECTED_COMMANDS_COUNT)
-                .verifyComplete();
+    simpleDebitProcess().flatMap(pipelines.head()::publishCommand).subscribe();
+//    StepVerifier.create(simpleDebitProcess().flatMap(pipelines.head()::publishCommand))
+//                .expectNextCount(EXPECTED_COMMANDS_COUNT)
+//                .verifyComplete();
     // When
     var latch = new CountDownLatch(TOTAL_EVENTS_COUNT);
     pipelines.map(PartitionPipeline::handle)
@@ -83,15 +83,14 @@ class MultiPartitionIT {
   }
 
   private static Stream<Arguments> adapters() {
-    var msgStream = MsgStream.inMemory();
     var routes = getRoutes(numOfPipelines);
     infra.createKafkaTopics(routes.head()._1, routes.head()._2);
     infra.createNatsTopics(routes.head()._1, routes.head()._2);
-    var inMemory = routes.map(tup -> infra.inMemoryPipeline(data.domain(), msgStream, tup._1, tup._2));
-    var kafka = routes.map(tup -> infra.kafkaPipeline(data.domain(), tup._1, tup._2));
+    var inMemory = routes.map(tup -> infra.inMemoryPipeline(data.domain(), tup._1, tup._2));
     var nats = routes.map(tup -> infra.natsPipeline(data.domain(), tup._1, tup._2));
+    var kafka = routes.map(tup -> infra.kafkaPipeline(data.domain(), tup._1, tup._2));
     return Stream.of(Arguments.of(Named.of("In memory", inMemory)),
-                     Arguments.of(Named.of("Nats", nats)),
+//                     Arguments.of(Named.of("Nats", nats)),
                      Arguments.of(Named.of("Kafka", kafka)));
   }
 

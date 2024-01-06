@@ -34,14 +34,22 @@ public class Infra {
   private final Duration timeout;
   private final Connection nc;
   private final SerializableTransformer transformer;
+  private final MsgStream inMemoryStream;
+  private final MsgStream kafkaMsgStream;
+  private final MsgStream natsStream;
 
   public Infra(String groupId) {
     try {
+      // config
       this.groupId = groupId;
-      KAFKA_URL = "localhost:9092";
-      timeout = Duration.ofMillis(1000);
-      nc = NatsUtils.createConnection("nats://localhost:4222");
-      transformer = new SerializableTransformer();
+      this.KAFKA_URL = "localhost:9092";
+      this.timeout = Duration.ofMillis(1000);
+      this.nc = NatsUtils.createConnection("nats://localhost:4222");
+      this.transformer = new SerializableTransformer();
+      // streams
+      this.inMemoryStream = MsgStream.inMemory();
+      this.kafkaMsgStream = new KafkaMsgStream(kafkaProducerConfigs(), kafkaConsumerConfigs(), timeout);
+      this.natsStream = new NatsMsgStream(nc);
     } catch (IOException | InterruptedException e) {
       throw new RuntimeException(e);
     }
@@ -65,25 +73,16 @@ public class Infra {
     }
   }
 
-  public PartitionPipeline inMemoryPipeline(Domain domain,
-                                            MsgStream msgStream,
-                                            CommandRoute commandRoute,
-                                            EventRoute eventRoute) {
-    return new PartitionPipeline(domain, msgStream, commandRoute, eventRoute, new SerializableTransformer());
-  }
-
-  public PartitionPipeline kafkaPipeline(Domain domain, CommandRoute commandRoute, EventRoute eventRoute) {
-    var repo = new KafkaMsgStream(kafkaProducerConfigs(), kafkaConsumerConfigs(), timeout);
-    return new PartitionPipeline(domain, repo, commandRoute, eventRoute, new SerializableTransformer());
+  public PartitionPipeline inMemoryPipeline(Domain domain, CommandRoute commandRoute, EventRoute eventRoute) {
+    return new PartitionPipeline(domain, inMemoryStream, commandRoute, eventRoute, transformer);
   }
 
   public PartitionPipeline natsPipeline(Domain domain, CommandRoute commandRoute, EventRoute eventRoute) {
-    try {
-      var repo = new NatsMsgStream(nc, eventRoute);
-      return new PartitionPipeline(domain, repo, commandRoute, eventRoute, new SerializableTransformer());
-    } catch (IOException e) {
-      throw new RuntimeException(e);
-    }
+    return new PartitionPipeline(domain, natsStream, commandRoute, eventRoute, transformer);
+  }
+
+  public PartitionPipeline kafkaPipeline(Domain domain, CommandRoute commandRoute, EventRoute eventRoute) {
+    return new PartitionPipeline(domain, kafkaMsgStream, commandRoute, eventRoute, transformer);
   }
 
   public Map<String, Object> kafkaAdminConfigs() {
