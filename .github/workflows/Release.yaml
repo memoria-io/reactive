@@ -28,9 +28,9 @@ jobs:
         run: docker-compose up -d
 
       - name: Sleeping
-        run: sleep 30
+        run: sleep 45
 
-      - name: Publish package
+      - name: Deploy
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
