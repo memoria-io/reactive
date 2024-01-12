@@ -84,8 +84,18 @@ class SinglePartitionIT {
   public static Stream<Arguments> adapters() {
     var commandRoute = new CommandRoute("commands" + System.currentTimeMillis(), 0, 1);
     var eventRoute = new EventRoute("events" + System.currentTimeMillis(), 0, 1);
+
+    // In memory
     var inMemory = infra.inMemoryPipeline(data.domain(), commandRoute, eventRoute);
+
+    // Kafka
+    infra.createKafkaTopics(commandRoute.topic(), commandRoute.totalPartitions());
+    infra.createKafkaTopics(eventRoute.topic(), eventRoute.totalPartitions());
     var kafka = infra.kafkaPipeline(data.domain(), commandRoute, eventRoute);
+
+    // Nats
+    infra.createNatsTopics(commandRoute.topic());
+    infra.createNatsTopics(eventRoute.topic());
     var nats = infra.natsPipeline(data.domain(), commandRoute, eventRoute);
     return Stream.of(Arguments.of(Named.of("In memory", inMemory)),
                      Arguments.of(Named.of("Kafka", kafka)),
