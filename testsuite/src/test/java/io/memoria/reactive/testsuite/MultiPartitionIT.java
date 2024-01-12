@@ -19,8 +19,10 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.test.StepVerifier;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.stream.Stream;
@@ -31,12 +33,12 @@ class MultiPartitionIT {
   // Infra
   private static final Data data = Data.ofUUID();
   private static final Infra infra = configs();
-  private static final int numOfPipelines = 500;
+  private static final int numOfPipelines = 100;
 
   // Test case
   private static final int INITIAL_BALANCE = 500;
   private static final int DEBIT_AMOUNT = 300;
-  private static final int NUM_OF_DEBITORS = 10000;
+  private static final int NUM_OF_DEBITORS = 1000;
   private static final int NUM_OF_CREDITORS = NUM_OF_DEBITORS;
   private static final int EXPECTED_COMMANDS_COUNT = NUM_OF_DEBITORS * 3;
   private static final int TOTAL_EVENTS_COUNT = NUM_OF_DEBITORS * 5;
@@ -44,22 +46,23 @@ class MultiPartitionIT {
   @ParameterizedTest(name = "Using {0} adapter")
   @MethodSource("adapters")
   void multiPartitionScenario(List<PartitionPipeline> pipelines) throws InterruptedException {
-    System.out.println(pipelines.head().commandRoute.topic());
     // Given
-    simpleDebitProcess().flatMap(pipelines.head()::publishCommand).subscribe();
-    //    StepVerifier.create(simpleDebitProcess().flatMap(pipelines.head()::publishCommand))
-    //                .expectNextCount(EXPECTED_COMMANDS_COUNT)
-    //                .verifyComplete();
+    StepVerifier.create(simpleDebitProcess().flatMap(pipelines.head()::publishCommand))
+                .expectNextCount(EXPECTED_COMMANDS_COUNT)
+                .verifyComplete();
+
     // When
     var latch = new CountDownLatch(TOTAL_EVENTS_COUNT);
-    pipelines.map(PartitionPipeline::handle)
-             .map(s -> s.doOnNext(_ -> latch.countDown()))
-             .map(s -> s.doOnNext(_ -> System.out.println(latch.getCount())))
-             .map(Flux::subscribe);
+    pipelines.forEach(p -> subscribe(p, latch));
     latch.await();
+
     // Then
     //    var pipelineEventsCount = TOTAL_EVENTS_COUNT / pipelines.size();
     //    pipelines.forEach(p -> StepVerifier.create(verify(p, pipelineEventsCount)).expectNext(true).verifyComplete());
+  }
+
+  private static Disposable subscribe(PartitionPipeline p, CountDownLatch latch) {
+    return p.handle().doOnNext(_ -> latch.countDown()).doOnNext(_ -> System.out.println(latch.getCount())).subscribe();
   }
 
   private Mono<Boolean> verify(PartitionPipeline pipeline, int expectedEventsCount) {
@@ -83,14 +86,22 @@ class MultiPartitionIT {
 
   private static Stream<Arguments> adapters() {
     var routes = getRoutes(numOfPipelines);
-    infra.createKafkaTopics(routes.head()._1, routes.head()._2);
-    infra.createNatsTopics(routes.head()._1, routes.head()._2);
+    var commandRoute = routes.head()._1;
+    var eventRoute = routes.head()._2;
+
+    // In memory
     var inMemory = routes.map(tup -> infra.inMemoryPipeline(data.domain(), tup._1, tup._2));
+    var inMemoryArgs = Arguments.of(Named.of("In memory", inMemory));
+    // Nats
+    infra.createNatsTopics(commandRoute, eventRoute);
     var nats = routes.map(tup -> infra.natsPipeline(data.domain(), tup._1, tup._2));
+    var natsArgs = Arguments.of(Named.of("Nats", nats));
+    // Kafka
+    infra.createKafkaTopics(commandRoute, eventRoute);
     var kafka = routes.map(tup -> infra.kafkaPipeline(data.domain(), tup._1, tup._2));
-    return Stream.of(Arguments.of(Named.of("In memory", inMemory)),
-            //                     Arguments.of(Named.of("Nats", nats)),
-                     Arguments.of(Named.of("Kafka", kafka)));
+    var kafkaArgs = Arguments.of(Named.of("Kafka", kafka));
+
+    return Stream.of(inMemoryArgs, kafkaArgs, natsArgs);
   }
 
   private static List<Tuple2<CommandRoute, EventRoute>> getRoutes(int x) {

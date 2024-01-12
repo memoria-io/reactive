@@ -36,7 +36,7 @@ public class KafkaUtils {
       client.createTopics(List.of(tp).toJavaList()).all().get(timeout.toMillis(), MILLISECONDS);
     } catch (ExecutionException e) {
       if (e.getCause() instanceof TopicExistsException ex) {
-        log.warn(e.getMessage());
+        log.warn(ex.getMessage());
       } else {
         throw e;
       }

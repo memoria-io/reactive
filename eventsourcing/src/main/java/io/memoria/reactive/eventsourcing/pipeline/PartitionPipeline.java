@@ -34,10 +34,10 @@ public class PartitionPipeline {
   public final Domain domain;
 
   // Infra
-  private final MsgStream msgStream;
   public final CommandRoute commandRoute;
   public final EventRoute eventRoute;
-  private final TextTransformer transformer;
+  public final MsgStream msgStream;
+  public final TextTransformer transformer;
 
   // In memory
   private final Map<StateId, State> aggregates;
@@ -49,17 +49,17 @@ public class PartitionPipeline {
    * The Ids cache (sagaSources and processedCommands) size of 1Million ~= 16Megabyte, since UUID is 32bit -> 16byte
    */
   public PartitionPipeline(Domain domain,
-                           MsgStream msgStream,
                            CommandRoute commandRoute,
                            EventRoute eventRoute,
+                           MsgStream msgStream,
                            TextTransformer transformer) {
     // Core
     this.domain = domain;
 
     // Infra
-    this.msgStream = msgStream;
     this.commandRoute = commandRoute;
     this.eventRoute = eventRoute;
+    this.msgStream = msgStream;
     this.transformer = transformer;
 
     // In memory
