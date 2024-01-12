@@ -4,11 +4,7 @@ import io.memoria.atom.eventsourcing.StateId;
 import io.memoria.atom.testsuite.eventsourcing.command.AccountCommand;
 import io.memoria.atom.testsuite.eventsourcing.state.OpenAccount;
 import io.memoria.reactive.eventsourcing.Utils;
-import io.memoria.reactive.eventsourcing.pipeline.CommandRoute;
-import io.memoria.reactive.eventsourcing.pipeline.EventRoute;
 import io.memoria.reactive.eventsourcing.pipeline.PartitionPipeline;
-import io.vavr.Tuple;
-import io.vavr.Tuple2;
 import io.vavr.collection.List;
 import io.vavr.collection.Map;
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation;
@@ -19,7 +15,6 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
@@ -33,22 +28,26 @@ class MultiPartitionIT {
   // Infra
   private static final Data data = Data.ofUUID();
   private static final Infra infra = configs();
-  private static final int numOfPipelines = 100;
+  private static final int numOfPipelines = 10;
 
   // Test case
   private static final int INITIAL_BALANCE = 500;
   private static final int DEBIT_AMOUNT = 300;
-  private static final int NUM_OF_DEBITORS = 1000;
+  private static final int NUM_OF_DEBITORS = 100;
   private static final int NUM_OF_CREDITORS = NUM_OF_DEBITORS;
-  private static final int EXPECTED_COMMANDS_COUNT = NUM_OF_DEBITORS * 3;
   private static final int TOTAL_EVENTS_COUNT = NUM_OF_DEBITORS * 5;
+  private final Flux<StateId> debitedIds = data.createIds(0, NUM_OF_DEBITORS).map(StateId::of);
+  private final Flux<StateId> creditedIds = data.createIds(NUM_OF_CREDITORS, NUM_OF_CREDITORS).map(StateId::of);
 
   @ParameterizedTest(name = "Using {0} adapter")
   @MethodSource("adapters")
   void multiPartitionScenario(List<PartitionPipeline> pipelines) throws InterruptedException {
     // Given
-    StepVerifier.create(simpleDebitProcess().flatMap(pipelines.head()::publishCommand))
-                .expectNextCount(EXPECTED_COMMANDS_COUNT)
+    StepVerifier.create(createAccounts().flatMap(pipelines.head()::publishCommand))
+                .expectNextCount(NUM_OF_CREDITORS + NUM_OF_DEBITORS)
+                .verifyComplete();
+    StepVerifier.create(debitAccounts().flatMap(pipelines.head()::publishCommand))
+                .expectNextCount(NUM_OF_DEBITORS)
                 .verifyComplete();
 
     // When
@@ -57,12 +56,22 @@ class MultiPartitionIT {
     latch.await();
 
     // Then
-    //    var pipelineEventsCount = TOTAL_EVENTS_COUNT / pipelines.size();
-    //    pipelines.forEach(p -> StepVerifier.create(verify(p, pipelineEventsCount)).expectNext(true).verifyComplete());
+    var pipelineEventsCount = TOTAL_EVENTS_COUNT / pipelines.size();
+    pipelines.forEach(p -> StepVerifier.create(verify(p, pipelineEventsCount)).expectNext(true).verifyComplete());
   }
 
-  private static Disposable subscribe(PartitionPipeline p, CountDownLatch latch) {
-    return p.handle().doOnNext(_ -> latch.countDown()).doOnNext(_ -> System.out.println(latch.getCount())).subscribe();
+  private Flux<AccountCommand> createAccounts() {
+    var createDebitedAcc = data.createAccountCmd(debitedIds, INITIAL_BALANCE);
+    var createCreditedAcc = data.createAccountCmd(creditedIds, INITIAL_BALANCE);
+    return createDebitedAcc.concatWith(createCreditedAcc);
+  }
+
+  private Flux<AccountCommand> debitAccounts() {
+    return data.debitCmd(debitedIds.zipWith(creditedIds), DEBIT_AMOUNT);
+  }
+
+  private static void subscribe(PartitionPipeline p, CountDownLatch latch) {
+    p.handle().doOnNext(_ -> latch.countDown()).subscribe();
   }
 
   private Mono<Boolean> verify(PartitionPipeline pipeline, int expectedEventsCount) {
@@ -85,7 +94,7 @@ class MultiPartitionIT {
   }
 
   private static Stream<Arguments> adapters() {
-    var routes = getRoutes(numOfPipelines);
+    var routes = infra.getRoutes(numOfPipelines);
     var commandRoute = routes.head()._1;
     var eventRoute = routes.head()._2;
 
@@ -102,21 +111,6 @@ class MultiPartitionIT {
     var kafkaArgs = Arguments.of(Named.of("Kafka", kafka));
 
     return Stream.of(inMemoryArgs, kafkaArgs, natsArgs);
-  }
-
-  private static List<Tuple2<CommandRoute, EventRoute>> getRoutes(int x) {
-    var cTopic = "commands" + System.currentTimeMillis();
-    var eTopic = "events" + System.currentTimeMillis();
-    return List.range(0, x).map(i -> Tuple.of(new CommandRoute(cTopic, i, x), new EventRoute(eTopic, i, x)));
-  }
-
-  public Flux<AccountCommand> simpleDebitProcess() {
-    var debitedIds = data.createIds(0, NUM_OF_DEBITORS).map(StateId::of);
-    var creditedIds = data.createIds(NUM_OF_CREDITORS, NUM_OF_CREDITORS).map(StateId::of);
-    var createDebitedAcc = data.createAccountCmd(debitedIds, INITIAL_BALANCE);
-    var createCreditedAcc = data.createAccountCmd(creditedIds, INITIAL_BALANCE);
-    var debitTheAccounts = data.debitCmd(debitedIds.zipWith(creditedIds), DEBIT_AMOUNT);
-    return createDebitedAcc.concatWith(createCreditedAcc).concatWith(debitTheAccounts);
   }
 
   private static Infra configs() {

@@ -12,7 +12,10 @@ import io.memoria.reactive.nats.NatsMsgStream;
 import io.memoria.reactive.nats.NatsUtils;
 import io.nats.client.Connection;
 import io.nats.client.JetStreamApiException;
+import io.vavr.Tuple;
+import io.vavr.Tuple2;
 import io.vavr.collection.HashMap;
+import io.vavr.collection.List;
 import io.vavr.collection.Map;
 import org.apache.kafka.clients.admin.AdminClientConfig;
 import org.apache.kafka.clients.consumer.ConsumerConfig;
@@ -53,6 +56,12 @@ public class Infra {
     } catch (IOException | InterruptedException e) {
       throw new RuntimeException(e);
     }
+  }
+
+  public List<Tuple2<CommandRoute, EventRoute>> getRoutes(int x) {
+    var cTopic = "commands" + System.currentTimeMillis();
+    var eTopic = "events" + System.currentTimeMillis();
+    return List.range(0, x).map(i -> Tuple.of(new CommandRoute(cTopic, i, x), new EventRoute(eTopic, i, x)));
   }
 
   public void createKafkaTopics(CommandRoute commandRoute, EventRoute eventRoute) {

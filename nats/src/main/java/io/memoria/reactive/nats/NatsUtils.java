@@ -52,7 +52,6 @@ public class NatsUtils {
     return ConsumerConfiguration.builder()
                                 .name(name)
                                 .ackPolicy(AckPolicy.Explicit)
-                                .deliverPolicy(DeliverPolicy.All)
                                 .replayPolicy(ReplayPolicy.Instant);
   }
 

@@ -70,11 +70,7 @@ public class PartitionPipeline {
   }
 
   public Flux<Event> handle() {
-    var i = new AtomicInteger();
     var commands = msgStream.sub(commandRoute.topic(), commandRoute.partition())
-                            .doOnNext(s -> System.out.printf("Partition(%d):idx(%d)%n",
-                                                             commandRoute.partition(),
-                                                             i.getAndIncrement()))
                             .concatMap(msg -> tryToMono(() -> toCommand(msg)));
     return handle(commands);
   }

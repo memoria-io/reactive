@@ -10,6 +10,7 @@ import io.nats.client.JetStreamSubscription;
 import io.nats.client.Message;
 import io.nats.client.PublishOptions;
 import io.nats.client.PullSubscribeOptions;
+import io.nats.client.api.DeliverPolicy;
 import io.nats.client.impl.Headers;
 import io.nats.client.impl.NatsMessage;
 import io.vavr.collection.List;
@@ -25,11 +26,12 @@ import reactor.core.scheduler.Schedulers;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.util.function.Function;
 
 import static io.memoria.reactive.nats.NatsUtils.defaultConsumerConfigs;
 import static io.memoria.reactive.nats.NatsUtils.toPartitionedSubjectName;
 import static io.memoria.reactive.nats.NatsUtils.toSubscriptionName;
+import static io.nats.client.api.DeliverPolicy.All;
+import static io.nats.client.api.DeliverPolicy.Last;
 
 public class NatsMsgStream implements MsgStream {
   private static final Logger log = LoggerFactory.getLogger(NatsMsgStream.class.getName());
@@ -43,7 +45,7 @@ public class NatsMsgStream implements MsgStream {
    * Constructor with default settings
    */
   public NatsMsgStream(Connection connection) throws IOException {
-    this(connection, 100, Duration.ofMillis(100));
+    this(connection, 1000, Duration.ofMillis(100));
   }
 
   public NatsMsgStream(Connection connection, int fetchBatchSize, Duration fetchMaxWait) throws IOException {
@@ -62,8 +64,7 @@ public class NatsMsgStream implements MsgStream {
 
   @Override
   public Flux<Msg> sub(String topic, int partition) {
-
-    return Mono.fromCallable(() -> getSubscription(topic, partition))
+    return Mono.fromCallable(() -> getSubscription(topic, partition, All))
                .flatMapMany(this::fetchMessages)
                .map(m -> toMsg(topic, partition, m))
                .subscribeOn(Schedulers.newSingle(Thread.ofVirtual().factory()));
@@ -71,29 +72,31 @@ public class NatsMsgStream implements MsgStream {
 
   @Override
   public Mono<Msg> last(String topic, int partition) {
-    return Mono.fromCallable(() -> fetchLastMessage(getSubscription(topic, partition)))
+    return Mono.fromCallable(() -> fetchLastMessage(getSubscription(topic, partition, Last)))
                .flatMap(ReactorUtils::optionToMono)
                .map(m -> toMsg(topic, partition, m));
   }
 
   public Flux<Message> fetchMessages(JetStreamSubscription sub) {
-    return Flux.generate((SynchronousSink<Flux<Message>> sink) -> {
-      var tr = Try.of(() -> sub.fetch(fetchBatchSize, fetchMaxWait));
+    var reader = sub.reader(fetchBatchSize, fetchBatchSize / 2);
+    return Flux.generate((SynchronousSink<Message> sink) -> {
+      var tr = Try.of(() -> reader.nextMessage(0));
       if (tr.isSuccess()) {
-        sink.next(Flux.fromIterable(tr.get()));
+        sink.next(tr.get());
       } else {
         sink.error(tr.getCause());
       }
-    }).concatMap(Function.identity()).skipWhile(Message::isStatusMessage).doOnNext(Message::ack);
+    }).skipWhile(Message::isStatusMessage).doOnNext(Message::ack);
   }
 
   private Option<Message> fetchLastMessage(JetStreamSubscription sub) {
-    return List.ofAll(sub.fetch(fetchBatchSize, fetchMaxWait)).lastOption();
+    return List.ofAll(sub.fetch(fetchBatchSize, fetchMaxWait)).dropWhile(Message::isStatusMessage).lastOption();
   }
 
-  private JetStreamSubscription getSubscription(String topic, int partition) throws JetStreamApiException, IOException {
+  private JetStreamSubscription getSubscription(String topic, int partition, DeliverPolicy deliverPolicy)
+          throws JetStreamApiException, IOException {
     String name = toSubscriptionName(topic, partition);
-    var consumerConfig = defaultConsumerConfigs(name).build();
+    var consumerConfig = defaultConsumerConfigs(name).deliverPolicy(deliverPolicy).build();
     var pullOpts = PullSubscribeOptions.builder().name(name).configuration(consumerConfig).build();
     var subject = toPartitionedSubjectName(topic, partition);
     return jetStream.subscribe(subject, pullOpts);
