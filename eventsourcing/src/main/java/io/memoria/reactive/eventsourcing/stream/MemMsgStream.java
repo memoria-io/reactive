@@ -33,10 +33,19 @@ public class MemMsgStream implements MsgStream {
 
   private void emit(Msg msg) {
     messages.computeIfAbsent(msg.topic(), _ -> new ConcurrentHashMap<>());
+    last.computeIfAbsent(msg.topic(), _ -> new ConcurrentHashMap<>());
     messages.computeIfPresent(msg.topic(), (_, topicStream) -> {
       topicStream.computeIfAbsent(msg.partition(), _ -> Sinks.many().replay().limit(historySize));
       topicStream.computeIfPresent(msg.partition(), (_, v) -> {
         v.tryEmitNext(msg).orThrow();
+        return v;
+      });
+      return topicStream;
+    });
+    last.computeIfPresent(msg.topic(), (_, topicStream) -> {
+      topicStream.computeIfAbsent(msg.partition(), _ -> new AtomicReference<>(msg));
+      topicStream.computeIfPresent(msg.partition(), (_, v) -> {
+        v.set(msg);
         return v;
       });
       return topicStream;

@@ -23,12 +23,12 @@ import reactor.test.StepVerifier;
 import java.util.stream.Stream;
 
 @TestMethodOrder(OrderAnnotation.class)
-class SimpleDebitScenarioIT {
-  private static final Logger log = LoggerFactory.getLogger(SimpleDebitScenarioIT.class.getName());
+class SinglePartitionIT {
+  private static final Logger log = LoggerFactory.getLogger(SinglePartitionIT.class.getName());
 
   // Infra
   private static final Data data = Data.ofUUID();
-  private static final Infra infra = configs();
+  private static final Infra infra = new Infra("testGroup");
 
   // Test case
   private static final int INITIAL_BALANCE = 500;
@@ -90,9 +90,5 @@ class SimpleDebitScenarioIT {
     return Stream.of(Arguments.of(Named.of("In memory", inMemory)),
                      Arguments.of(Named.of("Kafka", kafka)),
                      Arguments.of(Named.of("Nats", nats)));
-  }
-
-  private static Infra configs() {
-    return new Infra("testGroup");
   }
 }

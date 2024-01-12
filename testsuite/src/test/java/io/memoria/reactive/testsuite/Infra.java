@@ -37,9 +37,9 @@ public class Infra {
   private final Duration timeout;
   private final Connection nc;
   private final SerializableTransformer transformer;
-  private final MsgStream inMemoryStream;
-  private final MsgStream kafkaMsgStream;
-  private final MsgStream natsStream;
+  public final MsgStream inMemoryStream;
+  public final MsgStream kafkaMsgStream;
+  public final MsgStream natsStream;
 
   public Infra(String groupId) {
     try {
@@ -64,19 +64,17 @@ public class Infra {
     return List.range(0, x).map(i -> Tuple.of(new CommandRoute(cTopic, i, x), new EventRoute(eTopic, i, x)));
   }
 
-  public void createKafkaTopics(CommandRoute commandRoute, EventRoute eventRoute) {
+  public void createKafkaTopics(String topic, int partitions) {
     try {
-      KafkaUtils.createTopic(kafkaAdminConfigs(), eventRoute.topic(), eventRoute.totalPartitions(), timeout);
-      KafkaUtils.createTopic(kafkaAdminConfigs(), commandRoute.topic(), commandRoute.totalPartitions(), timeout);
+      KafkaUtils.createTopic(kafkaAdminConfigs(), topic, partitions, timeout);
     } catch (ExecutionException | InterruptedException | TimeoutException e) {
       throw new RuntimeException(e);
     }
   }
 
-  public void createNatsTopics(CommandRoute commandRoute, EventRoute eventRoute) {
+  public void createNatsTopics(String topic) {
     try {
-      NatsUtils.createOrUpdateStream(nc.jetStreamManagement(), defaultStreamConfig(eventRoute.topic(), 1).build());
-      NatsUtils.createOrUpdateStream(nc.jetStreamManagement(), defaultStreamConfig(commandRoute.topic(), 1).build());
+      NatsUtils.createOrUpdateStream(nc.jetStreamManagement(), defaultStreamConfig(topic, 1).build());
     } catch (IOException | JetStreamApiException e) {
       throw new RuntimeException(e);
     }

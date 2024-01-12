@@ -27,7 +27,7 @@ class MultiPartitionIT {
   private static final Logger log = LoggerFactory.getLogger(MultiPartitionIT.class.getName());
   // Infra
   private static final Data data = Data.ofUUID();
-  private static final Infra infra = configs();
+  private static final Infra infra = new Infra("testGroup");
   private static final int numOfPipelines = 10;
 
   // Test case
@@ -102,18 +102,16 @@ class MultiPartitionIT {
     var inMemory = routes.map(tup -> infra.inMemoryPipeline(data.domain(), tup._1, tup._2));
     var inMemoryArgs = Arguments.of(Named.of("In memory", inMemory));
     // Nats
-    infra.createNatsTopics(commandRoute, eventRoute);
+    infra.createNatsTopics(commandRoute.topic());
+    infra.createNatsTopics(eventRoute.topic());
     var nats = routes.map(tup -> infra.natsPipeline(data.domain(), tup._1, tup._2));
     var natsArgs = Arguments.of(Named.of("Nats", nats));
     // Kafka
-    infra.createKafkaTopics(commandRoute, eventRoute);
+    infra.createKafkaTopics(commandRoute.topic(), commandRoute.totalPartitions());
+    infra.createKafkaTopics(eventRoute.topic(), eventRoute.totalPartitions());
     var kafka = routes.map(tup -> infra.kafkaPipeline(data.domain(), tup._1, tup._2));
     var kafkaArgs = Arguments.of(Named.of("Kafka", kafka));
 
     return Stream.of(inMemoryArgs, kafkaArgs, natsArgs);
-  }
-
-  private static Infra configs() {
-    return new Infra("testGroup");
   }
 }
