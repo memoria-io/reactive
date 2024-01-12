@@ -3,7 +3,11 @@ package io.memoria.reactive.testsuite;
 import io.memoria.atom.core.id.Id;
 import io.memoria.atom.eventsourcing.CommandId;
 import io.memoria.atom.eventsourcing.CommandMeta;
+import io.memoria.atom.eventsourcing.Domain;
 import io.memoria.atom.eventsourcing.StateId;
+import io.memoria.atom.testsuite.eventsourcing.AccountDecider;
+import io.memoria.atom.testsuite.eventsourcing.AccountEvolver;
+import io.memoria.atom.testsuite.eventsourcing.AccountSaga;
 import io.memoria.atom.testsuite.eventsourcing.command.AccountCommand;
 import io.memoria.atom.testsuite.eventsourcing.command.ChangeName;
 import io.memoria.atom.testsuite.eventsourcing.command.CloseAccount;
@@ -17,26 +21,34 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Supplier;
 
 public class Data {
-  private final AtomicLong counter = new AtomicLong();
+  // Data
   public final Supplier<Id> idSupplier;
   public final Supplier<Long> timeSupplier;
+  public final AccountSaga saga;
+  public final AccountDecider decider;
+  public final AccountEvolver evolver;
 
-  Data() {
-    this.idSupplier = () -> Id.of(counter.getAndIncrement());
-    this.timeSupplier = System::currentTimeMillis;
-  }
-
-  Data(Supplier<Id> idSupplier, Supplier<Long> timeSupplier) {
+  private Data(Supplier<Id> idSupplier, Supplier<Long> timeSupplier) {
     this.idSupplier = idSupplier;
     this.timeSupplier = timeSupplier;
+    saga = new AccountSaga(idSupplier, timeSupplier);
+    decider = new AccountDecider(idSupplier, timeSupplier);
+    evolver = new AccountEvolver();
+  }
+
+  public Domain domain() {
+    return new Domain(new AccountDecider(idSupplier, timeSupplier),
+                      new AccountEvolver(),
+                      new AccountSaga(idSupplier, timeSupplier));
   }
 
   public static Data ofSerial() {
-    return new Data();
+    var counter = new AtomicLong();
+    return new Data(() -> Id.of(counter.getAndIncrement()), () -> 0L);
   }
 
   public static Data ofUUID() {
-    return new Data(()-> Id.of(UUID.randomUUID()), System::currentTimeMillis);
+    return new Data(() -> Id.of(UUID.randomUUID()), System::currentTimeMillis);
   }
 
   public Id createId(int i) {

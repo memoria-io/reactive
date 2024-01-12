@@ -30,7 +30,7 @@ jobs:
       - name: Sleeping
         run: sleep 30
 
-      - name: Publish package
+      - name: Deploy
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

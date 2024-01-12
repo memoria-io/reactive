@@ -1,61 +1,117 @@
 package io.memoria.reactive.nats;
 
 import io.memoria.reactive.core.reactor.ReactorUtils;
-import io.memoria.reactive.core.stream.Msg;
-import io.memoria.reactive.core.stream.MsgStream;
+import io.memoria.reactive.eventsourcing.stream.Msg;
+import io.memoria.reactive.eventsourcing.stream.MsgStream;
 import io.nats.client.Connection;
 import io.nats.client.JetStream;
+import io.nats.client.JetStreamApiException;
+import io.nats.client.JetStreamSubscription;
+import io.nats.client.Message;
 import io.nats.client.PublishOptions;
+import io.nats.client.PullSubscribeOptions;
 import io.nats.client.api.DeliverPolicy;
+import io.nats.client.impl.Headers;
+import io.nats.client.impl.NatsMessage;
+import io.vavr.collection.List;
+import io.vavr.control.Option;
+import io.vavr.control.Try;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-import reactor.core.scheduler.Scheduler;
+import reactor.core.publisher.SynchronousSink;
+import reactor.core.scheduler.Schedulers;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.time.Duration;
+
+import static io.memoria.reactive.nats.NatsUtils.defaultConsumerConfigs;
+import static io.memoria.reactive.nats.NatsUtils.toPartitionedSubjectName;
+import static io.memoria.reactive.nats.NatsUtils.toSubscriptionName;
+import static io.nats.client.api.DeliverPolicy.All;
+import static io.nats.client.api.DeliverPolicy.Last;
 
 public class NatsMsgStream implements MsgStream {
   private static final Logger log = LoggerFactory.getLogger(NatsMsgStream.class.getName());
-  private final NatsConfig natsConfig;
-  private final Scheduler scheduler;
-  private final Connection connection;
+  public static final String ID_HEADER = "ID_HEADER";
   private final JetStream jetStream;
+  // Polling Config
+  private final int fetchBatchSize;
+  private final Duration fetchMaxWait;
 
-  public NatsMsgStream(NatsConfig natsConfig, Scheduler scheduler) throws IOException, InterruptedException {
-    this.natsConfig = natsConfig;
-    this.scheduler = scheduler;
-    this.connection = NatsUtils.createConnection(this.natsConfig);
+  /**
+   * Constructor with default settings
+   */
+  public NatsMsgStream(Connection connection) throws IOException {
+    this(connection, 1000, Duration.ofMillis(100));
+  }
+
+  public NatsMsgStream(Connection connection, int fetchBatchSize, Duration fetchMaxWait) throws IOException {
     this.jetStream = connection.jetStream();
+    this.fetchBatchSize = fetchBatchSize;
+    this.fetchMaxWait = fetchMaxWait;
   }
 
   @Override
-  public Mono<Msg> pub(String topic, int partition, Msg msg) {
+  public Mono<Msg> pub(Msg msg) {
     var opts = PublishOptions.builder().clearExpected().messageId(msg.key()).build();
-    return Mono.fromCallable(() -> NatsUtils.natsMessage(topic, partition, msg))
-               .map(message -> jetStream.publishAsync(message, opts))
-               .flatMap(Mono::fromFuture)
-               .map(ack -> msg);
+    return Mono.fromCallable(() -> toNatsMessage(msg))
+               .flatMap(nm -> Mono.fromFuture(jetStream.publishAsync(nm, opts)))
+               .map(_ -> msg);
   }
 
   @Override
   public Flux<Msg> sub(String topic, int partition) {
-    return NatsUtils.fetchAllMessages(jetStream, natsConfig, topic, partition)
-                    .map(NatsUtils::toESMsg)
-                    .subscribeOn(scheduler);
+    return Mono.fromCallable(() -> getSubscription(topic, partition, All))
+               .flatMapMany(this::fetchMessages)
+               .map(m -> toMsg(topic, partition, m))
+               .subscribeOn(Schedulers.newSingle(Thread.ofVirtual().factory()));
   }
 
   @Override
   public Mono<Msg> last(String topic, int partition) {
-    return ReactorUtils.tryToMono(() -> NatsUtils.createSubscription(jetStream, DeliverPolicy.Last, topic, partition))
-                       .flatMap(sub -> NatsUtils.fetchLastMessage(sub, natsConfig)
-                                                .map(NatsUtils::toESMsg)
-                                                .subscribeOn(scheduler));
+    return Mono.fromCallable(() -> fetchLastMessage(getSubscription(topic, partition, Last)))
+               .flatMap(ReactorUtils::optionToMono)
+               .map(m -> toMsg(topic, partition, m));
   }
 
-  @Override
-  public void close() throws Exception {
-    log.info("Closing connection:{}", connection.getServerInfo());
-    connection.close();
+  public Flux<Message> fetchMessages(JetStreamSubscription sub) {
+    var reader = sub.reader(fetchBatchSize, fetchBatchSize / 2);
+    return Flux.generate((SynchronousSink<Message> sink) -> {
+      var tr = Try.of(() -> reader.nextMessage(0));
+      if (tr.isSuccess()) {
+        sink.next(tr.get());
+      } else {
+        sink.error(tr.getCause());
+      }
+    }).skipWhile(Message::isStatusMessage).doOnNext(Message::ack);
+  }
+
+  private Option<Message> fetchLastMessage(JetStreamSubscription sub) {
+    return List.ofAll(sub.fetch(fetchBatchSize, fetchMaxWait)).dropWhile(Message::isStatusMessage).lastOption();
+  }
+
+  private JetStreamSubscription getSubscription(String topic, int partition, DeliverPolicy deliverPolicy)
+          throws JetStreamApiException, IOException {
+    String name = toSubscriptionName(topic, partition);
+    var consumerConfig = defaultConsumerConfigs(name).deliverPolicy(deliverPolicy).build();
+    var pullOpts = PullSubscribeOptions.builder().name(name).configuration(consumerConfig).build();
+    var subject = toPartitionedSubjectName(topic, partition);
+    return jetStream.subscribe(subject, pullOpts);
+  }
+
+  static NatsMessage toNatsMessage(Msg msg) {
+    var subjectName = toPartitionedSubjectName(msg.topic(), msg.partition());
+    var headers = new Headers();
+    headers.add(ID_HEADER, msg.key());
+    return NatsMessage.builder().subject(subjectName).headers(headers).data(msg.value()).build();
+  }
+
+  private Msg toMsg(String topic, int partition, Message message) {
+    String key = message.getHeaders().getFirst(ID_HEADER);
+    var value = new String(message.getData(), StandardCharsets.UTF_8);
+    return new Msg(topic, partition, key, value);
   }
 }
