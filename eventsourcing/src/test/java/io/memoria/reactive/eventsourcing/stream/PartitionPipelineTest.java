@@ -30,7 +30,7 @@ class PartitionPipelineTest {
   }
 
   @Test
-  void invalidSequence(){
-    
+  void invalidSequence() {
+
   }
 }

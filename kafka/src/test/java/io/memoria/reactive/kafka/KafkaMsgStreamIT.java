@@ -1,4 +1,4 @@
-package io.memoria.reactive.testsuite;
+package io.memoria.reactive.kafka;
 
 import io.memoria.reactive.eventsourcing.stream.Msg;
 import io.memoria.reactive.eventsourcing.stream.MsgStream;
@@ -19,8 +19,8 @@ import java.time.Duration;
 import java.util.stream.Stream;
 
 @TestMethodOrder(OrderAnnotation.class)
-class MsgStreamIT {
-  private static final Logger log = LoggerFactory.getLogger(MsgStreamIT.class.getName());
+class KafkaMsgStreamIT {
+  private static final Logger log = LoggerFactory.getLogger(KafkaMsgStreamIT.class.getName());
 
   // Infra
   private static final Infra infra = new Infra("testGroup");
@@ -33,7 +33,6 @@ class MsgStreamIT {
   @BeforeAll
   static void beforeAll() {
     infra.createKafkaTopics(topic, totalPartitions);
-    infra.createNatsTopics(topic);
   }
 
   @ParameterizedTest(name = "Using {0} adapter")
@@ -45,7 +44,7 @@ class MsgStreamIT {
                       .map(i -> new Msg(topic, partition, String.valueOf(i), "hello world"))
                       .concatMap(msgStream::pub);
     StepVerifier.create(publish).expectNextCount(msgCount).verifyComplete();
-    Utils.printRates(log, "publish", now, msgCount);
+    printRates("publish", now, msgCount);
   }
 
   @ParameterizedTest(name = "Using {0} adapter")
@@ -57,7 +56,7 @@ class MsgStreamIT {
                 .expectNextCount(msgCount)
                 .expectTimeout(Duration.ofMillis(1000))
                 .verify();
-    Utils.printRates(log, "subscribe", now, msgCount);
+    printRates("subscribe", now, msgCount);
   }
 
   @ParameterizedTest(name = "Using {0} adapter")
@@ -71,10 +70,15 @@ class MsgStreamIT {
     log.info("Fetched last message in %d milliseconds".formatted(System.currentTimeMillis() - now));
   }
 
+  private static void printRates(String methodName, long start, long msgCount) {
+    long totalElapsed = System.currentTimeMillis() - start;
+    log.info("{}: Finished processing {} events, in {} millis %n", methodName, msgCount, totalElapsed);
+    var eventsPerSec = msgCount / (totalElapsed / 1000d);
+    log.info("{}: Average {} events per second %n", methodName, (long) eventsPerSec);
+  }
+
   private static Stream<Arguments> dataSource() {
-    var arg1 = Arguments.of(Named.of("MEMORY", infra.inMemoryStream));
     var arg2 = Arguments.of(Named.of("KAFKA", infra.kafkaMsgStream));
-    var arg3 = Arguments.of(Named.of("NATS", infra.natsStream));
-    return Stream.of(arg1, arg2, arg3);
+    return Stream.of(arg2);
   }
 }
