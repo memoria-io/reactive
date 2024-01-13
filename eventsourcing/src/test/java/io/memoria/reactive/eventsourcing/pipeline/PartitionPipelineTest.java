@@ -1,4 +1,4 @@
-package io.memoria.reactive.eventsourcing.stream;
+package io.memoria.reactive.eventsourcing.pipeline;
 
 import org.junit.jupiter.api.Test;
 
