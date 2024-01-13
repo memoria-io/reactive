@@ -22,7 +22,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static io.memoria.reactive.core.reactor.ReactorUtils.tryToMono;
@@ -75,25 +74,21 @@ public class PartitionPipeline {
     return handle(commands);
   }
 
-  public Flux<Event> subscribeToEvents() {
-    return msgStream.sub(eventRoute.topic(), eventRoute.partition()).concatMap(msg -> tryToMono(() -> toEvent(msg)));
-  }
-
-  public Flux<Msg> subToEventsUntil(String key) {
-    return msgStream.subUntil(eventRoute.topic(), eventRoute.partition(), key);
-  }
-
-  public Mono<Msg> publishCommand(Command command) {
-    return tryToMono(() -> toMsg(command)).flatMap(msgStream::pub);
-  }
-
-  Flux<Event> handle(Flux<Command> commands) {
+  public Flux<Event> handle(Flux<Command> commands) {
     var handleCommands = commands.concatMap(this::redirectIfNeeded)
                                  .concatMap(this::decide)
                                  .doOnNext(this::evolve)
                                  .concatMap(this::saga)
                                  .concatMap(this::publishEvent);
     return initialize().concatWith(handleCommands);
+  }
+
+  public Flux<Event> subscribeToEvents() {
+    return msgStream.sub(eventRoute.topic(), eventRoute.partition()).concatMap(msg -> tryToMono(() -> toEvent(msg)));
+  }
+
+  public Mono<Msg> publishCommand(Command command) {
+    return tryToMono(() -> toMsg(command)).flatMap(msgStream::pub);
   }
 
   /**
@@ -118,7 +113,7 @@ public class PartitionPipeline {
     if (cmd.meta().isInPartition(commandRoute.partition(), commandRoute.totalPartitions())) {
       return Mono.just(cmd);
     } else {
-      return this.publishCommand(cmd).flatMap(_ -> Mono.empty());
+      return publishCommand(cmd).flatMap(_ -> Mono.empty());
     }
   }
 
@@ -169,6 +164,10 @@ public class PartitionPipeline {
 
   private Mono<Event> publishEvent(Event event) {
     return tryToMono(() -> toMsg(event)).flatMap(msgStream::pub).map(_ -> event);
+  }
+
+  private Flux<Msg> subToEventsUntil(String key) {
+    return msgStream.subUntil(eventRoute.topic(), eventRoute.partition(), key);
   }
 
   private boolean hasExpectedVersion(Event event, State currentState) {
