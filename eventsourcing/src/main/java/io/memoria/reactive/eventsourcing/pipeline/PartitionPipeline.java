@@ -162,45 +162,45 @@ public class PartitionPipeline {
     }
   }
 
-  private Mono<Event> publishEvent(Event event) {
+  Mono<Event> publishEvent(Event event) {
     return tryToMono(() -> toMsg(event)).flatMap(msgStream::pub).map(_ -> event);
   }
 
-  private Flux<Msg> subToEventsUntil(String key) {
+  Flux<Msg> subToEventsUntil(String key) {
     return msgStream.subUntil(eventRoute.topic(), eventRoute.partition(), key);
   }
 
-  private boolean hasExpectedVersion(Event event, State currentState) {
+  boolean hasExpectedVersion(Event event, State currentState) {
     return event.meta().version() == currentState.meta().version() + 1;
   }
 
-  private boolean isDuplicate(Event e) {
+  boolean isDuplicate(Event e) {
     return prevEvent.get() == null && prevEvent.get().equals(e.meta().eventId());
   }
 
-  private void update(Event e, State newState) {
+  void update(Event e, State newState) {
     aggregates.put(e.meta().stateId(), newState);
     processedCommands.add(e.meta().commandId());
     prevEvent.set(e.meta().eventId());
   }
 
-  private boolean isHandledCommand(Command cmd) {
+  boolean isHandledCommand(Command cmd) {
     return processedCommands.contains(cmd.meta().commandId());
   }
 
-  private boolean isHandledSagaCommand(Command cmd) {
+  boolean isHandledSagaCommand(Command cmd) {
     return cmd.meta().sagaSource().map(sagaSources::contains).getOrElse(false);
   }
 
-  private Try<Command> toCommand(Msg msg) {
+  Try<Command> toCommand(Msg msg) {
     return transformer.deserialize(msg.value(), Command.class);
   }
 
-  private Try<Event> toEvent(Msg msg) {
+  Try<Event> toEvent(Msg msg) {
     return transformer.deserialize(msg.value(), Event.class);
   }
 
-  private Try<Msg> toMsg(Event event) {
+  Try<Msg> toMsg(Event event) {
     return transformer.serialize(event)
                       .map(payload -> new Msg(eventRoute.topic(),
                                               eventRoute.partition(),
@@ -208,7 +208,7 @@ public class PartitionPipeline {
                                               payload));
   }
 
-  private Try<Msg> toMsg(Command command) {
+  Try<Msg> toMsg(Command command) {
     var partition = command.partition(commandRoute.totalPartitions());
     return transformer.serialize(command)
                       .map(payload -> new Msg(commandRoute.topic(),
