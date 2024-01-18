@@ -76,6 +76,7 @@ public class PartitionPipeline {
 
   public Flux<Event> handle(Flux<Command> commands) {
     var handleCommands = commands.concatMap(this::redirectIfNeeded)
+                                 .concatMap(this::cancelIfHandled)
                                  .concatMap(this::decide)
                                  .doOnNext(this::evolve)
                                  .concatMap(this::saga)
@@ -117,28 +118,18 @@ public class PartitionPipeline {
     }
   }
 
+  Mono<Command> cancelIfHandled(Command cmd) {
+    return (isHandledCommand(cmd) || isHandledSagaCommand(cmd)) ? Mono.empty() : Mono.just(cmd);
+  }
+
   Mono<Event> decide(Command cmd) {
     return Mono.defer(() -> {
-      if (isHandledCommand(cmd) || isHandledSagaCommand(cmd)) {
-        return Mono.empty();
-      }
 
       cmd.meta().sagaSource().forEach(sagaSources::add);
       if (aggregates.containsKey(cmd.meta().stateId())) {
         return tryToMono(() -> domain.decider().apply(aggregates.get(cmd.meta().stateId()), cmd));
       } else {
         return tryToMono(() -> domain.decider().apply(cmd));
-      }
-    });
-  }
-
-  Mono<Event> saga(Event e) {
-    return Mono.defer(() -> {
-      var opt = domain.saga().apply(e);
-      if (opt.isDefined()) {
-        return publishCommand(opt.get()).map(_ -> e);
-      } else {
-        return Mono.just(e);
       }
     });
   }
@@ -160,6 +151,17 @@ public class PartitionPipeline {
     } else {
       throw InvalidEvolution.of(event);
     }
+  }
+
+  Mono<Event> saga(Event e) {
+    return Mono.defer(() -> {
+      var opt = domain.saga().apply(e);
+      if (opt.isDefined()) {
+        return publishCommand(opt.get()).map(_ -> e);
+      } else {
+        return Mono.just(e);
+      }
+    });
   }
 
   Mono<Event> publishEvent(Event event) {
