@@ -71,7 +71,7 @@ public class FileOps {
 
   private static Flux<Path> listAll(Path path) {
     return Mono.fromCallable(() -> Files.list(path))
-               .onErrorResume(NoSuchFileException.class, a -> Mono.just(Stream.empty()))
+               .onErrorResume(NoSuchFileException.class, _ -> Mono.just(Stream.empty()))
                .flatMapMany(Flux::fromStream);
   }
 }

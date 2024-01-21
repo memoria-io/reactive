@@ -1,7 +1,7 @@
 package io.memoria.reactive.core.file;
 
 import io.vavr.collection.List;
-import org.junit.jupiter.api.Assertions;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -11,6 +11,7 @@ import reactor.test.StepVerifier;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Duration;
 
 class FileOpsTest {
   private static final Path TEST_DIR = Path.of("/tmp/rFilesTest");
@@ -30,7 +31,7 @@ class FileOpsTest {
     StepVerifier.create(FileOps.write(filePath, "hello world")).expectNext(filePath).verifyComplete();
     // Then
     var str = new String(Files.readAllBytes(filePath));
-    Assertions.assertEquals("hello world", str);
+    Assertions.assertThat(str).isEqualTo("hello world");
   }
 
   @Test
@@ -40,7 +41,7 @@ class FileOpsTest {
     var nFiles = 5;
     var totalDeleted = (nDirs * nFiles) + nDirs + 1;
     // Create files
-    Flux.range(0, nDirs).map(i -> TEST_DIR.resolve(i + "")).concatMap(dir -> createSomeFiles(dir, nFiles)).subscribe();
+    Flux.range(0, nDirs).map(i -> TEST_DIR.resolve(i + "")).map(dir -> createSomeFiles(dir, nFiles)).subscribe();
     // When
     var deleteFiles = FileOps.deleteDir(TEST_DIR);
     // Then
@@ -61,12 +62,14 @@ class FileOpsTest {
   @Test
   void lastFile() {
     // Given
-    var files = createSomeFiles(TEST_DIR, 10).collectList().block();
+    var actualLastFile = createSomeFiles(TEST_DIR, 8).last();
+
     // When
-    var lastFile = FileOps.lastModified(TEST_DIR);
+    var expectedLastFile = FileOps.lastModified(TEST_DIR).block();
+
     // Then
-    assert files != null;
-    StepVerifier.create(lastFile).expectNext(List.ofAll(files).last()).verifyComplete();
+    assert expectedLastFile != null;
+    Assertions.assertThat(actualLastFile.getFileName()).isEqualTo(expectedLastFile.getFileName());
   }
 
   @Test
@@ -109,7 +112,7 @@ class FileOpsTest {
     StepVerifier.create(FileOps.rewrite(SOME_FILE_PATH, "hi world")).expectNext(SOME_FILE_PATH).verifyComplete();
     // Then
     var str = new String(Files.readAllBytes(SOME_FILE_PATH));
-    Assertions.assertEquals("hi world", str);
+    Assertions.assertThat(str).isEqualTo("hi world");
   }
 
   @Test
@@ -119,11 +122,14 @@ class FileOpsTest {
     StepVerifier.create(FileOps.write(SOME_FILE_PATH, "hello world")).expectNext(SOME_FILE_PATH).verifyComplete();
     // Then
     var str = new String(Files.readAllBytes(SOME_FILE_PATH));
-    Assertions.assertEquals("hello world", str);
+    Assertions.assertThat(str).isEqualTo("hello world");
   }
 
-  private Flux<Path> createSomeFiles(Path path, int count) {
-    return Flux.range(0, count).concatMap(i -> FileOps.write(path.resolve(i + ".json"), "hi" + i));
-
+  private List<Path> createSomeFiles(Path path, int count) {
+    return List.range(0, count)
+               .shuffle()
+               .flatMap(i -> FileOps.write(path.resolve(i + ".json"), "hi" + i)
+                                    .delayElement(Duration.ofMillis(10))
+                                    .block());
   }
 }

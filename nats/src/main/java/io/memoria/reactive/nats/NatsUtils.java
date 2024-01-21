@@ -9,7 +9,6 @@ import io.nats.client.Options;
 import io.nats.client.api.AckPolicy;
 import io.nats.client.api.ConsumerConfiguration;
 import io.nats.client.api.ConsumerConfiguration.Builder;
-import io.nats.client.api.DeliverPolicy;
 import io.nats.client.api.ReplayPolicy;
 import io.nats.client.api.StorageType;
 import io.nats.client.api.StreamConfiguration;
@@ -49,10 +48,7 @@ public class NatsUtils {
   }
 
   public static Builder defaultConsumerConfigs(String name) {
-    return ConsumerConfiguration.builder()
-                                .name(name)
-                                .ackPolicy(AckPolicy.Explicit)
-                                .replayPolicy(ReplayPolicy.Instant);
+    return ConsumerConfiguration.builder().name(name).ackPolicy(AckPolicy.Explicit).replayPolicy(ReplayPolicy.Instant);
   }
 
   public static String toPartitionedSubjectName(String topic, int partition) {
@@ -70,14 +66,5 @@ public class NatsUtils {
         ErrorListener.super.errorOccurred(conn, error);
       }
     };
-  }
-
-  static StreamInfo createOrUpdateStream(Connection nc, StreamConfiguration streamConfiguration)
-          throws IOException, JetStreamApiException {
-    var streamNames = nc.jetStreamManagement().getStreamNames();
-    if (streamNames.contains(streamConfiguration.getName()))
-      return nc.jetStreamManagement().updateStream(streamConfiguration);
-    else
-      return nc.jetStreamManagement().addStream(streamConfiguration);
   }
 }

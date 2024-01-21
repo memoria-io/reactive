@@ -33,14 +33,14 @@ public class KafkaMsgStream implements MsgStream {
 
   @Override
   public Flux<Msg> sub(String topic, int partition) {
-    return KafkaUtils.subscribe(topic, partition, consumerConfig).map(record -> toMsg(topic, partition, record));
+    return KafkaUtils.subscribe(topic, partition, consumerConfig).map(rec -> toMsg(topic, partition, rec));
   }
 
   @Override
   public Mono<Msg> last(String topic, int partition) {
     return Mono.fromCallable(() -> KafkaUtils.lastKey(topic, partition, timeout, consumerConfig))
                .flatMap(ReactorUtils::optionToMono)
-               .map(record -> toMsg(topic, partition, record));
+               .map(rec -> toMsg(topic, partition, rec));
   }
 
   private SenderRecord<String, String, Msg> toRecord(Msg msg) {

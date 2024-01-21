@@ -3,7 +3,7 @@ package io.memoria.reactive.kafka;
 import io.vavr.collection.List;
 import io.vavr.collection.Map;
 import io.vavr.control.Option;
-import org.apache.kafka.clients.admin.KafkaAdminClient;
+import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.apache.kafka.clients.consumer.KafkaConsumer;
@@ -31,7 +31,7 @@ public class KafkaUtils {
 
   public static void createTopic(Map<String, Object> adminConfig, String topic, int numOfPartition, Duration timeout)
           throws ExecutionException, InterruptedException, TimeoutException {
-    try (var client = KafkaAdminClient.create(adminConfig.toJavaMap())) {
+    try (var client = AdminClient.create(adminConfig.toJavaMap())) {
       var tp = new NewTopic(topic, Optional.of(numOfPartition), Optional.empty());
       client.createTopics(List.of(tp).toJavaList()).all().get(timeout.toMillis(), MILLISECONDS);
     } catch (ExecutionException e) {
