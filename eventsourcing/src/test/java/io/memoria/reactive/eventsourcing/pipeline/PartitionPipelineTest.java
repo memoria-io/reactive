@@ -2,7 +2,6 @@ package io.memoria.reactive.eventsourcing.pipeline;
 
 import io.memoria.atom.eventsourcing.StateId;
 import io.memoria.atom.testsuite.eventsourcing.command.AccountCommand;
-import io.vavr.collection.List;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -143,6 +142,7 @@ class PartitionPipelineTest {
     Assertions.assertThat(pipeline.isHandledCommand(createAccounts.getFirst())).isTrue();
   }
 
+  // TODO
   @Test
   void duplicateSagaCommand() {
     // Given
@@ -154,8 +154,9 @@ class PartitionPipelineTest {
     var firstCommand = createAccounts().blockFirst();
 
     // Then
-    assert firstCommand != null;
-    Assertions.assertThat(pipeline.isHandledSagaCommand(firstCommand)).isTrue();
+    //    assert firstCommand != null;
+    //    Assertions.assertThat(pipeline.isHandledSagaCommand(firstCommand)).isTrue();
+    assert false;
   }
 
   @Test
