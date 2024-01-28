@@ -75,7 +75,7 @@ class MultiPartitionIT {
   }
 
   private Mono<Boolean> verify(PartitionPipeline pipeline, int expectedEventsCount) {
-    return Utils.reduce(pipeline.domain.evolver(), pipeline.subscribeToEvents().take(expectedEventsCount))
+    return Utils.reduce(pipeline.getDomain().evolver(), pipeline.subscribeToEvents().take(expectedEventsCount))
                 .map(Map::values)
                 .flatMapMany(Flux::fromIterable)
                 .map(OpenAccount.class::cast)

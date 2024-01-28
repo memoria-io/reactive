@@ -54,7 +54,7 @@ class SinglePartitionIT {
   }
 
   private Mono<Boolean> verify(PartitionPipeline pipeline) {
-    return Utils.reduce(pipeline.domain.evolver(), pipeline.subscribeToEvents().take(EXPECTED_EVENTS_COUNT))
+    return Utils.reduce(pipeline.getDomain().evolver(), pipeline.subscribeToEvents().take(EXPECTED_EVENTS_COUNT))
                 .map(Map::values)
                 .flatMapMany(Flux::fromIterable)
                 .map(OpenAccount.class::cast)

@@ -1,7 +1,11 @@
 package io.memoria.reactive.eventsourcing.pipeline;
 
+import io.memoria.atom.eventsourcing.CommandId;
+import io.memoria.atom.eventsourcing.CommandMeta;
 import io.memoria.atom.eventsourcing.StateId;
+import io.memoria.atom.eventsourcing.exceptions.InvalidEvolution;
 import io.memoria.atom.testsuite.eventsourcing.command.AccountCommand;
+import io.memoria.atom.testsuite.eventsourcing.command.Credit;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -9,10 +13,13 @@ import reactor.core.publisher.Flux;
 import reactor.test.StepVerifier;
 
 import java.time.Duration;
+import java.util.UUID;
+
+import static java.util.Objects.requireNonNull;
 
 class PartitionPipelineTest {
   private static final int NUM_OF_ACCOUNTS = 10;
-  private static final int EXPECTED_EVENTS_COUNT = (NUM_OF_ACCOUNTS / 2) * 5;
+  private static final int NUM_OF_EXPECTED_EVENTS = (NUM_OF_ACCOUNTS / 2) * 5;
   private static final Duration timeout = Duration.ofMillis(100);
 
   private final Infra infra = new Infra();
@@ -30,7 +37,7 @@ class PartitionPipelineTest {
 
     // Then
     StepVerifier.create(pipeline.handle())
-                .expectNextCount(EXPECTED_EVENTS_COUNT)
+                .expectNextCount(NUM_OF_EXPECTED_EVENTS)
                 .expectTimeout(Duration.ofMillis(100))
                 .verify();
   }
@@ -56,7 +63,7 @@ class PartitionPipelineTest {
 
     // Then new pipeline should pick up last state
     StepVerifier.create(pipeline.handle())
-                .expectNextCount(EXPECTED_EVENTS_COUNT)
+                .expectNextCount(NUM_OF_EXPECTED_EVENTS)
                 .expectTimeout(Duration.ofMillis(100))
                 .verify();
   }
@@ -68,9 +75,11 @@ class PartitionPipelineTest {
     var commandRoute = new CommandRoute("commands", 0, 2);
     var eventRoute = new EventRoute("events");
     var pipeline = infra.inMemoryPipeline(data.domain(), commandRoute, eventRoute);
+
     // When
     var cmd = data.createAccountCmd(StateId.of(1), 300);
     var isInPartition = cmd.meta().isInPartition(commandRoute.partition(), commandRoute.totalPartitions());
+
     // Then
     Assertions.assertThat(isInPartition).isTrue();
     StepVerifier.create(pipeline.redirectIfNeeded(cmd)).expectNext(cmd).verifyComplete();
@@ -106,23 +115,23 @@ class PartitionPipelineTest {
     // Given
     var pipeline = createSimplePipeline();
     createAccounts().concatWith(debitAccounts()).concatMap(pipeline::publishCommand).subscribe();
-    StepVerifier.create(pipeline.handle()).expectNextCount(EXPECTED_EVENTS_COUNT).expectTimeout(timeout).verify();
+    StepVerifier.create(pipeline.handle()).expectNextCount(NUM_OF_EXPECTED_EVENTS).expectTimeout(timeout).verify();
 
     // When
-    var lastEvent = pipeline.subscribeToEvents().take(EXPECTED_EVENTS_COUNT).last().block();
+    var lastEvent = pipeline.subscribeToEvents().take(NUM_OF_EXPECTED_EVENTS).last().block();
     pipeline.publishEvent(lastEvent).block();
     pipeline.publishEvent(lastEvent).block();
 
     // Then while event is duplicated
     StepVerifier.create(pipeline.subscribeToEvents().doOnNext(System.out::println))
-                .expectNextCount(EXPECTED_EVENTS_COUNT + 2)
+                .expectNextCount(NUM_OF_EXPECTED_EVENTS + 2)
                 .expectTimeout(timeout)
                 .verify();
 
     // Event is still ignored
     var restartedPipeline = createSimplePipeline();
     StepVerifier.create(restartedPipeline.handle())
-                .expectNextCount(EXPECTED_EVENTS_COUNT)
+                .expectNextCount(NUM_OF_EXPECTED_EVENTS)
                 .expectTimeout(timeout)
                 .verify();
   }
@@ -134,15 +143,14 @@ class PartitionPipelineTest {
     var pipeline = createSimplePipeline();
 
     // When
-    var createAccounts = createAccounts().toStream().toList();
+    var createAccounts = requireNonNull(createAccounts().collectList().block());
     Flux.fromIterable(createAccounts).concatMap(pipeline::publishCommand).subscribe();
     StepVerifier.create(pipeline.handle()).expectNextCount(NUM_OF_ACCOUNTS).expectTimeout(timeout).verify();
 
     // Then
-    Assertions.assertThat(pipeline.isHandledCommand(createAccounts.getFirst())).isTrue();
+    Assertions.assertThat(pipeline.isDuplicateCommand(createAccounts.getFirst())).isTrue();
   }
 
-  // TODO
   @Test
   void duplicateSagaCommand() {
     // Given
@@ -150,22 +158,37 @@ class PartitionPipelineTest {
 
     // When
     createAccounts().concatWith(debitAccounts()).concatMap(pipeline::publishCommand).subscribe();
-    StepVerifier.create(pipeline.handle()).expectNextCount(NUM_OF_ACCOUNTS).expectTimeout(timeout).verify();
-    var firstCommand = createAccounts().blockFirst();
+    StepVerifier.create(pipeline.handle()).expectNextCount(NUM_OF_EXPECTED_EVENTS).expectTimeout(timeout).verify();
 
     // Then
-    //    assert firstCommand != null;
-    //    Assertions.assertThat(pipeline.isHandledSagaCommand(firstCommand)).isTrue();
-    assert false;
+    var creditCmd = pipeline.subscribeToCommands()
+                            .filter(cmd -> cmd instanceof Credit)
+                            .map(command -> (Credit) command)
+                            .blockFirst();
+    assert creditCmd != null;
+    var newMeta = new CommandMeta(CommandId.of(UUID.randomUUID()),
+                                  creditCmd.meta().stateId(),
+                                  System.currentTimeMillis(),
+                                  creditCmd.meta().sagaSource());
+    var duplicateSagaCommand = new Credit(newMeta, creditCmd.debitedAcc(), 100);
+    Assertions.assertThat(pipeline.isDuplicateSagaCommand(duplicateSagaCommand)).isTrue();
   }
 
   @Test
-  void wrongState() {
+  @DisplayName("Command is not valid for state")
+  void wrongCommand() {
+    // Given
+    var pipeline = createSimplePipeline();
 
+    // when
+    pipeline.publishCommand(debitAccounts().blockFirst()).subscribe();
+
+    // Then
+    StepVerifier.create(pipeline.handle()).expectError(InvalidEvolution.class).verify();
   }
 
   @Test
-  void invalidSequence() {
+  void invalidEventSequence() {
 
   }
 
