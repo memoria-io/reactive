@@ -75,7 +75,7 @@ public class PartitionPipeline {
 
   public Flux<Event> handle(Flux<Command> commands) {
     var handleCommands = commands.concatMap(this::redirectIfNeeded)
-                                 .concatMap(this::cancelIfDuplicate)
+                                 .concatMap(this::emptyIfDuplicate)
                                  .concatMap(this::decide)
                                  .doOnNext(this::evolve)
                                  .concatMap(this::saga)
@@ -131,7 +131,7 @@ public class PartitionPipeline {
     return tryToMono(() -> toMsg(command)).flatMap(msgStream::pub);
   }
 
-  public Mono<Command> cancelIfDuplicate(Command cmd) {
+  public Mono<Command> emptyIfDuplicate(Command cmd) {
     return (isDuplicateCommand(cmd) || isDuplicateSagaCommand(cmd)) ? Mono.empty() : Mono.just(cmd);
   }
 
@@ -145,10 +145,6 @@ public class PartitionPipeline {
         return tryToMono(() -> domain.decider().apply(cmd));
       }
     });
-  }
-
-  public Mono<Event> publishEvent(Event event) {
-    return tryToMono(() -> toMsg(event)).flatMap(msgStream::pub).map(_ -> event);
   }
 
   public Flux<Msg> subToEventsUntil(String key) {
@@ -197,9 +193,16 @@ public class PartitionPipeline {
   }
 
   /**
+   * Has side effect only available with package visibility
+   */
+  Mono<Event> publishEvent(Event event) {
+    return tryToMono(() -> toMsg(event)).flatMap(msgStream::pub).map(_ -> event);
+  }
+
+  /**
    * Redirection allows location transparency and auto sharding
    * <p>
-   * Has side effect only available in package
+   * Has side effect only available with package visibility
    */
   Mono<Command> redirectIfNeeded(Command cmd) {
     if (cmd.meta().isInPartition(commandRoute.partition(), commandRoute.totalPartitions())) {
@@ -210,29 +213,43 @@ public class PartitionPipeline {
   }
 
   /**
-   * Has side effect only available in package
+   * Has side effect only available with package visibility
    */
   void evolve(Event event) {
     event.meta().sagaSource().forEach(sagaSources::add);
     if (aggregates.containsKey(event.meta().stateId())) {
-      State currentState = aggregates.get(event.meta().stateId());
-      if (hasExpectedVersion(event, currentState)) {
-        update(event, domain.evolver().apply(currentState, event));
-      } else if (isDuplicateEvent(event)) {
-        String message = "Redelivered event[%s], ignoring...".formatted(event.meta());
-        log.debug(message);
-      } else {
-        throw InvalidEvolution.of(event, currentState);
-      }
+      evolveExistingState(event);
     } else if (event.meta().version() == 0) {
-      update(event, domain.evolver().apply(event));
+      evolveCreationEvent(event);
     } else {
       throw InvalidEvolution.of(event);
     }
   }
 
   /**
-   * Has side effect only available in package
+   * Has side effect only available with package visibility
+   */
+  void evolveCreationEvent(Event event) {
+    update(event, domain.evolver().apply(event));
+  }
+
+  /**
+   * Has side effect only available with package visibility
+   */
+  void evolveExistingState(Event event) {
+    var currentState = aggregates.get(event.meta().stateId());
+    if (hasExpectedVersion(event, currentState)) {
+      update(event, domain.evolver().apply(currentState, event));
+    } else if (isDuplicateEvent(event)) {
+      var message = "Redelivered event[%s], ignoring...".formatted(event.meta());
+      log.debug(message);
+    } else {
+      throw InvalidEvolution.of(event, currentState);
+    }
+  }
+
+  /**
+   * Has side effect only available with package visibility
    */
   void update(Event e, State newState) {
     aggregates.put(e.meta().stateId(), newState);
@@ -241,7 +258,7 @@ public class PartitionPipeline {
   }
 
   /**
-   * Has side effect only available in package
+   * Has side effect only available with package visibility
    */
   Mono<Event> saga(Event e) {
     return Mono.defer(() -> {

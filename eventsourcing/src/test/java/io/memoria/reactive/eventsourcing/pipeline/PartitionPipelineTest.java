@@ -2,10 +2,13 @@ package io.memoria.reactive.eventsourcing.pipeline;
 
 import io.memoria.atom.eventsourcing.CommandId;
 import io.memoria.atom.eventsourcing.CommandMeta;
+import io.memoria.atom.eventsourcing.EventId;
+import io.memoria.atom.eventsourcing.EventMeta;
 import io.memoria.atom.eventsourcing.StateId;
 import io.memoria.atom.eventsourcing.exceptions.InvalidEvolution;
 import io.memoria.atom.testsuite.eventsourcing.command.AccountCommand;
 import io.memoria.atom.testsuite.eventsourcing.command.Credit;
+import io.memoria.atom.testsuite.eventsourcing.event.AccountCreated;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -101,8 +104,18 @@ class PartitionPipelineTest {
   }
 
   @Test
-  void evolve() {
-
+  void invalidCreationEvolution() {
+    // Given
+    var pipeline = createSimplePipeline();
+    int VERSION_ZERO = 0;
+    var meta = new EventMeta(EventId.of(0), VERSION_ZERO, StateId.of(0), CommandId.of(0));
+    var accountCreated = new AccountCreated(meta, "alice", 300);
+    pipeline.evolve(accountCreated);
+    // When
+    int VERSION_THREE = 3;
+    var meta2 = new EventMeta(EventId.of(1), VERSION_THREE, StateId.of(1), CommandId.of(1));
+    var anotherAccountCreated = new AccountCreated(meta2, "bob", 300);
+    Assertions.assertThatThrownBy(() -> pipeline.evolve(anotherAccountCreated)).isInstanceOf(InvalidEvolution.class);
   }
 
   @Test
