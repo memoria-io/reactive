@@ -7,8 +7,10 @@ import io.memoria.atom.eventsourcing.EventMeta;
 import io.memoria.atom.eventsourcing.StateId;
 import io.memoria.atom.eventsourcing.exceptions.InvalidEvolution;
 import io.memoria.atom.testsuite.eventsourcing.command.AccountCommand;
+import io.memoria.atom.testsuite.eventsourcing.command.CreateAccount;
 import io.memoria.atom.testsuite.eventsourcing.command.Credit;
 import io.memoria.atom.testsuite.eventsourcing.event.AccountCreated;
+import io.memoria.atom.testsuite.eventsourcing.event.Debited;
 import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -201,8 +203,25 @@ class PartitionPipelineTest {
   }
 
   @Test
-  void invalidEventSequence() {
+  void invalidEventVersion() {
+    // Given
+    var pipeline = createSimplePipeline();
+    StateId bobState = StateId.of(0);
+    // Create Account
+    var commandMeta = new CommandMeta(CommandId.of(0), bobState);
+    String bob = "bob";
+    StepVerifier.create(pipeline.handle(Flux.just(new CreateAccount(commandMeta, bob, 300))))
+                .expectNextCount(1)
+                .verifyComplete();
 
+    // When
+    int WRONG_VERSION = 10;
+    var eventMeta = new EventMeta(EventId.of(1), WRONG_VERSION, bobState, CommandId.of(2));
+    var invalidEventVersion = new Debited(eventMeta, bobState, 200);
+
+    // Then
+    Assertions.assertThatThrownBy(() -> pipeline.evolveExistingState(invalidEventVersion))
+              .isInstanceOf(InvalidEvolution.class);
   }
 
   private PartitionPipeline createSimplePipeline() {
