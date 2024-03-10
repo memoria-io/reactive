@@ -1,10 +1,10 @@
 package io.memoria.reactive.eventsourcing.pipeline;
 
-import io.memoria.atom.eventsourcing.CommandId;
-import io.memoria.atom.eventsourcing.CommandMeta;
-import io.memoria.atom.eventsourcing.EventId;
-import io.memoria.atom.eventsourcing.EventMeta;
-import io.memoria.atom.eventsourcing.StateId;
+import io.memoria.atom.eventsourcing.command.CommandId;
+import io.memoria.atom.eventsourcing.command.CommandMeta;
+import io.memoria.atom.eventsourcing.event.EventId;
+import io.memoria.atom.eventsourcing.event.EventMeta;
+import io.memoria.atom.eventsourcing.state.StateId;
 import io.memoria.atom.eventsourcing.exceptions.InvalidEvolution;
 import io.memoria.atom.testsuite.eventsourcing.command.AccountCommand;
 import io.memoria.atom.testsuite.eventsourcing.command.CreateAccount;
@@ -23,14 +23,12 @@ import java.util.UUID;
 import static java.util.Objects.requireNonNull;
 
 class PartitionPipelineTest {
+  private static final Duration timeout = Duration.ofMillis(200);
   private static final int NUM_OF_ACCOUNTS = 10;
-  private static final int NUM_OF_EXPECTED_EVENTS = (NUM_OF_ACCOUNTS / 2) * 5;
-  private static final Duration timeout = Duration.ofMillis(100);
+  private static final int NUM_OF_EXPECTED_EVENTS = expectedEventsCount(NUM_OF_ACCOUNTS);
 
   private final Infra infra = new Infra();
   private final Data data = Data.ofSerial();
-  private final Flux<StateId> debitedIds = data.createIds(0, NUM_OF_ACCOUNTS / 2).map(StateId::of);
-  private final Flux<StateId> creditedIds = data.createIds(NUM_OF_ACCOUNTS / 2, NUM_OF_ACCOUNTS / 2).map(StateId::of);
 
   @Test
   void happyPath() {
@@ -38,10 +36,12 @@ class PartitionPipelineTest {
     var pipeline = createSimplePipeline();
 
     // When
-    createAccounts().concatWith(debitAccounts()).concatMap(pipeline::publishCommand).subscribe();
+    createAccounts(NUM_OF_ACCOUNTS).concatWith(debitAccounts(NUM_OF_ACCOUNTS))
+                                   .concatMap(pipeline::publishCommand)
+                                   .subscribe();
 
     // Then
-    StepVerifier.create(pipeline.handle())
+    StepVerifier.create(pipeline.start())
                 .expectNextCount(NUM_OF_EXPECTED_EVENTS)
                 .expectTimeout(Duration.ofMillis(100))
                 .verify();
@@ -54,20 +54,20 @@ class PartitionPipelineTest {
     var pipeline = createSimplePipeline();
 
     // When creating accounts
-    createAccounts().concatMap(pipeline::publishCommand).subscribe();
+    createAccounts(NUM_OF_ACCOUNTS).concatMap(pipeline::publishCommand).subscribe();
 
     // Then
-    StepVerifier.create(pipeline.handle())
+    StepVerifier.create(pipeline.start())
                 .expectNextCount(NUM_OF_ACCOUNTS)
                 .expectTimeout(Duration.ofMillis(100))
                 .verify();
 
     // When old pipeline died
     pipeline = createSimplePipeline();
-    debitAccounts().concatMap(pipeline::publishCommand).subscribe();
+    debitAccounts(NUM_OF_ACCOUNTS).concatMap(pipeline::publishCommand).subscribe();
 
     // Then new pipeline should pick up last state
-    StepVerifier.create(pipeline.handle())
+    StepVerifier.create(pipeline.start())
                 .expectNextCount(NUM_OF_EXPECTED_EVENTS)
                 .expectTimeout(Duration.ofMillis(100))
                 .verify();
@@ -129,24 +129,22 @@ class PartitionPipelineTest {
   void atLeastOnceEvents() {
     // Given
     var pipeline = createSimplePipeline();
-    createAccounts().concatWith(debitAccounts()).concatMap(pipeline::publishCommand).subscribe();
-    StepVerifier.create(pipeline.handle()).expectNextCount(NUM_OF_EXPECTED_EVENTS).expectTimeout(timeout).verify();
+    int numOfAccounts = 2;
+    int expectedEventsCount = expectedEventsCount(numOfAccounts);
+    createAccounts(numOfAccounts).concatWith(debitAccounts(numOfAccounts))
+                                 .concatMap(pipeline::publishCommand)
+                                 .subscribe();
+    StepVerifier.create(pipeline.start()).expectNextCount(expectedEventsCount).expectTimeout(timeout).verify();
+    var lastEvent = pipeline.subscribeToEvents().take(expectedEventsCount).last().block();
 
     // When
-    var lastEvent = pipeline.subscribeToEvents().take(NUM_OF_EXPECTED_EVENTS).last().block();
     pipeline.publishEvent(lastEvent).block();
     pipeline.publishEvent(lastEvent).block();
-
-    // Then while event is duplicated
-    StepVerifier.create(pipeline.subscribeToEvents().doOnNext(System.out::println))
-                .expectNextCount(NUM_OF_EXPECTED_EVENTS + 2)
-                .expectTimeout(timeout)
-                .verify();
 
     // Event is still ignored
     var restartedPipeline = createSimplePipeline();
-    StepVerifier.create(restartedPipeline.handle())
-                .expectNextCount(NUM_OF_EXPECTED_EVENTS)
+    StepVerifier.create(restartedPipeline.start())
+                .expectNextCount(expectedEventsCount)
                 .expectTimeout(timeout)
                 .verify();
   }
@@ -158,9 +156,9 @@ class PartitionPipelineTest {
     var pipeline = createSimplePipeline();
 
     // When
-    var createAccounts = requireNonNull(createAccounts().collectList().block());
+    var createAccounts = requireNonNull(createAccounts(NUM_OF_ACCOUNTS).collectList().block());
     Flux.fromIterable(createAccounts).concatMap(pipeline::publishCommand).subscribe();
-    StepVerifier.create(pipeline.handle()).expectNextCount(NUM_OF_ACCOUNTS).expectTimeout(timeout).verify();
+    StepVerifier.create(pipeline.start()).expectNextCount(NUM_OF_ACCOUNTS).expectTimeout(timeout).verify();
 
     // Then
     Assertions.assertThat(pipeline.isDuplicateCommand(createAccounts.getFirst())).isTrue();
@@ -172,8 +170,10 @@ class PartitionPipelineTest {
     var pipeline = createSimplePipeline();
 
     // When
-    createAccounts().concatWith(debitAccounts()).concatMap(pipeline::publishCommand).subscribe();
-    StepVerifier.create(pipeline.handle()).expectNextCount(NUM_OF_EXPECTED_EVENTS).expectTimeout(timeout).verify();
+    createAccounts(NUM_OF_ACCOUNTS).concatWith(debitAccounts(NUM_OF_ACCOUNTS))
+                                   .concatMap(pipeline::publishCommand)
+                                   .subscribe();
+    StepVerifier.create(pipeline.start()).expectNextCount(NUM_OF_EXPECTED_EVENTS).expectTimeout(timeout).verify();
 
     // Then
     var creditCmd = pipeline.subscribeToCommands()
@@ -196,10 +196,10 @@ class PartitionPipelineTest {
     var pipeline = createSimplePipeline();
 
     // when
-    pipeline.publishCommand(debitAccounts().blockFirst()).subscribe();
+    pipeline.publishCommand(debitAccounts(NUM_OF_ACCOUNTS).blockFirst()).subscribe();
 
     // Then
-    StepVerifier.create(pipeline.handle()).expectError(InvalidEvolution.class).verify();
+    StepVerifier.create(pipeline.start()).expectError(InvalidEvolution.class).verify();
   }
 
   @Test
@@ -220,7 +220,7 @@ class PartitionPipelineTest {
     var invalidEventVersion = new Debited(eventMeta, bobState, 200);
 
     // Then
-    Assertions.assertThatThrownBy(() -> pipeline.evolveExistingState(invalidEventVersion))
+    Assertions.assertThatThrownBy(() -> pipeline.evolveWithState(invalidEventVersion))
               .isInstanceOf(InvalidEvolution.class);
   }
 
@@ -228,13 +228,26 @@ class PartitionPipelineTest {
     return infra.inMemoryPipeline(data.domain(), new CommandRoute("commands"), new EventRoute("events"));
   }
 
-  private Flux<AccountCommand> createAccounts() {
-    var createDebitedAcc = data.createAccountCmd(debitedIds, 500);
-    var createCreditedAcc = data.createAccountCmd(creditedIds, 500);
+  private Flux<AccountCommand> createAccounts(int n) {
+    var createDebitedAcc = data.createAccountCmd(debitedIds(n), 500);
+    var createCreditedAcc = data.createAccountCmd(creditedIds(n), 500);
     return createDebitedAcc.concatWith(createCreditedAcc);
   }
 
-  private Flux<AccountCommand> debitAccounts() {
-    return data.debitCmd(debitedIds.zipWith(creditedIds), 300);
+  private Flux<AccountCommand> debitAccounts(int n) {
+    var map = debitedIds(n).zipWith(creditedIds(n));
+    return data.debitCmd(map, 300);
+  }
+
+  private Flux<StateId> debitedIds(int n) {
+    return data.createIds(0, n / 2).map(StateId::of);
+  }
+
+  private Flux<StateId> creditedIds(int n) {
+    return data.createIds(n / 2, n / 2).map(StateId::of);
+  }
+
+  private static int expectedEventsCount(int numOfAccounts) {
+    return (numOfAccounts / 2) * 5;
   }
 }

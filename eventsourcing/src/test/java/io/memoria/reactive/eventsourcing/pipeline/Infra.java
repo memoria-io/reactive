@@ -7,6 +7,8 @@ import io.vavr.Tuple;
 import io.vavr.Tuple2;
 import io.vavr.collection.List;
 
+import java.time.Duration;
+
 public class Infra {
   private final SerializableTransformer transformer;
   public final MsgStream inMemoryStream;
@@ -24,6 +26,6 @@ public class Infra {
   }
 
   public PartitionPipeline inMemoryPipeline(Domain domain, CommandRoute commandRoute, EventRoute eventRoute) {
-    return new PartitionPipeline(domain, commandRoute, eventRoute, inMemoryStream, transformer);
+    return new PartitionPipeline(domain, commandRoute, eventRoute, inMemoryStream, Duration.ofMillis(500), transformer);
   }
 }

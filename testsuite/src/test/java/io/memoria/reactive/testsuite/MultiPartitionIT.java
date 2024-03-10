@@ -1,6 +1,6 @@
 package io.memoria.reactive.testsuite;
 
-import io.memoria.atom.eventsourcing.StateId;
+import io.memoria.atom.eventsourcing.state.StateId;
 import io.memoria.atom.testsuite.eventsourcing.command.AccountCommand;
 import io.memoria.atom.testsuite.eventsourcing.state.OpenAccount;
 import io.memoria.reactive.eventsourcing.Utils;
@@ -71,7 +71,7 @@ class MultiPartitionIT {
   }
 
   private static void subscribe(PartitionPipeline p, CountDownLatch latch) {
-    p.handle().doOnNext(_ -> latch.countDown()).subscribe();
+    p.start().doOnNext(_ -> latch.countDown()).subscribe();
   }
 
   private Mono<Boolean> verify(PartitionPipeline pipeline, int expectedEventsCount) {

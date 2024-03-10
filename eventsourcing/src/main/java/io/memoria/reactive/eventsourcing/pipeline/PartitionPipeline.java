@@ -1,15 +1,13 @@
 package io.memoria.reactive.eventsourcing.pipeline;
 
 import io.memoria.atom.core.text.TextTransformer;
-import io.memoria.atom.eventsourcing.Command;
-import io.memoria.atom.eventsourcing.CommandId;
 import io.memoria.atom.eventsourcing.Domain;
-import io.memoria.atom.eventsourcing.Event;
-import io.memoria.atom.eventsourcing.EventId;
-import io.memoria.atom.eventsourcing.EventMeta;
-import io.memoria.atom.eventsourcing.State;
-import io.memoria.atom.eventsourcing.StateId;
-import io.memoria.atom.eventsourcing.exceptions.InvalidEvolution;
+import io.memoria.atom.eventsourcing.command.Command;
+import io.memoria.atom.eventsourcing.command.CommandId;
+import io.memoria.atom.eventsourcing.event.Event;
+import io.memoria.atom.eventsourcing.event.EventId;
+import io.memoria.atom.eventsourcing.state.State;
+import io.memoria.atom.eventsourcing.state.StateId;
 import io.memoria.reactive.eventsourcing.stream.Msg;
 import io.memoria.reactive.eventsourcing.stream.MsgStream;
 import io.vavr.control.Option;
@@ -19,6 +17,7 @@ import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.Duration;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -37,6 +36,7 @@ public class PartitionPipeline {
   private final CommandRoute commandRoute;
   private final EventRoute eventRoute;
   private final MsgStream msgStream;
+  private final Duration initGracePeriod;
   private final TextTransformer transformer;
 
   // In memory
@@ -52,6 +52,7 @@ public class PartitionPipeline {
                            CommandRoute commandRoute,
                            EventRoute eventRoute,
                            MsgStream msgStream,
+                           Duration initGracePeriod,
                            TextTransformer transformer) {
     // Core
     this.domain = domain;
@@ -60,6 +61,7 @@ public class PartitionPipeline {
     this.commandRoute = commandRoute;
     this.eventRoute = eventRoute;
     this.msgStream = msgStream;
+    this.initGracePeriod = initGracePeriod;
     this.transformer = transformer;
 
     // In memory
@@ -69,33 +71,44 @@ public class PartitionPipeline {
     this.prevEvent = new AtomicReference<>();
   }
 
-  public Flux<Event> handle() {
-    return handle(subscribeToCommands());
-  }
-
-  public Flux<Event> handle(Flux<Command> commands) {
-    var handleCommands = commands.concatMap(this::redirectIfNeeded)
-                                 .concatMap(this::emptyIfDuplicate)
-                                 .concatMap(this::decide)
-                                 .doOnNext(this::evolve)
-                                 .concatMap(this::saga)
-                                 .concatMap(this::publishEvent);
-    return initialize().concatWith(handleCommands);
+  public Flux<Event> start() {
+    return initialize(initGracePeriod).concatWith(verifyInitialization()).concatWith(handle(subscribeToCommands()));
   }
 
   /**
-   * Load previous events and build the state
+   * Load previous events and build the state only
+   *
+   * @param initGraceDuration amount of time to leave before considering no further initialisation events would arrive
    */
-  public Flux<Event> initialize() {
+  public Flux<Event> initialize(Duration initGraceDuration) {
+    return subToEventsUntil(initGraceDuration).concatMap(msg -> tryToMono(() -> toEvent(msg))).doOnNext(this::evolve);
+  }
+
+  public Mono<Event> verifyInitialization() {
     return msgStream.last(eventRoute.topic(), eventRoute.partition())
                     .map(this::toEvent)
-                    .flatMap(e -> tryToMono(() -> e))
-                    .map(Event::meta)
-                    .map(EventMeta::eventId)
-                    .map(EventId::value)
-                    .flatMapMany(this::subToEventsUntil)
-                    .concatMap(msg -> tryToMono(() -> toEvent(msg)))
-                    .doOnNext(this::evolve);
+                    .flatMap(lastEvent -> tryToMono(() -> lastEvent))
+                    .flatMap(this::verifyLastEvent);
+  }
+
+  private Mono<Event> verifyLastEvent(Event lastEvent) {
+    if (lastEvent.meta().eventId().equals(getPrevEvent().get())) {
+      return Mono.empty();
+    } else {
+      return Mono.error(UnexpectedLastEvent.of(lastEvent));
+    }
+  }
+
+  /**
+   * Handle specific commands only
+   */
+  public Flux<Event> handle(Flux<Command> commands) {
+    return commands.concatMap(this::redirectIfNeeded)
+                   .concatMap(this::emptyIfDuplicate)
+                   .concatMap(this::decide)
+                   .doOnNext(this::evolve)
+                   .concatMap(this::saga)
+                   .concatMap(this::publishEvent);
   }
 
   public Domain getDomain() {
@@ -147,16 +160,16 @@ public class PartitionPipeline {
     });
   }
 
+  public Flux<Msg> subToEventsUntil(Duration timeout) {
+    return msgStream.subUntil(eventRoute.topic(), eventRoute.partition(), timeout);
+  }
+
   public Flux<Msg> subToEventsUntil(String key) {
     return msgStream.subUntil(eventRoute.topic(), eventRoute.partition(), key);
   }
 
-  public boolean hasExpectedVersion(Event event, State currentState) {
-    return event.meta().version() == currentState.meta().version() + 1;
-  }
-
   public boolean isDuplicateEvent(Event e) {
-    return prevEvent.get() == null && prevEvent.get().equals(e.meta().eventId());
+    return prevEvent.get() != null && prevEvent.get().equals(e.meta().eventId());
   }
 
   public boolean isDuplicateCommand(Command cmd) {
@@ -217,27 +230,20 @@ public class PartitionPipeline {
    */
   void evolve(Event event) {
     event.meta().sagaSource().forEach(sagaSources::add);
-    if (aggregates.containsKey(event.meta().stateId())) {
-      evolveExistingState(event);
-    } else if (event.meta().version() == 0) {
-      evolveCreationEvent(event);
+    if (stateExistsFor(event)) {
+      evolveWithState(event, aggregates.get(event.meta().stateId()));
     } else {
-      throw InvalidEvolution.of(event);
+      if (!isInitializerEvent(event)) {
+        throw new (event);
+      }
+      update(event, domain.evolver().apply(event));
     }
   }
 
   /**
    * Has side effect only available with package visibility
    */
-  void evolveCreationEvent(Event event) {
-    update(event, domain.evolver().apply(event));
-  }
-
-  /**
-   * Has side effect only available with package visibility
-   */
-  void evolveExistingState(Event event) {
-    var currentState = aggregates.get(event.meta().stateId());
+  void evolveWithState(Event event, State currentState) {
     if (hasExpectedVersion(event, currentState)) {
       update(event, domain.evolver().apply(currentState, event));
     } else if (isDuplicateEvent(event)) {
@@ -269,5 +275,17 @@ public class PartitionPipeline {
         return Mono.just(e);
       }
     });
+  }
+
+  private boolean stateExistsFor(Event event) {
+    return aggregates.containsKey(event.meta().stateId());
+  }
+
+  private static boolean hasExpectedVersion(Event event, State currentState) {
+    return event.meta().version() == currentState.meta().version() + 1;
+  }
+
+  private static boolean isInitializerEvent(Event event) {
+    return event.meta().version() == 0;
   }
 }
