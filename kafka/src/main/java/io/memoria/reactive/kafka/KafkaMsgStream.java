@@ -47,7 +47,7 @@ public class KafkaMsgStream implements MsgStream {
     return SenderRecord.create(msg.topic(), msg.partition(), null, msg.key(), msg.value(), msg);
   }
 
-  private Msg toMsg(String topic, int partition, ConsumerRecord<String, String> record) {
-    return new Msg(topic, partition, record.key(), record.value());
+  private Msg toMsg(String topic, int partition, ConsumerRecord<String, String> rec) {
+    return new Msg(topic, partition, rec.key(), rec.value());
   }
 }
