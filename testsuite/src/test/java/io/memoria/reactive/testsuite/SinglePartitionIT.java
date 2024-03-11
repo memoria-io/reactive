@@ -1,6 +1,6 @@
 package io.memoria.reactive.testsuite;
 
-import io.memoria.atom.eventsourcing.StateId;
+import io.memoria.atom.eventsourcing.state.StateId;
 import io.memoria.atom.testsuite.eventsourcing.command.AccountCommand;
 import io.memoria.atom.testsuite.eventsourcing.state.OpenAccount;
 import io.memoria.reactive.eventsourcing.Utils;
@@ -46,7 +46,7 @@ class SinglePartitionIT {
                 .expectNextCount(EXPECTED_COMMANDS_COUNT)
                 .verifyComplete();
     // When
-    StepVerifier.create(pipeline.handle().take(EXPECTED_EVENTS_COUNT))
+    StepVerifier.create(pipeline.start().take(EXPECTED_EVENTS_COUNT))
                 .expectNextCount(EXPECTED_EVENTS_COUNT)
                 .verifyComplete();
     // Then

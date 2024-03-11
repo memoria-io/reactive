@@ -81,15 +81,15 @@ public class Infra {
   }
 
   public PartitionPipeline inMemoryPipeline(Domain domain, CommandRoute commandRoute, EventRoute eventRoute) {
-    return new PartitionPipeline(domain, commandRoute, eventRoute, inMemoryStream, transformer);
+    return new PartitionPipeline(domain, commandRoute, eventRoute, inMemoryStream, timeout, transformer);
   }
 
   public PartitionPipeline natsPipeline(Domain domain, CommandRoute commandRoute, EventRoute eventRoute) {
-    return new PartitionPipeline(domain, commandRoute, eventRoute, natsStream, transformer);
+    return new PartitionPipeline(domain, commandRoute, eventRoute, natsStream, timeout, transformer);
   }
 
   public PartitionPipeline kafkaPipeline(Domain domain, CommandRoute commandRoute, EventRoute eventRoute) {
-    return new PartitionPipeline(domain, commandRoute, eventRoute, kafkaMsgStream, transformer);
+    return new PartitionPipeline(domain, commandRoute, eventRoute, kafkaMsgStream, timeout, transformer);
   }
 
   public Map<String, Object> kafkaAdminConfigs() {

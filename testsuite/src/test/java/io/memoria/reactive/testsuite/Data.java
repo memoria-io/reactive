@@ -1,10 +1,10 @@
 package io.memoria.reactive.testsuite;
 
 import io.memoria.atom.core.id.Id;
-import io.memoria.atom.eventsourcing.CommandId;
-import io.memoria.atom.eventsourcing.CommandMeta;
+import io.memoria.atom.eventsourcing.command.CommandId;
+import io.memoria.atom.eventsourcing.command.CommandMeta;
 import io.memoria.atom.eventsourcing.Domain;
-import io.memoria.atom.eventsourcing.StateId;
+import io.memoria.atom.eventsourcing.state.StateId;
 import io.memoria.atom.testsuite.eventsourcing.AccountDecider;
 import io.memoria.atom.testsuite.eventsourcing.AccountEvolver;
 import io.memoria.atom.testsuite.eventsourcing.AccountSaga;
