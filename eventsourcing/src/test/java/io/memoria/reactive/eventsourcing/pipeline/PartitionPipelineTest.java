@@ -2,10 +2,10 @@ package io.memoria.reactive.eventsourcing.pipeline;
 
 import io.memoria.atom.eventsourcing.command.CommandId;
 import io.memoria.atom.eventsourcing.command.CommandMeta;
+import io.memoria.atom.eventsourcing.command.exceptions.UnknownCommand;
 import io.memoria.atom.eventsourcing.event.EventId;
 import io.memoria.atom.eventsourcing.event.EventMeta;
 import io.memoria.atom.eventsourcing.state.StateId;
-import io.memoria.atom.eventsourcing.exceptions.InvalidEvolution;
 import io.memoria.atom.testsuite.eventsourcing.command.AccountCommand;
 import io.memoria.atom.testsuite.eventsourcing.command.CreateAccount;
 import io.memoria.atom.testsuite.eventsourcing.command.Credit;
@@ -68,7 +68,7 @@ class PartitionPipelineTest {
 
     // Then new pipeline should pick up last state
     StepVerifier.create(pipeline.start())
-                .expectNextCount(NUM_OF_EXPECTED_EVENTS)
+                .expectNextCount(NUM_OF_ACCOUNTS)
                 .expectTimeout(Duration.ofMillis(100))
                 .verify();
   }
@@ -113,11 +113,37 @@ class PartitionPipelineTest {
     var meta = new EventMeta(EventId.of(0), VERSION_ZERO, StateId.of(0), CommandId.of(0));
     var accountCreated = new AccountCreated(meta, "alice", 300);
     pipeline.evolve(accountCreated);
+
     // When
     int VERSION_THREE = 3;
     var meta2 = new EventMeta(EventId.of(1), VERSION_THREE, StateId.of(1), CommandId.of(1));
     var anotherAccountCreated = new AccountCreated(meta2, "bob", 300);
-    Assertions.assertThatThrownBy(() -> pipeline.evolve(anotherAccountCreated)).isInstanceOf(InvalidEvolution.class);
+
+    // Then
+    Assertions.assertThatThrownBy(() -> pipeline.evolve(anotherAccountCreated))
+              .isInstanceOf(IllegalArgumentException.class);
+  }
+
+  @Test
+  void invalidEventVersion() {
+    // Given
+    var pipeline = createSimplePipeline();
+    StateId bobState = StateId.of(0);
+    // Create Account
+    var commandMeta = new CommandMeta(CommandId.of(0), bobState);
+    String bob = "bob";
+    StepVerifier.create(pipeline.handle(Flux.just(new CreateAccount(commandMeta, bob, 300))))
+                .expectNextCount(1)
+                .verifyComplete();
+
+    // When
+    int WRONG_VERSION = 10;
+    var eventMeta = new EventMeta(EventId.of(1), WRONG_VERSION, bobState, CommandId.of(2));
+    var invalidEventVersion = new Debited(eventMeta, bobState, 200);
+
+    // Then
+    Assertions.assertThatThrownBy(() -> pipeline.evolve(invalidEventVersion))
+              .isInstanceOf(IllegalArgumentException.class);
   }
 
   @Test
@@ -143,7 +169,7 @@ class PartitionPipelineTest {
 
     // Event is still ignored
     var restartedPipeline = createSimplePipeline();
-    StepVerifier.create(restartedPipeline.start())
+    StepVerifier.create(restartedPipeline.start().doOnNext(System.out::println))
                 .expectNextCount(expectedEventsCount)
                 .expectTimeout(timeout)
                 .verify();
@@ -151,7 +177,7 @@ class PartitionPipelineTest {
 
   @Test
   @DisplayName("Command should be dropped when it's already handled")
-  void isHandledCommand() {
+  void duplicateCommand() {
     // Given
     var pipeline = createSimplePipeline();
 
@@ -161,10 +187,11 @@ class PartitionPipelineTest {
     StepVerifier.create(pipeline.start()).expectNextCount(NUM_OF_ACCOUNTS).expectTimeout(timeout).verify();
 
     // Then
-    Assertions.assertThat(pipeline.isDuplicateCommand(createAccounts.getFirst())).isTrue();
+    Assertions.assertThat(pipeline.isValidCommand(createAccounts.getFirst())).isFalse();
   }
 
   @Test
+  @DisplayName("Saga Command should be dropped when it's already handled")
   void duplicateSagaCommand() {
     // Given
     var pipeline = createSimplePipeline();
@@ -186,7 +213,7 @@ class PartitionPipelineTest {
                                   System.currentTimeMillis(),
                                   creditCmd.meta().sagaSource());
     var duplicateSagaCommand = new Credit(newMeta, creditCmd.debitedAcc(), 100);
-    Assertions.assertThat(pipeline.isDuplicateSagaCommand(duplicateSagaCommand)).isTrue();
+    Assertions.assertThat(pipeline.isValidCommand(duplicateSagaCommand)).isFalse();
   }
 
   @Test
@@ -199,29 +226,7 @@ class PartitionPipelineTest {
     pipeline.publishCommand(debitAccounts(NUM_OF_ACCOUNTS).blockFirst()).subscribe();
 
     // Then
-    StepVerifier.create(pipeline.start()).expectError(InvalidEvolution.class).verify();
-  }
-
-  @Test
-  void invalidEventVersion() {
-    // Given
-    var pipeline = createSimplePipeline();
-    StateId bobState = StateId.of(0);
-    // Create Account
-    var commandMeta = new CommandMeta(CommandId.of(0), bobState);
-    String bob = "bob";
-    StepVerifier.create(pipeline.handle(Flux.just(new CreateAccount(commandMeta, bob, 300))))
-                .expectNextCount(1)
-                .verifyComplete();
-
-    // When
-    int WRONG_VERSION = 10;
-    var eventMeta = new EventMeta(EventId.of(1), WRONG_VERSION, bobState, CommandId.of(2));
-    var invalidEventVersion = new Debited(eventMeta, bobState, 200);
-
-    // Then
-    Assertions.assertThatThrownBy(() -> pipeline.evolveWithState(invalidEventVersion))
-              .isInstanceOf(InvalidEvolution.class);
+    StepVerifier.create(pipeline.start()).expectError(UnknownCommand.class).verify();
   }
 
   private PartitionPipeline createSimplePipeline() {
