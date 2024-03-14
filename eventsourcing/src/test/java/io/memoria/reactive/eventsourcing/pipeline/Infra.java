@@ -25,7 +25,7 @@ public class Infra {
     return List.range(0, x).map(i -> Tuple.of(new CommandRoute(cTopic, i, x), new EventRoute(eTopic, i, x)));
   }
 
-  public PartitionPipeline inMemoryPipeline(Domain domain, CommandRoute commandRoute, EventRoute eventRoute) {
-    return new PartitionPipeline(domain, commandRoute, eventRoute, inMemoryStream, Duration.ofMillis(500), transformer);
+  public PartitionPipeline inMemoryPipeline(Domain domain, CommandRoute commandRoute, EventRoute eventRoute, Duration timeout) {
+    return new PartitionPipeline(domain, commandRoute, eventRoute, inMemoryStream, timeout, transformer);
   }
 }

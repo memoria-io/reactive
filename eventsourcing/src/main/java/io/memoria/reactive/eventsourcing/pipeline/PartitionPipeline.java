@@ -81,16 +81,14 @@ public class PartitionPipeline {
    * @param initGraceDuration amount of time to leave before considering no further initialisation events would arrive
    */
   public Flux<Event> initialize(Duration initGraceDuration) {
-    return subToEventsUntil(initGraceDuration).concatMap(msg -> tryToMono(() -> toEvent(msg)))
-                                              .filter(this::isValidEvent)
-                                              .doOnNext(this::addSaga)
-                                              .doOnNext(this::evolve);
+    return subscribeToEventsUntil(initGraceDuration).filter(this::isValidEvent)
+                                                    .doOnNext(this::addSaga)
+                                                    .doOnNext(this::evolve);
   }
 
   public Mono<Event> verifyInitialization() {
     return msgStream.last(eventRoute.topic(), eventRoute.partition())
-                    .map(this::toEvent)
-                    .flatMap(lastEvent -> tryToMono(() -> lastEvent))
+                    .flatMap(msg -> tryToMono(() -> toEvent(msg)))
                     .flatMap(this::verifyLastEvent);
   }
 
@@ -139,6 +137,11 @@ public class PartitionPipeline {
     return msgStream.sub(eventRoute.topic(), eventRoute.partition()).concatMap(msg -> tryToMono(() -> toEvent(msg)));
   }
 
+  public Flux<Event> subscribeToEventsUntil(Duration timeout) {
+    return msgStream.subUntil(eventRoute.topic(), eventRoute.partition(), timeout)
+                    .concatMap(msg -> tryToMono(() -> toEvent(msg)));
+  }
+
   public Flux<Command> subscribeToCommands() {
     return msgStream.sub(commandRoute.topic(), commandRoute.partition())
                     .concatMap(msg -> tryToMono(() -> toCommand(msg)));
@@ -158,10 +161,6 @@ public class PartitionPipeline {
         return tryToMono(() -> domain.decider().apply(cmd));
       }
     });
-  }
-
-  public Flux<Msg> subToEventsUntil(Duration timeout) {
-    return msgStream.subUntil(eventRoute.topic(), eventRoute.partition(), timeout);
   }
 
   public boolean isValidEvent(Event event) {

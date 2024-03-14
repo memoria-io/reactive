@@ -23,7 +23,8 @@ import java.util.UUID;
 import static java.util.Objects.requireNonNull;
 
 class PartitionPipelineTest {
-  private static final Duration timeout = Duration.ofMillis(200);
+  private static final Duration stepVerifierTimeout = Duration.ofMillis(500);
+  private static final Duration pipelineTimeout = Duration.ofMillis(100);
   private static final int NUM_OF_ACCOUNTS = 10;
   private static final int NUM_OF_EXPECTED_EVENTS = expectedEventsCount(NUM_OF_ACCOUNTS);
 
@@ -43,7 +44,7 @@ class PartitionPipelineTest {
     // Then
     StepVerifier.create(pipeline.start())
                 .expectNextCount(NUM_OF_EXPECTED_EVENTS)
-                .expectTimeout(Duration.ofMillis(100))
+                .expectTimeout(stepVerifierTimeout)
                 .verify();
   }
 
@@ -57,20 +58,14 @@ class PartitionPipelineTest {
     createAccounts(NUM_OF_ACCOUNTS).concatMap(pipeline::publishCommand).subscribe();
 
     // Then
-    StepVerifier.create(pipeline.start())
-                .expectNextCount(NUM_OF_ACCOUNTS)
-                .expectTimeout(Duration.ofMillis(100))
-                .verify();
+    StepVerifier.create(pipeline.start()).expectNextCount(NUM_OF_ACCOUNTS).expectTimeout(stepVerifierTimeout).verify();
 
     // When old pipeline died
     pipeline = createSimplePipeline();
     debitAccounts(NUM_OF_ACCOUNTS).concatMap(pipeline::publishCommand).subscribe();
 
     // Then new pipeline should pick up last state
-    StepVerifier.create(pipeline.start())
-                .expectNextCount(NUM_OF_ACCOUNTS)
-                .expectTimeout(Duration.ofMillis(100))
-                .verify();
+    StepVerifier.create(pipeline.start()).expectNextCount(NUM_OF_ACCOUNTS).expectTimeout(stepVerifierTimeout).verify();
   }
 
   @Test
@@ -79,7 +74,7 @@ class PartitionPipelineTest {
     // Given
     var commandRoute = new CommandRoute("commands", 0, 2);
     var eventRoute = new EventRoute("events");
-    var pipeline = infra.inMemoryPipeline(data.domain(), commandRoute, eventRoute);
+    var pipeline = infra.inMemoryPipeline(data.domain(), commandRoute, eventRoute, pipelineTimeout);
 
     // When
     var cmd = data.createAccountCmd(StateId.of(1), 300);
@@ -96,7 +91,7 @@ class PartitionPipelineTest {
     // Given
     var commandRoute = new CommandRoute("commands", 0, 2);
     var eventRoute = new EventRoute("events");
-    var pipeline = infra.inMemoryPipeline(data.domain(), commandRoute, eventRoute);
+    var pipeline = infra.inMemoryPipeline(data.domain(), commandRoute, eventRoute, pipelineTimeout);
     // When
     var cmd = data.createAccountCmd(StateId.of(0), 300);
     var isInPartition = cmd.meta().isInPartition(commandRoute.partition(), commandRoute.totalPartitions());
@@ -160,7 +155,10 @@ class PartitionPipelineTest {
     createAccounts(numOfAccounts).concatWith(debitAccounts(numOfAccounts))
                                  .concatMap(pipeline::publishCommand)
                                  .subscribe();
-    StepVerifier.create(pipeline.start()).expectNextCount(expectedEventsCount).expectTimeout(timeout).verify();
+    StepVerifier.create(pipeline.start())
+                .expectNextCount(expectedEventsCount)
+                .expectTimeout(stepVerifierTimeout)
+                .verify();
     var lastEvent = pipeline.subscribeToEvents().take(expectedEventsCount).last().block();
 
     // When
@@ -171,7 +169,7 @@ class PartitionPipelineTest {
     var restartedPipeline = createSimplePipeline();
     StepVerifier.create(restartedPipeline.start().doOnNext(System.out::println))
                 .expectNextCount(expectedEventsCount)
-                .expectTimeout(timeout)
+                .expectTimeout(stepVerifierTimeout)
                 .verify();
   }
 
@@ -184,7 +182,7 @@ class PartitionPipelineTest {
     // When
     var createAccounts = requireNonNull(createAccounts(NUM_OF_ACCOUNTS).collectList().block());
     Flux.fromIterable(createAccounts).concatMap(pipeline::publishCommand).subscribe();
-    StepVerifier.create(pipeline.start()).expectNextCount(NUM_OF_ACCOUNTS).expectTimeout(timeout).verify();
+    StepVerifier.create(pipeline.start()).expectNextCount(NUM_OF_ACCOUNTS).expectTimeout(stepVerifierTimeout).verify();
 
     // Then
     Assertions.assertThat(pipeline.isValidCommand(createAccounts.getFirst())).isFalse();
@@ -200,7 +198,10 @@ class PartitionPipelineTest {
     createAccounts(NUM_OF_ACCOUNTS).concatWith(debitAccounts(NUM_OF_ACCOUNTS))
                                    .concatMap(pipeline::publishCommand)
                                    .subscribe();
-    StepVerifier.create(pipeline.start()).expectNextCount(NUM_OF_EXPECTED_EVENTS).expectTimeout(timeout).verify();
+    StepVerifier.create(pipeline.start())
+                .expectNextCount(NUM_OF_EXPECTED_EVENTS)
+                .expectTimeout(stepVerifierTimeout)
+                .verify();
 
     // Then
     var creditCmd = pipeline.subscribeToCommands()
@@ -230,7 +231,10 @@ class PartitionPipelineTest {
   }
 
   private PartitionPipeline createSimplePipeline() {
-    return infra.inMemoryPipeline(data.domain(), new CommandRoute("commands"), new EventRoute("events"));
+    return infra.inMemoryPipeline(data.domain(),
+                                  new CommandRoute("commands"),
+                                  new EventRoute("events"),
+                                  pipelineTimeout);
   }
 
   private Flux<AccountCommand> createAccounts(int n) {
