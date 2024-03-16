@@ -1,4 +1,4 @@
-package io.memoria.reactive.eventsourcing.pipeline;
+package io.memoria.reactive.eventsourcing.pipeline.exceptions;
 
 import io.memoria.atom.eventsourcing.ESException;
 import io.memoria.atom.eventsourcing.event.Event;

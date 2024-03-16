@@ -8,6 +8,7 @@ import io.memoria.atom.eventsourcing.event.Event;
 import io.memoria.atom.eventsourcing.event.EventId;
 import io.memoria.atom.eventsourcing.state.State;
 import io.memoria.atom.eventsourcing.state.StateId;
+import io.memoria.reactive.eventsourcing.pipeline.exceptions.UnexpectedLastEvent;
 import io.memoria.reactive.eventsourcing.stream.Msg;
 import io.memoria.reactive.eventsourcing.stream.MsgStream;
 import io.vavr.control.Option;

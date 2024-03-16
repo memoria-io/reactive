@@ -37,6 +37,8 @@
         <atom.version>21.17.0</atom.version>
         <jsonwebtoken.version>0.11.5</jsonwebtoken.version>
         <sonar.coverage.exclusions>
+            Main.java
+            **/exceptions/*.java
             **/*Exception.java
         </sonar.coverage.exclusions>
     </properties>
