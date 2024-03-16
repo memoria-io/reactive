@@ -34,6 +34,7 @@ public interface MsgStream {
     return new MemMsgStream();
   }
 
+  // nosonar
   static MsgStream inMemory(Map<String, Map<Integer, Many<Msg>>> messages,
                             Map<String, Map<Integer, AtomicReference<Msg>>> last,
                             int historySize) {
