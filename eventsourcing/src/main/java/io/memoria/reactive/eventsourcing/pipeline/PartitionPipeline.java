@@ -87,7 +87,7 @@ public class PartitionPipeline {
   }
 
   public Mono<Event> verifyInitialization() {
-    return msgStream.last(eventRoute.topic(), eventRoute.partition())
+    return msgStream.last(getEventRoute().topic(), getEventRoute().partition())
                     .flatMap(msg -> tryToMono(() -> toEvent(msg)))
                     .flatMap(this::verifyLastEvent);
   }
@@ -134,16 +134,17 @@ public class PartitionPipeline {
   }
 
   public Flux<Event> subscribeToEvents() {
-    return msgStream.sub(eventRoute.topic(), eventRoute.partition()).concatMap(msg -> tryToMono(() -> toEvent(msg)));
+    return msgStream.sub(getEventRoute().topic(), getEventRoute().partition())
+                    .concatMap(msg -> tryToMono(() -> toEvent(msg)));
   }
 
   public Flux<Event> subscribeToEventsUntil(Duration timeout) {
-    return msgStream.subUntil(eventRoute.topic(), eventRoute.partition(), timeout)
+    return msgStream.subUntil(getEventRoute().topic(), getEventRoute().partition(), timeout)
                     .concatMap(msg -> tryToMono(() -> toEvent(msg)));
   }
 
   public Flux<Command> subscribeToCommands() {
-    return msgStream.sub(commandRoute.topic(), commandRoute.partition())
+    return msgStream.sub(getCommandRoute().topic(), getCommandRoute().partition())
                     .concatMap(msg -> tryToMono(() -> toCommand(msg)));
   }
 
@@ -156,9 +157,9 @@ public class PartitionPipeline {
 
       cmd.meta().sagaSource().forEach(sagaSources::add);
       if (aggregates.containsKey(cmd.meta().stateId())) {
-        return tryToMono(() -> domain.decider().apply(aggregates.get(cmd.meta().stateId()), cmd));
+        return tryToMono(() -> getDomain().decider().apply(aggregates.get(cmd.meta().stateId()), cmd));
       } else {
-        return tryToMono(() -> domain.decider().apply(cmd));
+        return tryToMono(() -> getDomain().decider().apply(cmd));
       }
     });
   }
@@ -180,25 +181,25 @@ public class PartitionPipeline {
   }
 
   public Try<Command> toCommand(Msg msg) {
-    return transformer.deserialize(msg.value(), Command.class);
+    return getTransformer().deserialize(msg.value(), Command.class);
   }
 
   public Try<Event> toEvent(Msg msg) {
-    return transformer.deserialize(msg.value(), Event.class);
+    return getTransformer().deserialize(msg.value(), Event.class);
   }
 
   public Try<Msg> toMsg(Event event) {
-    return transformer.serialize(event)
-                      .map(payload -> new Msg(eventRoute.topic(),
-                                              eventRoute.partition(),
-                                              event.meta().eventId().value(),
-                                              payload));
+    return getTransformer().serialize(event)
+                           .map(payload -> new Msg(getEventRoute().topic(),
+                                                   getEventRoute().partition(),
+                                                   event.meta().eventId().value(),
+                                                   payload));
   }
 
   public Try<Msg> toMsg(Command command) {
-    var partition = command.partition(commandRoute.totalPartitions());
+    var partition = command.partition(getCommandRoute().totalPartitions());
     return transformer.serialize(command)
-                      .map(payload -> new Msg(commandRoute.topic(),
+                      .map(payload -> new Msg(getCommandRoute().topic(),
                                               partition,
                                               command.meta().commandId().value(),
                                               payload));

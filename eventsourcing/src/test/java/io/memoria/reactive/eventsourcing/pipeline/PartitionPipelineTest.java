@@ -65,7 +65,10 @@ class PartitionPipelineTest {
     debitAccounts(NUM_OF_ACCOUNTS).concatMap(pipeline::publishCommand).subscribe();
 
     // Then new pipeline should pick up last state
-    StepVerifier.create(pipeline.start()).expectNextCount(NUM_OF_ACCOUNTS).expectTimeout(stepVerifierTimeout).verify();
+    StepVerifier.create(pipeline.start())
+                .expectNextCount(NUM_OF_EXPECTED_EVENTS)
+                .expectTimeout(stepVerifierTimeout)
+                .verify();
   }
 
   @Test
@@ -139,11 +142,6 @@ class PartitionPipelineTest {
     // Then
     Assertions.assertThatThrownBy(() -> pipeline.evolve(invalidEventVersion))
               .isInstanceOf(IllegalArgumentException.class);
-  }
-
-  @Test
-  void saga() {
-
   }
 
   @Test
